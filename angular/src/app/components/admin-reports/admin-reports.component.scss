@@ -17,6 +17,17 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1.5rem;
+  gap: 1rem;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 1.2rem;
+
+    .btn-refresh {
+      align-self: flex-start;
+    }
+  }
 
   .header-content {
     h1 {
@@ -24,6 +35,7 @@
       font-weight: 700;
       color: #fff;
       margin-bottom: 0.35rem;
+      @media (max-width: 768px) { font-size: 1.45rem; }
 
       i {
         margin-right: 0.5rem;
@@ -33,6 +45,7 @@
     p {
       color: #a0aec0;
       font-size: 0.95rem;
+      @media (max-width: 768px) { font-size: 0.85rem; }
     }
   }
 
@@ -46,11 +59,19 @@
 /* Admin Tabs */
 .admin-tabs {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
   margin-bottom: 1.5rem;
-  overflow-x: auto;
+
+  @media (max-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 1.2rem;
+  }
 
   .tab-link {
     display: flex;
@@ -64,6 +85,20 @@
     font-size: 0.95rem;
     transition: all 0.2s ease;
     white-space: nowrap;
+
+    @media (max-width: 768px) {
+      padding: 0.65rem 0.5rem;
+      font-size: 0.8rem;
+      justify-content: center;
+      text-align: center;
+      white-space: normal;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+
+      i {
+        font-size: 0.9rem;
+      }
+    }
 
     &:hover {
       color: #fff;
@@ -105,6 +140,11 @@
   gap: 1rem;
   margin-bottom: 1.5rem;
 
+  @media (max-width: 576px) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
   .stat-card {
     display: flex;
     align-items: center;
@@ -112,6 +152,11 @@
     padding: 1.25rem;
     cursor: pointer;
     transition: transform 0.2s ease, border-color 0.2s ease;
+
+    @media (max-width: 576px) {
+      padding: 0.85rem;
+      gap: 0.6rem;
+    }
 
     &:hover {
       transform: translateY(-3px);
@@ -133,6 +178,14 @@
       font-size: 1.3rem;
       background: rgba(255, 255, 255, 0.08);
       color: #fff;
+      flex-shrink: 0;
+
+      @media (max-width: 576px) {
+        width: 38px;
+        height: 38px;
+        font-size: 1.1rem;
+        border-radius: 8px;
+      }
     }
 
     .card-info {
@@ -144,6 +197,7 @@
         color: #a0aec0;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        @media (max-width: 576px) { font-size: 0.7rem; letter-spacing: 0; }
       }
 
       .card-value {
@@ -151,11 +205,13 @@
         font-weight: 700;
         margin: 0.1rem 0;
         color: #fff;
+        @media (max-width: 576px) { font-size: 1.25rem; }
       }
 
       .card-subtext {
         font-size: 0.78rem;
         color: #718096;
+        @media (max-width: 576px) { font-size: 0.68rem; }
       }
     }
 
@@ -176,10 +232,20 @@
   padding: 1rem 1.25rem;
   margin-bottom: 1.5rem;
 
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+  }
+
   .search-field {
     position: relative;
     flex: 1;
     min-width: 280px;
+
+    @media (max-width: 768px) {
+      min-width: 100%;
+    }
 
     .search-icon {
       position: absolute;
@@ -224,6 +290,17 @@
     align-items: center;
     gap: 1rem;
     flex-wrap: wrap;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      flex-direction: column;
+
+      .filter-group {
+        width: 100%;
+        justify-content: space-between;
+        .select-input { flex: 1; }
+      }
+    }
 
     .filter-group {
       display: flex;
@@ -285,6 +362,104 @@
   .data-table {
     width: 100%;
     border-collapse: collapse;
+
+    @media (max-width: 768px) {
+      display: block;
+
+      thead {
+        display: none;
+      }
+
+      tbody {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+        width: 100%;
+      }
+
+      tr {
+        display: block;
+        padding: 0.9rem;
+        background: rgba(26, 26, 46, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 14px;
+        position: relative;
+
+        td {
+          display: block;
+          width: 100%;
+          padding: 0 !important;
+          border: none !important;
+
+          /* Report ID */
+          &:nth-child(1) {
+            position: absolute;
+            top: 0.85rem;
+            right: 0.85rem;
+            font-size: 0.75rem;
+            color: #818cf8;
+            font-weight: 700;
+            width: auto;
+          }
+
+          /* Comic title & chapter */
+          &:nth-child(2) {
+            margin-bottom: 0.4rem;
+            padding-right: 3rem !important;
+          }
+
+          /* Type badge */
+          &:nth-child(3) {
+            margin-bottom: 0.4rem;
+          }
+
+          /* Description */
+          &:nth-child(4) {
+            margin-bottom: 0.5rem;
+            max-width: 100%;
+
+            .desc-text {
+              white-space: normal;
+            }
+          }
+
+          /* Reporter */
+          &:nth-child(5) {
+            margin-bottom: 0.5rem;
+          }
+
+          /* Status & Created At */
+          &:nth-child(6), &:nth-child(7) {
+            display: inline-block;
+            width: auto;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+          }
+
+          /* Actions */
+          &:nth-child(8) {
+            clear: both;
+            width: 100%;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            padding-top: 0.6rem !important;
+            margin-top: 0.2rem;
+
+            .btn-group {
+              display: flex;
+              width: 100%;
+              justify-content: space-between;
+              gap: 0.5rem;
+
+              .btn-action {
+                flex: 1;
+                height: 38px;
+                justify-content: center;
+              }
+            }
+          }
+        }
+      }
+    }
 
     th {
       text-align: left;
