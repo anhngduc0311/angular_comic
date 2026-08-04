@@ -26,6 +26,9 @@
     <a routerLink="/admin/comments" class="tab-link-btn" title="Trang chuyên Quản lý bình luận">
       <i class="fa-solid fa-comments text-primary"></i> Quản Lý Bình Luận
     </a>
+    <a routerLink="/admin/reports" class="tab-link-btn" title="Trang chuyên Quản lý báo lỗi">
+      <i class="fa-solid fa-triangle-exclamation text-warning"></i> Quản Lý Báo Lỗi
+    </a>
     <button [class.active]="activeTab === 'comics'" (click)="activeTab = 'comics'">
       <i class="fa-solid fa-table-list"></i> Quick Table ({{ comics.length }})
     </button>

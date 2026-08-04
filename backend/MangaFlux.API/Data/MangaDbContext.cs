@@ -18,6 +18,8 @@ namespace MangaFlux.API.Data
         public DbSet<Comment> Comments => Set<Comment>();
         public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
         public DbSet<Notification> Notifications => Set<Notification>();
+        public DbSet<Report> Reports => Set<Report>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

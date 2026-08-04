@@ -1,0 +1,344 @@
+<div class="container admin-reports-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1><i class="fa-solid fa-triangle-exclamation text-gradient"></i> Quản Lý Báo Lỗi Truyện & Chapter</h1>
+      <p>Theo dõi các báo cáo sự cố từ độc giả: Ảnh lỗi, sai thứ tự, chapter trùng, link hỏng hoặc nội dung không phù hợp.</p>
+    </div>
+    <div class="header-actions">
+      <button (click)="loadData()" class="btn btn-secondary btn-refresh" title="Tải lại dữ liệu">
+        <i class="fa-solid fa-rotate" [class.fa-spin]="isLoading"></i> Cập Nhật
+      </button>
+    </div>
+  </div>
+
+  <!-- Admin Sub-Navigation -->
+  <div class="admin-tabs bg-glass">
+    <a routerLink="/admin" class="tab-link">
+      <i class="fa-solid fa-chart-pie"></i> Dashboard Thống Kê
+    </a>
+    <a routerLink="/admin/stories" class="tab-link">
+      <i class="fa-solid fa-book-open"></i> Quản Lý Truyện
+    </a>
+    <a routerLink="/admin/genres" class="tab-link">
+      <i class="fa-solid fa-tags"></i> Quản Lý Thể Loại
+    </a>
+    <a routerLink="/admin/users" class="tab-link">
+      <i class="fa-solid fa-users-gear"></i> Quản Lý Người Dùng
+    </a>
+    <a routerLink="/admin/comments" class="tab-link">
+      <i class="fa-solid fa-comments"></i> Quản Lý Bình Luận
+    </a>
+    <a routerLink="/admin/reports" class="tab-link active">
+      <i class="fa-solid fa-triangle-exclamation text-warning"></i> Quản Lý Báo Lỗi ({{ stats.pending }})
+    </a>
+  </div>
+
+  <!-- Alert Notification -->
+  <div class="alert" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
+    {{ message }}
+  </div>
+
+  <!-- 1. STATS OVERVIEW CARDS -->
+  <div class="stats-grid">
+    <div class="stat-card bg-glass card-total" (click)="selectedStatus = 'ALL'; onFilterChange()">
+      <div class="card-icon">
+        <i class="fa-solid fa-flag"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-label">Tổng Báo Lỗi</span>
+        <h2 class="card-value">{{ stats.total | number }}</h2>
+        <span class="card-subtext">Tất cả báo cáo</span>
+      </div>
+    </div>
+
+    <div class="stat-card bg-glass card-pending" [class.active-filter]="selectedStatus === 'Pending'" (click)="selectedStatus = 'Pending'; onFilterChange()">
+      <div class="card-icon">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-label">Chờ Xử Lý</span>
+        <h2 class="card-value text-warning">{{ stats.pending | number }}</h2>
+        <span class="card-subtext">Cần xem xét ngay</span>
+      </div>
+    </div>
+
+    <div class="stat-card bg-glass card-processing" [class.active-filter]="selectedStatus === 'Processing'" (click)="selectedStatus = 'Processing'; onFilterChange()">
+      <div class="card-icon">
+        <i class="fa-solid fa-spinner"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-label">Đang Xử Lý</span>
+        <h2 class="card-value text-cyan">{{ stats.processing | number }}</h2>
+        <span class="card-subtext">Đang trong tiến trình</span>
+      </div>
+    </div>
+
+    <div class="stat-card bg-glass card-resolved" [class.active-filter]="selectedStatus === 'Resolved'" (click)="selectedStatus = 'Resolved'; onFilterChange()">
+      <div class="card-icon">
+        <i class="fa-solid fa-circle-check"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-label">Đã Xử Lý</span>
+        <h2 class="card-value text-success">{{ stats.resolved | number }}</h2>
+        <span class="card-subtext">Hoàn tất sửa lỗi</span>
+      </div>
+    </div>
+
+    <div class="stat-card bg-glass card-dismissed" [class.active-filter]="selectedStatus === 'Dismissed'" (click)="selectedStatus = 'Dismissed'; onFilterChange()">
+      <div class="card-icon">
+        <i class="fa-solid fa-circle-minus"></i>
+      </div>
+      <div class="card-info">
+        <span class="card-label">Đã Bỏ Qua</span>
+        <h2 class="card-value text-muted">{{ stats.dismissed | number }}</h2>
+        <span class="card-subtext">Lỗi không hợp lệ</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. FILTER & SEARCH BAR -->
+  <div class="filters-bar bg-glass">
+    <div class="search-field">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm" 
+        (keyup.enter)="onSearch()" 
+        placeholder="Tìm theo tên truyện, chapter, người báo, nội dung..." 
+      />
+      <button *ngIf="searchTerm" (click)="searchTerm = ''; onSearch()" class="btn-clear">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="filter-controls">
+      <!-- Status Filter -->
+      <div class="filter-group">
+        <label><i class="fa-solid fa-filter"></i> Trạng thái:</label>
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()" class="select-input">
+          <option value="ALL">Tất cả trạng thái</option>
+          <option value="Pending">Chờ xử lý</option>
+          <option value="Processing">Đang xử lý</option>
+          <option value="Resolved">Đã xử lý</option>
+          <option value="Dismissed">Đã bỏ qua</option>
+        </select>
+      </div>
+
+      <!-- Error Type Filter -->
+      <div class="filter-group">
+        <label><i class="fa-solid fa-bug"></i> Loại lỗi:</label>
+        <select [(ngModel)]="selectedErrorType" (change)="onFilterChange()" class="select-input">
+          <option value="ALL">Tất cả loại lỗi</option>
+          <option *ngFor="let opt of errorTypeOptions" [value]="opt.value">{{ opt.label }}</option>
+        </select>
+      </div>
+
+      <button (click)="resetFilters()" class="btn btn-secondary btn-sm" title="Đặt lại bộ lọc">
+        <i class="fa-solid fa-arrows-rotate"></i> Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. DATA TABLE -->
+  <div class="table-container bg-glass">
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="isLoading">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <p>Đang tải danh sách báo lỗi hệ thống...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="!isLoading && reports.length === 0">
+      <i class="fa-solid fa-shield-cat"></i>
+      <h3>Không tìm thấy báo lỗi nào!</h3>
+      <p>Không có báo cáo lỗi nào phù hợp với điều kiện tìm kiếm hiện tại.</p>
+    </div>
+
+    <!-- Reports Table -->
+    <table class="data-table" *ngIf="!isLoading && reports.length > 0">
+      <thead>
+        <tr>
+          <th style="width: 70px;">ID</th>
+          <th>Thông Tin Truyện / Chapter</th>
+          <th>Loại Lỗi</th>
+          <th>Nội Dung Báo Lỗi</th>
+          <th>Người Báo</th>
+          <th>Trạng Thái</th>
+          <th style="width: 140px;">Thời Gian</th>
+          <th style="width: 150px;" class="text-right">Hành Động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of reports" [class.highlight-pending]="r.status === 'Pending'">
+          <td class="report-id">#{{ r.id }}</td>
+
+          <!-- Comic & Chapter Info -->
+          <td class="comic-cell">
+            <div class="comic-info-box">
+              <a [routerLink]="['/comic', r.comicSlug]" class="comic-title-link" target="_blank" title="Xem truyện">
+                <i class="fa-solid fa-book text-primary"></i> {{ r.comicTitle }}
+              </a>
+              <div class="chapter-badge-info" *ngIf="r.chapterId">
+                <span class="chapter-tag">
+                  Chapter {{ r.chapterNumber }}: {{ r.chapterTitle || 'Không tiêu đề' }}
+                </span>
+                <a [routerLink]="['/read', r.chapterId]" class="link-read" target="_blank" title="Đọc chapter">
+                  <i class="fa-solid fa-eye"></i> xem
+                </a>
+                <a [routerLink]="['/admin/stories', r.comicId, 'chapters']" class="link-edit-ch" title="Sửa chapter admin">
+                  <i class="fa-solid fa-pen-to-square"></i> quản lý chap
+                </a>
+              </div>
+              <div class="chapter-badge-info" *ngIf="!r.chapterId">
+                <span class="comic-tag-only"><i class="fa-solid fa-circle-info"></i> Báo lỗi toàn bộ truyện</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Error Type -->
+          <td>
+            <span class="badge" [ngClass]="getErrorTypeBadgeClass(r.errorType)">
+              {{ r.errorTypeLabel }}
+            </span>
+          </td>
+
+          <!-- Description -->
+          <td class="desc-cell">
+            <p class="desc-text" [title]="r.description || 'Không có mô tả chi tiết'">
+              {{ r.description || '(Không có ghi chú thêm)' }}
+            </p>
+            <div *ngIf="r.adminNotes" class="admin-note-preview">
+              <i class="fa-solid fa-note-sticky text-info"></i> <strong>Ghi chú Admin:</strong> {{ r.adminNotes }}
+            </div>
+          </td>
+
+          <!-- Reporter -->
+          <td>
+            <div class="reporter-info">
+              <img [src]="r.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar-sm" />
+              <div class="reporter-meta">
+                <span class="reporter-name">{{ r.reporterName }}</span>
+                <span class="reporter-role" *ngIf="r.userId"><i class="fa-solid fa-user-check text-success"></i> Thành viên</span>
+                <span class="reporter-role" *ngIf="!r.userId"><i class="fa-solid fa-user-secret text-muted"></i> Ẩn danh</span>
+              </div>
+            </div>
+          </td>
+
+          <!-- Status Badge -->
+          <td>
+            <div class="status-dropdown-wrapper">
+              <span class="status-badge" [ngClass]="getStatusBadgeClass(r.status)">
+                {{ r.statusLabel }}
+              </span>
+            </div>
+          </td>
+
+          <!-- Date -->
+          <td class="date-cell">
+            <span>{{ r.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </td>
+
+          <!-- Actions -->
+          <td class="actions-cell text-right">
+            <div class="btn-group">
+              <button (click)="openDetailModal(r)" class="btn-action btn-detail" title="Xem chi tiết & Ghi chú">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              
+              <button *ngIf="r.status === 'Pending'" (click)="quickUpdateStatus(r, 'Processing')" class="btn-action btn-process" title="Chuyển sang Đang xử lý">
+                <i class="fa-solid fa-spinner"></i>
+              </button>
+
+              <button *ngIf="r.status !== 'Resolved'" (click)="quickUpdateStatus(r, 'Resolved')" class="btn-action btn-resolve" title="Đánh dấu Đã xử lý">
+                <i class="fa-solid fa-check"></i>
+              </button>
+
+              <button (click)="deleteReport(r)" class="btn-action btn-delete" title="Xóa báo lỗi">
+                <i class="fa-solid fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 4. DETAIL & EDIT MODAL -->
+  <div class="modal-backdrop" *ngIf="showDetailModal && selectedReport" (click)="closeDetailModal()">
+    <div class="modal-dialog bg-glass" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2><i class="fa-solid fa-triangle-exclamation text-warning"></i> Chi Tiết Báo Lỗi #{{ selectedReport.id }}</h2>
+        <button class="btn-close" (click)="closeDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="info-group">
+          <label>Truyện Tranh:</label>
+          <div class="val-text">
+            <strong>{{ selectedReport.comicTitle }}</strong> 
+            <a [routerLink]="['/comic', selectedReport.comicSlug]" target="_blank" class="link-external"><i class="fa-solid fa-arrow-up-right-from-square"></i> Xem truyện</a>
+          </div>
+        </div>
+
+        <div class="info-group" *ngIf="selectedReport.chapterId">
+          <label>Chapter Bị Lỗi:</label>
+          <div class="val-text">
+            <span>Chapter {{ selectedReport.chapterNumber }}: {{ selectedReport.chapterTitle || 'Không tiêu đề' }}</span>
+            <a [routerLink]="['/read', selectedReport.chapterId]" target="_blank" class="link-external"><i class="fa-solid fa-eye"></i> Đọc chap này</a>
+            <a [routerLink]="['/admin/stories', selectedReport.comicId, 'chapters']" target="_blank" class="link-external text-primary"><i class="fa-solid fa-gear"></i> Sửa chap</a>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <div class="info-group">
+            <label>Loại Lỗi:</label>
+            <span class="badge" [ngClass]="getErrorTypeBadgeClass(selectedReport.errorType)">{{ selectedReport.errorTypeLabel }}</span>
+          </div>
+
+          <div class="info-group">
+            <label>Người Báo:</label>
+            <span class="val-text">{{ selectedReport.reporterName }} ({{ selectedReport.userId ? 'Thành viên #' + selectedReport.userId : 'Khách' }})</span>
+          </div>
+        </div>
+
+        <div class="info-group">
+          <label>Mô Tả Lỗi Chi Tiết từ Độc Giả:</label>
+          <div class="desc-box bg-dark">
+            {{ selectedReport.description || 'Không có mô tả thêm.' }}
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <div class="form-group">
+          <label for="newStatus">Cập Nhật Trạng Thái:</label>
+          <select id="newStatus" [(ngModel)]="newStatusInput" class="form-control">
+            <option value="Pending">Chờ xử lý (Pending)</option>
+            <option value="Processing">Đang xử lý (Processing)</option>
+            <option value="Resolved">Đã xử lý (Resolved)</option>
+            <option value="Dismissed">Đã bỏ qua (Dismissed)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="adminNotes">Ghi Chú Xử Lý (Dành cho Admin):</label>
+          <textarea 
+            id="adminNotes" 
+            [(ngModel)]="adminNotesInput" 
+            rows="3" 
+            class="form-control" 
+            placeholder="Ví dụ: Đã cập nhật lại link ảnh chapter 5, đã khôi phục trang bị thiếu..."
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button (click)="closeDetailModal()" class="btn btn-secondary">Hủy</button>
+        <button (click)="saveReportDetail()" class="btn btn-primary" [disabled]="isUpdatingStatus">
+          <i class="fa-solid fa-floppy-disk"></i> {{ isUpdatingStatus ? 'Đang lưu...' : 'Lưu Thay Đổi' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

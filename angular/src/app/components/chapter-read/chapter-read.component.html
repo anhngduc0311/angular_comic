@@ -22,6 +22,10 @@
         <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? ['/read', nextChapterId] : null" class="btn btn-secondary btn-sm">
           Chap Sau <i class="fa-solid fa-chevron-right"></i>
         </button>
+
+        <button (click)="openReportModal()" class="btn btn-warning btn-sm btn-report" title="Báo lỗi chapter này">
+          <i class="fa-solid fa-flag"></i> Báo Lỗi
+        </button>
       </div>
     </div>
   </div>
@@ -44,6 +48,9 @@
     <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? ['/read', prevChapterId] : null" class="btn btn-secondary">
       <i class="fa-solid fa-chevron-left"></i> Chap Trước
     </button>
+    <button (click)="openReportModal()" class="btn btn-warning">
+      <i class="fa-solid fa-flag"></i> Báo Lỗi
+    </button>
     <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? ['/read', nextChapterId] : null" class="btn btn-primary">
       Chap Sau <i class="fa-solid fa-chevron-right"></i>
     </button>
@@ -53,4 +60,82 @@
   <button class="btn-float-top" *ngIf="showScrollTop" (click)="scrollToTop()" title="Về đầu trang">
     <i class="fa-solid fa-arrow-up"></i>
   </button>
+
+  <!-- READER REPORT ISSUE MODAL -->
+  <div class="modal-backdrop" *ngIf="showReportModal" (click)="closeReportModal()">
+    <div class="report-modal-dialog bg-glass" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-flag text-warning"></i> Báo Lỗi Chapter</h3>
+        <button class="btn-close" (click)="closeReportModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="comic-chapter-target">
+          <strong>{{ chapter.comicTitle }}</strong> - <span>Chapter {{ chapter.chapterNumber }}: {{ chapter.title }}</span>
+        </div>
+
+        <div class="alert alert-success" *ngIf="reportSuccessMessage">
+          <i class="fa-solid fa-circle-check"></i> {{ reportSuccessMessage }}
+        </div>
+
+        <div class="alert alert-danger" *ngIf="reportErrorMessage">
+          <i class="fa-solid fa-triangle-exclamation"></i> {{ reportErrorMessage }}
+        </div>
+
+        <form (ngSubmit)="submitReport()" *ngIf="!reportSuccessMessage">
+          <div class="form-group">
+            <label>Chọn Loại Sự Cố / Lỗi Gặp Phải:</label>
+            <div class="error-options-grid">
+              <label 
+                *ngFor="let opt of errorTypeOptions" 
+                class="error-option-card"
+                [class.selected]="selectedReportErrorType === opt.value"
+              >
+                <input 
+                  type="radio" 
+                  name="errorType" 
+                  [value]="opt.value" 
+                  [(ngModel)]="selectedReportErrorType"
+                  class="sr-only" 
+                />
+                <i class="fa-solid" [ngClass]="opt.icon"></i>
+                <span>{{ opt.label }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group" *ngIf="!authService.isLoggedIn">
+            <label for="repName">Tên của bạn (Tùy chọn):</label>
+            <input 
+              type="text" 
+              id="repName" 
+              [(ngModel)]="reporterName" 
+              name="reporterName" 
+              class="form-control" 
+              placeholder="Nhập tên hoặc biệt danh..." 
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="repDesc">Chi Tiết Sự Cố (Tùy chọn):</label>
+            <textarea 
+              id="repDesc" 
+              [(ngModel)]="reportDescription" 
+              name="reportDescription" 
+              rows="3" 
+              class="form-control" 
+              placeholder="Ví dụ: Trang 3 ảnh bị lỗi không load được, trang 5 và 6 bị đảo vị trí cho nhau..."
+            ></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button type="button" (click)="closeReportModal()" class="btn btn-secondary">Hủy Bỏ</button>
+            <button type="submit" class="btn btn-primary" [disabled]="isSubmittingReport">
+              <i class="fa-solid fa-paper-plane"></i> {{ isSubmittingReport ? 'Đang gửi...' : 'Gửi Báo Lỗi' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>

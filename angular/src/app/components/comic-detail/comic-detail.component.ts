@@ -39,11 +39,18 @@ export class ComicDetailComponent implements OnInit {
     this.isLoading = true;
     this.comicService.getComicBySlug(slug).subscribe({
       next: (detail) => {
+        if (!detail) {
+          this.router.navigate(['/comic-unavailable']);
+          return;
+        }
         this.comic = detail;
         this.isLoading = false;
         this.checkBookmarkStatus();
       },
-      error: () => (this.isLoading = false)
+      error: () => {
+        this.isLoading = false;
+        this.router.navigate(['/comic-unavailable']);
+      }
     });
   }
 

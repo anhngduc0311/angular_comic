@@ -28,15 +28,16 @@ import { RouterModule } from '@angular/router';
           <a routerLink="/"><i class="fa-solid fa-angle-right"></i> Trang chủ</a>
           <a routerLink="/comics"><i class="fa-solid fa-angle-right"></i> Danh sách truyện</a>
           <a routerLink="/categories"><i class="fa-solid fa-angle-right"></i> Thể loại truyện</a>
+          <a routerLink="/about"><i class="fa-solid fa-angle-right"></i> Giới thiệu MangaFlux</a>
           <a routerLink="/history"><i class="fa-solid fa-angle-right"></i> Lịch sử đọc</a>
         </div>
 
         <div class="footer-links">
-          <h4><i class="fa-solid fa-shield-cat text-accent"></i> Thông Tin</h4>
-          <a href="javascript:void(0)"><i class="fa-solid fa-angle-right"></i> Điều khoản dịch vụ</a>
-          <a href="javascript:void(0)"><i class="fa-solid fa-angle-right"></i> Chính sách bảo mật</a>
-          <a href="javascript:void(0)"><i class="fa-solid fa-angle-right"></i> Khiếu nại bản quyền</a>
-          <a href="javascript:void(0)"><i class="fa-solid fa-angle-right"></i> Liên hệ quảng cáo</a>
+          <h4><i class="fa-solid fa-shield-cat text-accent"></i> Thông Tin & Hỗ Trợ</h4>
+          <a routerLink="/terms"><i class="fa-solid fa-angle-right"></i> Điều khoản dịch vụ</a>
+          <a routerLink="/privacy"><i class="fa-solid fa-angle-right"></i> Chính sách bảo mật</a>
+          <a routerLink="/faq"><i class="fa-solid fa-angle-right"></i> Câu hỏi thường gặp</a>
+          <a routerLink="/contact"><i class="fa-solid fa-angle-right"></i> Liên hệ & Khiếu nại</a>
         </div>
 
         <div class="socials-col">

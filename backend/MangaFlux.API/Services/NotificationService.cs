@@ -30,29 +30,43 @@ namespace MangaFlux.API.Services
 
         public async Task<List<NotificationDto>> GetUserNotificationsAsync(int userId)
         {
-            var notifications = await _context.Notifications
-                .Where(n => n.UserId == userId)
-                .OrderByDescending(n => n.CreatedAt)
-                .Take(50)
-                .ToListAsync();
-
-            return notifications.Select(n => new NotificationDto
+            try
             {
-                Id = n.Id,
-                UserId = n.UserId,
-                Type = n.Type,
-                Title = n.Title,
-                Message = n.Message,
-                Link = n.Link,
-                IsRead = n.IsRead,
-                CreatedAt = n.CreatedAt
-            }).ToList();
+                var notifications = await _context.Notifications
+                    .Where(n => n.UserId == userId)
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(50)
+                    .ToListAsync();
+
+                return notifications.Select(n => new NotificationDto
+                {
+                    Id = n.Id,
+                    UserId = n.UserId,
+                    Type = n.Type,
+                    Title = n.Title,
+                    Message = n.Message,
+                    Link = n.Link,
+                    IsRead = n.IsRead,
+                    CreatedAt = n.CreatedAt
+                }).ToList();
+            }
+            catch
+            {
+                return new List<NotificationDto>();
+            }
         }
 
         public async Task<int> GetUnreadCountAsync(int userId)
         {
-            return await _context.Notifications
-                .CountAsync(n => n.UserId == userId && !n.IsRead);
+            try
+            {
+                return await _context.Notifications
+                    .CountAsync(n => n.UserId == userId && !n.IsRead);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         public async Task<bool> MarkAsReadAsync(int userId, int notificationId)

@@ -17,6 +17,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IComicService, ComicService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IReportService, ReportService>();
 
 // 3. Configure CORS (Allow Angular Frontend)
 builder.Services.AddCors(options =>
@@ -180,6 +181,39 @@ using (var scope = app.Services.CreateScope())
                     [CommentId] INT NOT NULL,
                     [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
                     CONSTRAINT [PK_CommentLikes] PRIMARY KEY CLUSTERED ([Id] ASC)
+                );
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = N'Notifications')
+            BEGIN
+                CREATE TABLE [dbo].[Notifications] (
+                    [Id] INT IDENTITY(1,1) NOT NULL,
+                    [UserId] INT NOT NULL,
+                    [Type] NVARCHAR(MAX) NOT NULL DEFAULT 'AdminSystem',
+                    [Title] NVARCHAR(MAX) NOT NULL DEFAULT '',
+                    [Message] NVARCHAR(MAX) NOT NULL DEFAULT '',
+                    [Link] NVARCHAR(MAX) NULL,
+                    [IsRead] BIT NOT NULL DEFAULT 0,
+                    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                    CONSTRAINT [PK_Notifications] PRIMARY KEY CLUSTERED ([Id] ASC)
+                );
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = N'Reports')
+            BEGIN
+                CREATE TABLE [dbo].[Reports] (
+                    [Id] INT IDENTITY(1,1) NOT NULL,
+                    [ComicId] INT NOT NULL,
+                    [ChapterId] INT NULL,
+                    [UserId] INT NULL,
+                    [ReporterName] NVARCHAR(MAX) NOT NULL DEFAULT '',
+                    [ErrorType] NVARCHAR(MAX) NOT NULL DEFAULT '',
+                    [Description] NVARCHAR(MAX) NULL,
+                    [Status] NVARCHAR(MAX) NOT NULL DEFAULT 'Pending',
+                    [AdminNotes] NVARCHAR(MAX) NULL,
+                    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                    [ResolvedAt] DATETIME2 NULL,
+                    CONSTRAINT [PK_Reports] PRIMARY KEY CLUSTERED ([Id] ASC)
                 );
             END;
         ");
