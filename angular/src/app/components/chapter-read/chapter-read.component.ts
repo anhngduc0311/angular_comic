@@ -23,6 +23,12 @@ export class ChapterReadComponent implements OnInit {
   nextChapterId: number | null = null;
   isLoading: boolean = true;
   showScrollTop: boolean = false;
+  restoredPosition: boolean = false;
+
+  // Preloading & Reading Position states
+  private preloadedChapterId: number | null = null;
+  private preloadedImages: HTMLImageElement[] = [];
+  private saveScrollTimeout: any = null;
 
   // Report Modal States
   showReportModal: boolean = false;
@@ -53,6 +59,16 @@ export class ChapterReadComponent implements OnInit {
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
     this.showScrollTop = window.scrollY > 400;
+
+    // Save scroll position for the current chapter (throttled 300ms)
+    if (this.chapter && window.scrollY > 50) {
+      if (this.saveScrollTimeout) clearTimeout(this.saveScrollTimeout);
+      this.saveScrollTimeout = setTimeout(() => {
+        if (this.chapter) {
+          localStorage.setItem(`mangaflux_scroll_${this.chapter.id}`, window.scrollY.toString());
+        }
+      }, 300);
+    }
   }
 
   @HostListener('window:keydown', ['$event'])
@@ -66,10 +82,12 @@ export class ChapterReadComponent implements OnInit {
 
   fetchChapter(id: number): void {
     this.isLoading = true;
+    this.restoredPosition = false;
+
     this.comicService.getChapterById(id).subscribe({
       next: (detail) => {
         if (!detail) {
-          this.router.navigate(['/comic-unavailable']);
+          this.router.navigate(['/404']);
           return;
         }
         this.chapter = detail;
@@ -77,12 +95,44 @@ export class ChapterReadComponent implements OnInit {
         this.isLoading = false;
         this.calculateNavChapters();
         this.trackHistory();
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        this.restoreReadingPosition(id);
+        this.preloadNextChapter();
       },
       error: () => {
         this.isLoading = false;
-        this.router.navigate(['/comic-unavailable']);
+        this.router.navigate(['/404']);
       }
+    });
+  }
+
+  restoreReadingPosition(chapterId: number): void {
+    const savedScroll = localStorage.getItem(`mangaflux_scroll_${chapterId}`);
+    if (savedScroll && +savedScroll > 150) {
+      setTimeout(() => {
+        window.scrollTo({ top: +savedScroll, behavior: 'instant' });
+        this.restoredPosition = true;
+        setTimeout(() => { this.restoredPosition = false; }, 4000);
+      }, 150);
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }
+
+  preloadNextChapter(): void {
+    if (!this.nextChapterId || this.preloadedChapterId === this.nextChapterId) return;
+
+    this.preloadedChapterId = this.nextChapterId;
+    this.comicService.getChapterById(this.nextChapterId).subscribe({
+      next: (nextChapter) => {
+        if (nextChapter && nextChapter.pages) {
+          this.preloadedImages = nextChapter.pages.map(page => {
+            const img = new Image();
+            img.src = page.imageUrl;
+            return img;
+          });
+        }
+      },
+      error: () => {}
     });
   }
 

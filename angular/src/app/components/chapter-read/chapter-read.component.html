@@ -56,6 +56,13 @@
     </button>
   </div>
 
+  <!-- Restored Position Toast Notification -->
+  <div class="restore-toast bg-glass animate-slide-up" *ngIf="restoredPosition">
+    <i class="fa-solid fa-clock-rotate-left text-primary"></i>
+    <span>Đã tự động khôi phục vị trí đọc dở!</span>
+    <button (click)="scrollToTop()" class="btn-top-shortcut">Về đầu trang</button>
+  </div>
+
   <!-- Floating Scroll To Top Button -->
   <button class="btn-float-top" *ngIf="showScrollTop" (click)="scrollToTop()" title="Về đầu trang">
     <i class="fa-solid fa-arrow-up"></i>

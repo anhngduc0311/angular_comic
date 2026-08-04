@@ -47,9 +47,9 @@ namespace MangaFlux.API.Services
     {
         private readonly MangaDbContext _context;
         private readonly INotificationService _notificationService;
-        private readonly IMemoryCache _cache;
+        private readonly ICacheService _cache;
 
-        public ComicService(MangaDbContext context, INotificationService notificationService, IMemoryCache cache)
+        public ComicService(MangaDbContext context, INotificationService notificationService, ICacheService cache)
         {
             _context = context;
             _notificationService = notificationService;
@@ -59,7 +59,8 @@ namespace MangaFlux.API.Services
         public async Task<List<ComicDto>> GetFeaturedComicsAsync()
         {
             const string cacheKey = "featured_comics_cache";
-            if (_cache.TryGetValue(cacheKey, out List<ComicDto>? cached) && cached != null)
+            var cached = await _cache.GetAsync<List<ComicDto>>(cacheKey);
+            if (cached != null)
             {
                 return cached;
             }
@@ -71,19 +72,29 @@ namespace MangaFlux.API.Services
                 .Select(c => MapToComicDto(c))
                 .ToListAsync();
 
-            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+            await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
             return result;
         }
 
         public async Task<List<ComicDto>> GetLatestComicsAsync(int count = 12)
         {
-            return await _context.Comics
+            string cacheKey = $"latest_comics_cache_{count}";
+            var cached = await _cache.GetAsync<List<ComicDto>>(cacheKey);
+            if (cached != null)
+            {
+                return cached;
+            }
+
+            var result = await _context.Comics
                 .OrderByDescending(c => c.UpdatedAt)
                 .Take(count)
                 .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                 .Include(c => c.Chapters)
                 .Select(c => MapToComicDto(c))
                 .ToListAsync();
+
+            await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(5));
+            return result;
         }
 
         public async Task<List<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy)
@@ -200,8 +211,8 @@ namespace MangaFlux.API.Services
                     {
                         Id = cm.Id,
                         UserId = cm.UserId,
-                        Username = cm.User.Username,
-                        UserAvatar = cm.User.Avatar,
+                        Username = cm.User != null ? cm.User.Username : "Ẩn danh",
+                        UserAvatar = cm.User != null ? cm.User.Avatar : null,
                         ComicId = cm.ComicId,
                         ChapterId = cm.ChapterId,
                         ParentCommentId = cm.ParentCommentId,
@@ -249,8 +260,8 @@ namespace MangaFlux.API.Services
             {
                 Id = chapter.Id,
                 ComicId = chapter.ComicId,
-                ComicTitle = chapter.Comic.Title,
-                ComicSlug = chapter.Comic.Slug,
+                ComicTitle = chapter.Comic?.Title ?? "Truyện Tranh",
+                ComicSlug = chapter.Comic?.Slug ?? "",
                 ChapterNumber = chapter.ChapterNumber,
                 Title = chapter.Title,
                 Views = chapter.Views,
@@ -270,7 +281,8 @@ namespace MangaFlux.API.Services
         public async Task<List<CategoryDto>> GetAllCategoriesAsync()
         {
             const string cacheKey = "all_categories_cache";
-            if (_cache.TryGetValue(cacheKey, out List<CategoryDto>? cached) && cached != null)
+            var cached = await _cache.GetAsync<List<CategoryDto>>(cacheKey);
+            if (cached != null)
             {
                 return cached;
             }
@@ -287,7 +299,7 @@ namespace MangaFlux.API.Services
                 })
                 .ToListAsync();
 
-            _cache.Set(cacheKey, result, TimeSpan.FromMinutes(10));
+            await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(10));
             return result;
         }
 
@@ -650,7 +662,7 @@ namespace MangaFlux.API.Services
 
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
-            _cache.Remove("all_categories_cache");
+            await _cache.RemoveAsync("all_categories_cache");
 
             return new CategoryDto
             {
@@ -679,7 +691,7 @@ namespace MangaFlux.API.Services
             category.ImageUrl = dto.ImageUrl;
 
             await _context.SaveChangesAsync();
-            _cache.Remove("all_categories_cache");
+            await _cache.RemoveAsync("all_categories_cache");
 
             return new CategoryDto
             {
@@ -699,7 +711,7 @@ namespace MangaFlux.API.Services
 
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
-            _cache.Remove("all_categories_cache");
+            await _cache.RemoveAsync("all_categories_cache");
             return true;
         }
 

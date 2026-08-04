@@ -101,8 +101,8 @@ export const routes: Routes = [
   },
   { 
     path: 'comic-unavailable', 
-    loadComponent: () => import('./components/comic-removed/comic-removed.component').then(m => m.ComicRemovedComponent), 
-    title: 'Truyện Không Tồn Tại - MangaFlux' 
+    redirectTo: '/404', 
+    pathMatch: 'full' 
   },
   { 
     path: '404', 

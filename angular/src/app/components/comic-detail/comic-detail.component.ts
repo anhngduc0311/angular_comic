@@ -40,7 +40,7 @@ export class ComicDetailComponent implements OnInit {
     this.comicService.getComicBySlug(slug).subscribe({
       next: (detail) => {
         if (!detail) {
-          this.router.navigate(['/comic-unavailable']);
+          this.router.navigate(['/404']);
           return;
         }
         this.comic = detail;
@@ -49,7 +49,7 @@ export class ComicDetailComponent implements OnInit {
       },
       error: () => {
         this.isLoading = false;
-        this.router.navigate(['/comic-unavailable']);
+        this.router.navigate(['/404']);
       }
     });
   }

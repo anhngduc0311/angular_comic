@@ -30,8 +30,8 @@ namespace MangaFlux.Tests
             await db.SaveChangesAsync();
 
             var mockNotificationService = new Mock<INotificationService>();
-            var cache = new MemoryCache(new MemoryCacheOptions());
-            var comicService = new ComicService(db, mockNotificationService.Object, cache);
+            var mockCache = new Mock<ICacheService>();
+            var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object);
 
             // Act
             var categories = await comicService.GetAllCategoriesAsync();

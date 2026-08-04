@@ -16,8 +16,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<MangaDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Register Application Services, Caching & Exception Handling
-builder.Services.AddMemoryCache();
+// 2. Register Application Services, Distributed Caching & Exception Handling
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+if (!string.IsNullOrEmpty(redisConnectionString))
+{
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName = "MangaFlux_";
+    });
+}
+else
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+
+builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -157,6 +171,25 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"DB Migration notice: {ex.Message}");
+    }
+
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'RefreshToken')
+            BEGIN
+                ALTER TABLE [Users] ADD [RefreshToken] NVARCHAR(MAX) NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'RefreshTokenExpiryTime')
+            BEGIN
+                ALTER TABLE [Users] ADD [RefreshTokenExpiryTime] DATETIME2 NULL;
+            END;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"DB Column Sync notice: {ex.Message}");
     }
 }
 
