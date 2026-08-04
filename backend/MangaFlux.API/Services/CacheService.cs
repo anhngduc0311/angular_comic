@@ -11,6 +11,7 @@ namespace MangaFlux.API.Services
         Task<T?> GetAsync<T>(string key);
         Task SetAsync<T>(string key, T value, TimeSpan? absoluteExpireTime = null);
         Task RemoveAsync(string key);
+        Task<long> IncrementAsync(string key, long value = 1);
     }
 
     public class CacheService : ICacheService
@@ -70,6 +71,22 @@ namespace MangaFlux.API.Services
             catch (Exception ex)
             {
                 _logger.LogWarning($"Cache RemoveAsync notice for key '{key}': {ex.Message}");
+            }
+        }
+
+        public async Task<long> IncrementAsync(string key, long value = 1)
+        {
+            try
+            {
+                var current = await GetAsync<long?>(key) ?? 0;
+                var updated = current + value;
+                await SetAsync(key, updated, TimeSpan.FromDays(30));
+                return updated;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Cache IncrementAsync notice for key '{key}': {ex.Message}");
+                return 0;
             }
         }
     }

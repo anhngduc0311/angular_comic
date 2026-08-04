@@ -133,6 +133,14 @@ namespace MangaFlux.API.Services
 
         public async Task<ComicDetailDto?> GetComicBySlugAsync(string slug)
         {
+            string cacheKey = $"comic_detail_slug_{slug}";
+            var cached = await _cache.GetAsync<ComicDetailDto>(cacheKey);
+            if (cached != null)
+            {
+                _ = _cache.IncrementAsync($"comic_views_count_{cached.Id}");
+                return cached;
+            }
+
             var comic = await _context.Comics
                 .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                 .Include(c => c.Chapters)
@@ -142,11 +150,11 @@ namespace MangaFlux.API.Services
 
             if (comic == null) return null;
 
-            // Increment view count
-            comic.Views += 1;
-            await _context.SaveChangesAsync();
+            _ = _cache.IncrementAsync($"comic_views_count_{comic.Id}");
 
-            return MapToComicDetailDto(comic);
+            var dto = MapToComicDetailDto(comic);
+            await _cache.SetAsync(cacheKey, dto, TimeSpan.FromMinutes(15));
+            return dto;
         }
 
         public async Task<ComicDetailDto?> GetComicByIdAsync(int id)
@@ -229,6 +237,15 @@ namespace MangaFlux.API.Services
 
         public async Task<ChapterDetailDto?> GetChapterByIdAsync(int chapterId)
         {
+            string cacheKey = $"chapter_detail_id_{chapterId}";
+            var cached = await _cache.GetAsync<ChapterDetailDto>(cacheKey);
+            if (cached != null)
+            {
+                _ = _cache.IncrementAsync($"chapter_views_count_{chapterId}");
+                _ = _cache.IncrementAsync($"comic_views_count_{cached.ComicId}");
+                return cached;
+            }
+
             var chapter = await _context.Chapters
                 .Include(ch => ch.Comic)
                 .Include(ch => ch.Pages)
@@ -236,9 +253,8 @@ namespace MangaFlux.API.Services
 
             if (chapter == null) return null;
 
-            // Increment Chapter views
-            chapter.Views += 1;
-            await _context.SaveChangesAsync();
+            _ = _cache.IncrementAsync($"chapter_views_count_{chapterId}");
+            _ = _cache.IncrementAsync($"comic_views_count_{chapter.ComicId}");
 
             var allChapters = await _context.Chapters
                 .Where(ch => ch.ComicId == chapter.ComicId && ch.IsPublic && (ch.PublishedAt == null || ch.PublishedAt <= DateTime.UtcNow))
@@ -256,7 +272,7 @@ namespace MangaFlux.API.Services
                 })
                 .ToListAsync();
 
-            return new ChapterDetailDto
+            var result = new ChapterDetailDto
             {
                 Id = chapter.Id,
                 ComicId = chapter.ComicId,
@@ -276,6 +292,9 @@ namespace MangaFlux.API.Services
                 }).ToList(),
                 AllChapters = allChapters
             };
+
+            await _cache.SetAsync(cacheKey, result, TimeSpan.FromMinutes(30));
+            return result;
         }
 
         public async Task<List<CategoryDto>> GetAllCategoriesAsync()
