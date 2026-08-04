@@ -53,7 +53,7 @@
       <div class="comic-grid" *ngIf="!isLoading">
         <div class="comic-card card-hover" *ngFor="let comic of latestComics">
           <div class="card-cover">
-            <img [src]="comic.coverImage" [alt]="comic.title" />
+            <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" />
             <span class="chapter-badge" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
             <span class="time-badge" *ngIf="comic.latestChapter">{{ formatTimeAgo(comic.latestChapter.createdAt) }}</span>
             <div class="card-overlay">
@@ -89,7 +89,7 @@
       <div class="top-list bg-glass">
         <div class="top-item" *ngFor="let comic of topViewComics; let i = index">
           <span class="rank-num" [class.top-1]="i === 0" [class.top-2]="i === 1" [class.top-3]="i === 2">{{ i + 1 }}</span>
-          <img [src]="comic.coverImage" [alt]="comic.title" class="thumb" />
+          <img [src]="comic.coverImage" [alt]="comic.title" class="thumb" (error)="onImgError($event)" />
           <div class="info">
             <a [routerLink]="['/comic', comic.slug]" class="title" [title]="comic.title">{{ comic.title }}</a>
             <span class="meta"><i class="fa-solid fa-eye text-muted"></i> {{ formatViews(comic.views) }} lượt xem</span>
