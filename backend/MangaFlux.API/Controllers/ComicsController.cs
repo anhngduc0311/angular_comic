@@ -59,7 +59,7 @@ namespace MangaFlux.API.Controllers
                 {
                     Title = comicTitle,
                     Slug = comicSlug,
-                    Description = "Truyện Kiến Trúc Sư Hầm Ngục Cấp Quốc Gia Tiếng Việt bản dịch Full mới nhất.",
+                    Description = $"Truyện {comicTitle} Tiếng Việt bản dịch Full mới nhất.",
                     CoverImage = coverImage,
                     BannerImage = coverImage,
                     Author = "Đang cập nhật",

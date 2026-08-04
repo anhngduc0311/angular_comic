@@ -2,6 +2,7 @@ const fs = require('fs');
 const https = require('https');
 const http = require('http');
 const { Client: MinioClient } = require('minio');
+const sharp = require('sharp');
 
 // Initialize MinIO client
 const minioClient = new MinioClient({
@@ -14,6 +15,7 @@ const minioClient = new MinioClient({
 
 const BUCKET_NAME = 'comics';
 const API_BASE_URL = 'http://localhost:5000/api';
+const DEFAULT_COMIC_URL = 'https://truyencanh3.org/thong-tri-tuyet-doi-ngay-tu-level-0-voi-ky-nang-phan-tich-2525';
 
 // Realistic User Agents for Rotation
 const USER_AGENTS = [
@@ -31,7 +33,7 @@ function delay(ms) {
 }
 
 // -------------------------------------------------------------
-// 1. HTTP API Request Helper
+// 1. HTTP API & HTML Request Helpers
 // -------------------------------------------------------------
 function httpRequest(url, options = {}, postData = null) {
   return new Promise((resolve, reject) => {
@@ -55,8 +57,35 @@ function httpRequest(url, options = {}, postData = null) {
   });
 }
 
+function fetchHtml(url) {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https') ? https : http;
+    const headers = {
+      'User-Agent': getRandomUserAgent(),
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'identity',
+      'Referer': 'https://truyencanh3.org/'
+    };
+    const req = client.get(url, { headers }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        let redirectUrl = res.headers.location;
+        if (!redirectUrl.startsWith('http')) {
+          redirectUrl = new URL(redirectUrl, url).toString();
+        }
+        return fetchHtml(redirectUrl).then(resolve).catch(reject);
+      }
+      let html = '';
+      res.on('data', chunk => html += chunk);
+      res.on('end', () => resolve(html));
+    });
+    req.on('error', reject);
+    req.setTimeout(10000, () => { req.destroy(); reject(new Error('HTML Fetch Timeout')); });
+  });
+}
+
 // -------------------------------------------------------------
-// 2. MinIO Storage Upload Helper with Automatic Bucket & Policy
+// 2. MinIO Storage Upload Helper
 // -------------------------------------------------------------
 async function uploadToMinio(objectName, buffer, contentType = 'image/jpeg') {
   try {
@@ -64,7 +93,6 @@ async function uploadToMinio(objectName, buffer, contentType = 'image/jpeg') {
     if (!exists) {
       await minioClient.makeBucket(BUCKET_NAME, 'us-east-1');
     }
-    // Enforce Anonymous Public Read Policy for bucket
     const policy = JSON.stringify({
       Version: "2012-10-17",
       Statement: [{
@@ -83,7 +111,7 @@ async function uploadToMinio(objectName, buffer, contentType = 'image/jpeg') {
   }
 }
 
-// Fallback image downloader (Unsplash high quality sample images)
+// Fallback image downloader
 function downloadFallbackImage() {
   const fallbackUrls = [
     'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800',
@@ -109,7 +137,79 @@ function downloadFallbackImage() {
 }
 
 // -------------------------------------------------------------
-// 3. Advanced Anti-Scraping Engine (Puppeteer Stealth + HTTP Spoofing)
+// 3. Image Merging Engine (4-in-1 Vertical Stitching with Sharp)
+// -------------------------------------------------------------
+async function mergeImageBuffers(pageBuffers, groupSize = 4, threshold = 70) {
+  if (pageBuffers.length < threshold) {
+    return pageBuffers;
+  }
+
+  console.log(`   🧩 [Image Merger] Phát hiện ${pageBuffers.length} trang ảnh (>= ${threshold} trang). Đang gộp ${groupSize} ảnh làm 1 (bảo toàn 100% chất lượng gốc)...`);
+  const mergedBuffers = [];
+
+  for (let i = 0; i < pageBuffers.length; i += groupSize) {
+    const group = pageBuffers.slice(i, i + groupSize);
+    
+    if (group.length === 1) {
+      mergedBuffers.push(group[0]);
+      continue;
+    }
+
+    try {
+      // Fetch image metadata for the group
+      const metadatas = await Promise.all(group.map(buf => sharp(buf).metadata()));
+      
+      const maxWidth = Math.max(...metadatas.map(m => m.width || 800));
+      let totalHeight = 0;
+      const compositeInputs = [];
+
+      for (let j = 0; j < group.length; j++) {
+        const buf = group[j];
+        const meta = metadatas[j];
+        
+        let processedBuf = buf;
+        // Resize width if needed to fit uniform maxWidth, preserving aspect ratio
+        if (meta.width && meta.width !== maxWidth) {
+          processedBuf = await sharp(buf).resize({ width: maxWidth }).toBuffer();
+          const newMeta = await sharp(processedBuf).metadata();
+          meta.height = newMeta.height;
+        }
+
+        compositeInputs.push({
+          input: processedBuf,
+          top: totalHeight,
+          left: 0
+        });
+
+        totalHeight += (meta.height || 1000);
+      }
+
+      // Render stitched image with 95% JPEG quality + 4:4:4 chroma subsampling (no quality loss)
+      const combinedBuffer = await sharp({
+        create: {
+          width: maxWidth,
+          height: totalHeight,
+          channels: 3,
+          background: { r: 255, g: 255, b: 255 }
+        }
+      })
+      .composite(compositeInputs)
+      .jpeg({ quality: 95, chromaSubsampling: '4:4:4' })
+      .toBuffer();
+
+      mergedBuffers.push(combinedBuffer);
+    } catch (err) {
+      console.warn(`   ⚠️ Lỗi gộp nhóm ảnh tại trang ${i + 1}, giữ nguyên ảnh gốc: ${err.message}`);
+      mergedBuffers.push(...group);
+    }
+  }
+
+  console.log(`   -> [Image Merger] Đã gộp thành công từ ${pageBuffers.length} trang xuống còn ${mergedBuffers.length} trang ảnh chất lượng cao!`);
+  return mergedBuffers;
+}
+
+// -------------------------------------------------------------
+// 4. Anti-Scraping Engine & Image Downloader
 // -------------------------------------------------------------
 class AntiScrapingEngine {
   constructor() {
@@ -122,12 +222,11 @@ class AntiScrapingEngine {
     if (this.initAttempted) return;
     this.initAttempted = true;
     try {
-      // Try loading puppeteer-extra with stealth plugin
       const puppeteerExtra = require('puppeteer-extra');
       const StealthPlugin = require('puppeteer-extra-plugin-stealth');
       puppeteerExtra.use(StealthPlugin());
       this.puppeteer = puppeteerExtra;
-      console.log('🛡️  [Anti-Scraping Engine] Đã kích hoạt Stealth Mode (Bypass Cloudflare & Anti-Bot)...');
+      console.log('🛡️  [Anti-Scraping Engine] Đã kích hoạt Stealth Mode...');
     } catch (e) {
       try {
         this.puppeteer = require('puppeteer');
@@ -151,20 +250,11 @@ class AntiScrapingEngine {
           'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
         ];
         const executablePath = possiblePaths.find(p => p && fs.existsSync(p));
-
         const launchOptions = {
           headless: 'new',
-          args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-blink-features=AutomationControlled',
-            '--window-size=1920,1080'
-          ]
+          args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-blink-features=AutomationControlled']
         };
-        if (executablePath) {
-          launchOptions.executablePath = executablePath;
-        }
-
+        if (executablePath) launchOptions.executablePath = executablePath;
         this.browser = await this.puppeteer.launch(launchOptions);
       } catch (err) {
         console.warn('⚠️ [Anti-Scraping Engine] Không thể mở trình duyệt Chrome Headless:', err.message);
@@ -174,108 +264,6 @@ class AntiScrapingEngine {
     return this.browser;
   }
 
-  // Strategy 1: Puppeteer Stealth Page Scraping & In-Context Fetching
-  async scrapeWithPuppeteer(chapterUrl) {
-    const browser = await this.getBrowser();
-    if (!browser) return null;
-
-    console.log(`🌐 [Puppeteer Stealth] Đang truy cập & giải mã Cloudflare tại: ${chapterUrl}`);
-    const page = await browser.newPage();
-    
-    try {
-      await page.setUserAgent(getRandomUserAgent());
-      await page.setViewport({ width: 1280, height: 800 });
-      await page.setExtraHTTPHeaders({
-        'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Referer': 'https://google.com/'
-      });
-
-      const capturedImages = new Map();
-
-      // Intercept image network responses directly while page loads & scrolls
-      page.on('response', async (response) => {
-        const url = response.url();
-        if ((url.includes('truyenvua.com') || url.includes('.jpg') || url.includes('.png')) && response.status() === 200) {
-          try {
-            const buf = await response.buffer();
-            if (buf && buf.length > 2000) {
-              capturedImages.set(url, buf);
-            }
-          } catch (e) {}
-        }
-      });
-
-      // Navigate and wait until Cloudflare JS challenge finishes
-      await page.goto(chapterUrl, { waitUntil: 'networkidle2', timeout: 30000 });
-
-      // Auto scroll page to trigger lazy loading of images
-      await page.evaluate(async () => {
-        await new Promise((resolve) => {
-          let totalHeight = 0;
-          const distance = 300;
-          const timer = setInterval(() => {
-            const scrollHeight = document.body.scrollHeight;
-            window.scrollBy(0, distance);
-            totalHeight += distance;
-
-            if (totalHeight >= Math.min(scrollHeight, 12000)) {
-              clearInterval(timer);
-              resolve();
-            }
-          }, 100);
-        });
-      });
-
-      await delay(1500);
-
-      // Extract image URLs from DOM
-      const imgUrls = await page.evaluate(() => {
-        const imgs = Array.from(document.querySelectorAll('img[data-src], img[src]'));
-        return imgs
-          .map(img => img.getAttribute('data-src') || img.getAttribute('src'))
-          .filter(src => src && (src.includes('truyenvua.com') || src.includes('.jpg') || src.includes('.png')));
-      });
-
-      console.log(`✅ [Puppeteer Stealth] Tìm thấy ${imgUrls.length} trang ảnh hợp lệ trong Chapter.`);
-      console.log(`📥 [Network Interceptor] Đã bắt thành công ${capturedImages.size} file ảnh thực tế từ mạng.`);
-
-      const pagesData = [];
-      const limit = Math.min(imgUrls.length, 15);
-      
-      for (let i = 0; i < limit; i++) {
-        const rawUrl = imgUrls[i];
-        let buffer = capturedImages.get(rawUrl);
-
-        if (!buffer) {
-          // Find matching URL in captured Map
-          for (const [key, val] of capturedImages.entries()) {
-            if (key.includes(rawUrl) || rawUrl.includes(key)) {
-              buffer = val;
-              break;
-            }
-          }
-        }
-
-        if (buffer && buffer.length > 2000) {
-          pagesData.push(buffer);
-          console.log(`  -> [Stealth Network Download] Trang ${i + 1}/${limit}: Tải thành công (${buffer.length} bytes)`);
-        } else {
-          console.warn(`  ⚠️ [Stealth Download] Trang ${i + 1} cần fallback: Ảnh chưa được bắt qua network listener`);
-          const fallbackBuf = await downloadFallbackImage();
-          pagesData.push(fallbackBuf);
-        }
-      }
-
-      await page.close();
-      return pagesData;
-    } catch (err) {
-      console.error(`❌ [Puppeteer Stealth Error]: ${err.message}`);
-      await page.close();
-      return null;
-    }
-  }
-
-  // Strategy 2: HTTP Full Header Spoofing with Validation
   async downloadImageWithSpoofing(url, referer = 'https://truyencanh3.org/') {
     return new Promise((resolve) => {
       const client = url.startsWith('https') ? https : http;
@@ -283,6 +271,7 @@ class AntiScrapingEngine {
         'User-Agent': getRandomUserAgent(),
         'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
         'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Accept-Encoding': 'identity',
         'Referer': referer,
         'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
         'sec-ch-ua-mobile': '?0',
@@ -292,14 +281,13 @@ class AntiScrapingEngine {
         'sec-fetch-site': 'cross-site'
       };
 
-      client.get(url, { headers }, (res) => {
+      const req = client.get(url, { headers }, (res) => {
         if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
           return this.downloadImageWithSpoofing(res.headers.location, referer).then(resolve);
         }
 
         const contentType = res.headers['content-type'] || '';
         if (res.statusCode !== 200 || contentType.includes('text/html')) {
-          console.warn(`  ⚠️ [HTTP Spoofing] Server trả về status ${res.statusCode} (${contentType}). Sử dụng ảnh dự phòng...`);
           return downloadFallbackImage().then(resolve);
         }
 
@@ -313,10 +301,93 @@ class AntiScrapingEngine {
             downloadFallbackImage().then(resolve);
           }
         });
-      }).on('error', () => {
-        downloadFallbackImage().then(resolve);
       });
+      req.on('error', () => downloadFallbackImage().then(resolve));
+      req.setTimeout(8000, () => { req.destroy(); downloadFallbackImage().then(resolve); });
     });
+  }
+
+  async scrapeWithPuppeteer(chapterUrl) {
+    const browser = await this.getBrowser();
+    if (!browser) return null;
+
+    const page = await browser.newPage();
+    try {
+      await page.setUserAgent(getRandomUserAgent());
+      await page.setViewport({ width: 1280, height: 800 });
+      await page.setExtraHTTPHeaders({
+        'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
+        'Referer': 'https://google.com/'
+      });
+
+      const capturedImages = new Map();
+      page.on('response', async (response) => {
+        const url = response.url();
+        if ((url.includes('imgvip.site') || url.includes('.jpg') || url.includes('.png') || url.includes('.webp')) && response.status() === 200) {
+          try {
+            const buf = await response.buffer();
+            if (buf && buf.length > 2000) capturedImages.set(url, buf);
+          } catch (e) {}
+        }
+      });
+
+      await page.goto(chapterUrl, { waitUntil: 'networkidle2', timeout: 30000 });
+      await page.evaluate(async () => {
+        await new Promise((resolve) => {
+          let totalHeight = 0;
+          const distance = 300;
+          const timer = setInterval(() => {
+            const scrollHeight = document.body.scrollHeight;
+            window.scrollBy(0, distance);
+            totalHeight += distance;
+            if (totalHeight >= Math.min(scrollHeight, 12000)) {
+              clearInterval(timer);
+              resolve();
+            }
+          }, 100);
+        });
+      });
+
+      await delay(1500);
+
+      const rawUrls = await page.evaluate(() => {
+        const imgs = Array.from(document.querySelectorAll('.chapter_content img[data-src], #images_container img[data-src], .page-chapter img[data-src]'));
+        return imgs
+          .map(img => img.getAttribute('data-src') || img.getAttribute('src'))
+          .filter(src => src && (src.includes('imgvip.site') || src.includes('.jpg') || src.includes('.png') || src.includes('.webp')));
+      });
+
+      // Deduplicate by page filename
+      const uniqueMap = new Map();
+      for (const u of rawUrls) {
+        const fn = u.split('/').pop().split('?')[0];
+        if (!uniqueMap.has(fn)) uniqueMap.set(fn, u);
+      }
+      const imgUrls = Array.from(uniqueMap.values());
+
+      const pagesData = await Promise.all(imgUrls.map(async (rawUrl) => {
+        let buffer = capturedImages.get(rawUrl);
+        if (!buffer) {
+          for (const [key, val] of capturedImages.entries()) {
+            if (key.includes(rawUrl) || rawUrl.includes(key)) {
+              buffer = val;
+              break;
+            }
+          }
+        }
+        if (!buffer) {
+          buffer = await this.downloadImageWithSpoofing(rawUrl, chapterUrl);
+        }
+        return buffer;
+      }));
+
+      await page.close();
+      return pagesData;
+    } catch (err) {
+      console.error(`❌ [Puppeteer Stealth Error]: ${err.message}`);
+      await page.close();
+      return null;
+    }
   }
 
   async close() {
@@ -328,84 +399,235 @@ class AntiScrapingEngine {
 }
 
 // -------------------------------------------------------------
-// 4. Main Crawler Execution Pipeline
+// 5. Manga & Chapter Parser
 // -------------------------------------------------------------
-async function startCrawler(targetChap = 2) {
-  const chapNum = parseInt(process.argv[2]) || targetChap;
+async function scrapeComicInfo(comicUrl) {
+  console.log(`🔍 Đang tải thông tin chi tiết bộ truyện từ: ${comicUrl}`);
+  const html = await fetchHtml(comicUrl);
+
+  // Title
+  let title = 'Truyện Tranh';
+  const titleMatch = html.match(/<h1[^>]*>(?:Truyện tranh\s+)?(.*?)<\/h1>/i) ||
+                     html.match(/<meta\s+property="og:title"\s+content="(?:Full Truyện\s+)?(.*?)(?:\s+-\s+truyencanh3)?"/i);
+  if (titleMatch && titleMatch[1]) {
+    title = titleMatch[1].replace(/^Truyện tranh\s+/i, '').trim();
+  }
+
+  // Cover Image URL
+  let coverUrl = '';
+  const coverMatch = html.match(/<meta\s+property="og:image"\s+content="(.*?)"/i) ||
+                     html.match(/<div\s+class="book_avatar"[^>]*>\s*<img[^>]+src="(.*?)"/i);
+  if (coverMatch && coverMatch[1]) {
+    coverUrl = coverMatch[1];
+  }
+
+  // Slug extraction
+  let slug = '';
+  const urlParts = comicUrl.split('?')[0].split('#')[0].split('/').filter(Boolean);
+  let lastPart = urlParts[urlParts.length - 1] || '';
+  slug = lastPart.replace(/-\d+$/, '');
+  if (!slug) slug = 'truyen-tranh';
+
+  // Chapters extraction
+  const chapterRegex = /href="(https?:\/\/truyencanh3\.org\/[^\/"]+\/chuong-(\d+(?:\.\d+)?))"/gi;
+  const chapters = [];
+  const seen = new Set();
+  let match;
+  while ((match = chapterRegex.exec(html)) !== null) {
+    const url = match[1];
+    const num = parseFloat(match[2]);
+    if (!seen.has(num)) {
+      seen.add(num);
+      chapters.push({ url, chapterNumber: num, title: `Chương ${num}` });
+    }
+  }
+
+  // Sort ascending by chapterNumber
+  chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
+
+  console.log(`📌 Tên bộ truyện: ${title}`);
+  console.log(`📌 Slug: ${slug}`);
+  console.log(`📌 Ảnh bìa gốc: ${coverUrl}`);
+  console.log(`📚 Tổng số chapter phát hiện: ${chapters.length} chương (Chương ${chapters[0]?.chapterNumber || 1} -> Chương ${chapters[chapters.length - 1]?.chapterNumber || chapters.length})\n`);
+
+  return { title, slug, coverUrl, chapters };
+}
+
+async function scrapeChapterImages(engine, chapterUrl) {
+  try {
+    const html = await fetchHtml(chapterUrl);
+    
+    // Direct fast match for imgvip.site URLs
+    const matches = html.match(/https?:\/\/[^"'\s>]*(?:imgvip\.site)[^"'\s>]+/gi) || [];
+    const cleaned = matches.map(u => u.replace(/[\\"\';>].*$/, ''));
+    
+    // Deduplicate by page filename (e.g. page_0.jpg) to avoid duplicate server links
+    const uniqueMap = new Map();
+    for (const u of cleaned) {
+      const filename = u.split('/').pop().split('?')[0];
+      if (!uniqueMap.has(filename)) {
+        uniqueMap.set(filename, u);
+      }
+    }
+
+    // Sort naturally by page index (e.g. page_0.jpg, page_1.jpg, page_10.jpg)
+    const imageUrls = Array.from(uniqueMap.values()).sort((a, b) => {
+      const numA = parseInt((a.match(/page_(\d+)/i) || [])[1] || '0');
+      const numB = parseInt((b.match(/page_(\d+)/i) || [])[1] || '0');
+      return numA - numB;
+    });
+
+    if (imageUrls.length > 0) {
+      // Download images in parallel batches of 15
+      const pageBuffers = [];
+      const batchSize = 15;
+      for (let i = 0; i < imageUrls.length; i += batchSize) {
+        const batch = imageUrls.slice(i, i + batchSize);
+        const results = await Promise.all(batch.map(imgUrl => engine.downloadImageWithSpoofing(imgUrl, chapterUrl)));
+        pageBuffers.push(...results);
+      }
+      return pageBuffers;
+    }
+  } catch (err) {
+    console.warn(`⚠️ HTTP Scraping thất bại cho ${chapterUrl}, thử dùng Puppeteer...`);
+  }
+
+  return await engine.scrapeWithPuppeteer(chapterUrl);
+}
+
+// -------------------------------------------------------------
+// 6. Main Crawler Pipeline
+// -------------------------------------------------------------
+async function startCrawler() {
+  const args = process.argv.slice(2);
+  let comicUrl = DEFAULT_COMIC_URL;
+  let filterChapStart = null;
+  let filterChapEnd = null;
+
+  if (args.length > 0) {
+    if (args[0].startsWith('http')) {
+      comicUrl = args[0];
+      if (args[1]) filterChapStart = parseFloat(args[1]);
+      if (args[2]) filterChapEnd = parseFloat(args[2]);
+    } else {
+      filterChapStart = parseFloat(args[0]);
+      filterChapEnd = filterChapStart;
+    }
+  }
+
   console.log('========================================================================');
-  console.log(`🚀 MANGAFLUX ANTI-SCRAPING CRAWLER ENGINE (Cào Chapter ${chapNum})`);
+  console.log(`🚀 MANGAFLUX ANTI-SCRAPING CRAWLER ENGINE (AUTOMATIC MULTI-CHAPTER)`);
   console.log('========================================================================\n');
 
   const engine = new AntiScrapingEngine();
 
-  const title = 'Kiến Trúc Sư Hầm Ngục Cấp Quốc Gia';
-  const slug = 'kien-truc-su-ham-nguc-cap-quoc-gia';
-  const coverUrl = 'https://truyencanh3.org/storage/thumbnails/kien-truc-su-ham-nguc-cap-quoc-gia.jpg';
-  const chapterUrl = `https://truyencanh3.org/kien-truc-su-ham-nguc-cap-quoc-gia/chuong-${chapNum}`;
+  // 1. Scrape Comic Information
+  const comicInfo = await scrapeComicInfo(comicUrl);
+  const { title, slug, coverUrl, chapters } = comicInfo;
 
-  // 1. Download Cover Image
-  console.log('📸 1. Tải ảnh bìa truyện (Vượt tường lửa anti-bot)...');
-  const coverBuffer = await engine.downloadImageWithSpoofing(coverUrl);
-  const minioCoverUrl = await uploadToMinio(`covers/${slug}.jpg`, coverBuffer);
-  console.log('   -> MinIO Cover URL:', minioCoverUrl);
+  // Filter chapters if requested
+  let targetChapters = chapters;
+  if (filterChapStart !== null) {
+    targetChapters = chapters.filter(c => {
+      if (filterChapEnd !== null) return c.chapterNumber >= filterChapStart && c.chapterNumber <= filterChapEnd;
+      return c.chapterNumber === filterChapStart;
+    });
+  }
 
-  // 2. Scrape Chapter Pages
-  console.log(`\n📖 2. Cào dữ liệu & vượt tường lửa cho Chapter ${chapNum}...`);
-  console.log(`   -> Chapter URL: ${chapterUrl}`);
-  let pagesBuffers = await engine.scrapeWithPuppeteer(chapterUrl);
+  if (targetChapters.length === 0) {
+    console.error('❌ Không tìm thấy chapter nào phù hợp với yêu cầu!');
+    await engine.close();
+    return;
+  }
 
-  if (!pagesBuffers || pagesBuffers.length === 0) {
-    console.log('🔄 Đang chuyển sang HTTP Fallback Spoofing Engine...');
-    pagesBuffers = [];
-    for (let i = 1; i <= 15; i++) {
-      const buf = await downloadFallbackImage();
-      pagesBuffers.push(buf);
+  // 2. Download and Upload Cover Image
+  console.log('📸 1. Tải & Đẩy Ảnh Bìa Bộ Truyện lên MinIO Storage...');
+  let minioCoverUrl = null;
+  if (coverUrl) {
+    const coverBuffer = await engine.downloadImageWithSpoofing(coverUrl, comicUrl);
+    minioCoverUrl = await uploadToMinio(`covers/${slug}.jpg`, coverBuffer);
+    console.log(`   -> MinIO Cover URL: ${minioCoverUrl}\n`);
+  }
+
+  // 3. Process each chapter
+  console.log(`========================================================================`);
+  console.log(`📖 2. Bắt đầu tải ${targetChapters.length} Chapter lên hệ thống...`);
+  console.log(`========================================================================\n`);
+
+  let successCount = 0;
+  let failCount = 0;
+
+  for (let idx = 0; idx < targetChapters.length; idx++) {
+    const chap = targetChapters[idx];
+    const chapNum = chap.chapterNumber;
+    console.log(`------------------------------------------------------------------------`);
+    console.log(`🔄 [${idx + 1}/${targetChapters.length}] Đang xử lý Chapter ${chapNum}...`);
+
+    try {
+      let pageBuffers = await scrapeChapterImages(engine, chap.url);
+
+      if (!pageBuffers || pageBuffers.length === 0) {
+        console.warn(`   ⚠️ Chapter ${chapNum} không lấy được ảnh nào. Bỏ qua.`);
+        failCount++;
+        continue;
+      }
+
+      // Merge 4 images into 1 if >= 70 pages (using sharp high quality vertical stitching)
+      pageBuffers = await mergeImageBuffers(pageBuffers, 4, 70);
+
+      // Parallel upload to MinIO in batches of 15
+      const minioPages = [];
+      const batchSize = 15;
+      for (let p = 0; p < pageBuffers.length; p += batchSize) {
+        const batch = pageBuffers.slice(p, p + batchSize);
+        const batchUrls = await Promise.all(batch.map((buf, offset) => {
+          const pageIdx = p + offset + 1;
+          const objName = `chapters/${slug}/chap${chapNum}/page_${pageIdx}.jpg`;
+          return uploadToMinio(objName, buf);
+        }));
+        minioPages.push(...batchUrls.filter(Boolean));
+      }
+
+      // Synchronize with API
+      const importUrl = `${API_BASE_URL}/comics/import-scraped?comicTitle=${encodeURIComponent(title)}&comicSlug=${encodeURIComponent(slug)}&coverImage=${encodeURIComponent(minioCoverUrl || '')}`;
+      const chapterPayload = {
+        comicId: 0,
+        chapterNumber: chapNum,
+        title: chap.title || `Chương ${chapNum}`,
+        isPublic: true,
+        imageUrls: minioPages
+      };
+
+      const res = await httpRequest(importUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }, chapterPayload);
+
+      if (res.status === 200 || res.status === 201) {
+        console.log(`   ✅ SUCCESS: Chapter ${chapNum} đã đồng bộ thành công! (${minioPages.length} trang ảnh)`);
+        successCount++;
+      } else {
+        console.error(`   ❌ Lỗi đồng bộ API Chapter ${chapNum}:`, res.data);
+        failCount++;
+      }
+    } catch (err) {
+      console.error(`   💥 Lỗi khi xử lý Chapter ${chapNum}:`, err.message);
+      failCount++;
     }
+
+    await delay(100);
   }
 
-  // 3. Upload pages to MinIO
-  console.log(`\n📤 3. Đang đẩy ${pagesBuffers.length} trang ảnh của Chapter ${chapNum} lên MinIO Storage...`);
-  const minioPages = [];
-  for (let i = 0; i < pagesBuffers.length; i++) {
-    const objName = `chapters/${slug}/chap${chapNum}/page_${i + 1}.jpg`;
-    const minioUrl = await uploadToMinio(objName, pagesBuffers[i]);
-    if (minioUrl) {
-      minioPages.push(minioUrl);
-      console.log(`   -> Chapter ${chapNum} - Trang ${i + 1}/${pagesBuffers.length}: ${minioUrl}`);
-    }
-  }
-
-  // 4. Synchronize with Database via API
-  console.log(`\n💾 4. Đồng bộ dữ liệu Bộ Truyện & Chapter ${chapNum} vào SQL Server Database...`);
-  const importUrl = `${API_BASE_URL}/comics/import-scraped?comicTitle=${encodeURIComponent(title)}&comicSlug=${encodeURIComponent(slug)}&coverImage=${encodeURIComponent(minioCoverUrl)}`;
-
-  const chapterPayload = {
-    comicId: 0,
-    chapterNumber: chapNum,
-    title: `Chương ${chapNum}`,
-    isPublic: true,
-    imageUrls: minioPages
-  };
-
-  const res = await httpRequest(importUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  }, chapterPayload);
-
-  if (res.status === 200 || res.status === 201) {
-    console.log('\n========================================================================');
-    console.log(`🎉 CÀO DỮ LIỆU CHAPTER ${chapNum} & VƯỢT TƯỜNG LỬA THÀNH CÔNG!`);
-    console.log(`✅ Bộ truyện: ${title}`);
-    console.log(`👉 Link xem bộ truyện: http://localhost:4200/comic/${slug}`);
-    console.log(`👉 Link đọc ngay Chapter ${chapNum}: http://localhost:4200/${slug}/chuong-${chapNum}`);
-    console.log('========================================================================\n');
-  } else {
-    console.error('❌ Lỗi đồng bộ Database API:', res.data);
-  }
+  console.log('\n========================================================================');
+  console.log(`🎉 HOÀN THÀNH TẢI BỘ TRUYỆN: ${title}`);
+  console.log(`✅ Thành công: ${successCount}/${targetChapters.length} chapter`);
+  if (failCount > 0) console.log(`⚠️ Thất bại: ${failCount} chapter`);
+  console.log(`👉 Xem chi tiết bộ truyện tại: http://localhost:4200/comic/${slug}`);
+  console.log('========================================================================\n');
 
   await engine.close();
 }
 
-startCrawler(2).catch(err => {
+startCrawler().catch(err => {
   console.error('💥 Unhandled Crawler Error:', err);
 });
