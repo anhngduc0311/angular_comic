@@ -95,6 +95,60 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAngularApp");
 
+// Auto-add new columns to Comics table if missing
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<MangaDbContext>();
+    try
+    {
+        db.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'IsPublic')
+            BEGIN
+                ALTER TABLE Comics ADD IsPublic BIT NOT NULL DEFAULT 1;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'OtherNames')
+            BEGIN
+                ALTER TABLE Comics ADD OtherNames NVARCHAR(MAX) NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'Artist')
+            BEGIN
+                ALTER TABLE Comics ADD Artist NVARCHAR(MAX) NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'Country')
+            BEGIN
+                ALTER TABLE Comics ADD Country NVARCHAR(MAX) NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'ReleaseYear')
+            BEGIN
+                ALTER TABLE Comics ADD ReleaseYear INT NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Chapters]') AND name = 'IsPublic')
+            BEGIN
+                ALTER TABLE Chapters ADD IsPublic BIT NOT NULL DEFAULT 1;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Chapters]') AND name = 'PublishedAt')
+            BEGIN
+                ALTER TABLE Chapters ADD PublishedAt DATETIME2 NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Categories]') AND name = 'ImageUrl')
+            BEGIN
+                ALTER TABLE Categories ADD ImageUrl NVARCHAR(MAX) NULL;
+            END;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"DB Auto-column update notice: {ex.Message}");
+    }
+}
+
 app.UseAuthentication();
 app.UseAuthorization();
 

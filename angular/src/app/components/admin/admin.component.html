@@ -1,13 +1,27 @@
 <div class="container admin-page">
   <div class="page-header">
-    <h1><i class="fa-solid fa-user-shield text-gradient"></i> Trang Quản Trị Hệ Thống</h1>
-    <p>Quản lý danh sách truyện tranh, thêm mới chapter và phân loại thể loại.</p>
+    <div class="header-content">
+      <h1><i class="fa-solid fa-user-shield text-gradient"></i> Trang Quản Trị Hệ Thống</h1>
+      <p>Tổng quan chỉ số hiệu suất, thống kê lượt đọc, quản lý truyện & chapter.</p>
+    </div>
+    <button (click)="loadDashboardStats()" class="btn btn-secondary btn-sm btn-refresh" title="Làm mới thống kê">
+      <i class="fa-solid fa-rotate" [class.fa-spin]="isLoadingStats"></i> Cập Nhật
+    </button>
   </div>
 
   <!-- Admin Navigation Tabs -->
   <div class="admin-tabs bg-glass">
+    <button [class.active]="activeTab === 'dashboard'" (click)="activeTab = 'dashboard'">
+      <i class="fa-solid fa-chart-pie"></i> Dashboard Thống Kê
+    </button>
+    <a routerLink="/admin/stories" class="tab-link-btn" title="Trang chuyên Quản lý truyện">
+      <i class="fa-solid fa-book-bookmark text-primary"></i> Quản Lý Truyện
+    </a>
+    <a routerLink="/admin/genres" class="tab-link-btn" title="Trang chuyên Quản lý thể loại">
+      <i class="fa-solid fa-tags text-primary"></i> Quản Lý Thể Loại
+    </a>
     <button [class.active]="activeTab === 'comics'" (click)="activeTab = 'comics'">
-      <i class="fa-solid fa-table-list"></i> Danh Sách Truyện ({{ comics.length }})
+      <i class="fa-solid fa-table-list"></i> Quick Table ({{ comics.length }})
     </button>
     <button [class.active]="activeTab === 'add-comic'" (click)="resetComicForm(); activeTab = 'add-comic'">
       <i class="fa-solid fa-plus"></i> {{ comicForm.id > 0 ? 'Chỉnh Sửa Truyện' : 'Thêm Truyện Mới' }}
@@ -23,6 +37,209 @@
   <!-- Alert Message -->
   <div class="alert" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
     {{ message }}
+  </div>
+
+  <!-- TAB 0: DASHBOARD OVERVIEW -->
+  <div class="tab-content dashboard-tab" *ngIf="activeTab === 'dashboard'">
+    <!-- Loading State -->
+    <div class="loading-spinner bg-glass" *ngIf="isLoadingStats">
+      <i class="fa-solid fa-spinner fa-spin"></i>
+      <p>Đang tải dữ liệu thống kê hệ thống...</p>
+    </div>
+
+    <ng-container *ngIf="!isLoadingStats && stats">
+      <!-- 1. STATS OVERVIEW CARDS (4 METRICS) -->
+      <div class="stats-grid">
+        <!-- Card 1: Total Comics -->
+        <div class="stat-card bg-glass card-cyan">
+          <div class="card-icon">
+            <i class="fa-solid fa-book-open"></i>
+          </div>
+          <div class="card-info">
+            <span class="card-label">Tổng Số Truyện</span>
+            <h2 class="card-value">{{ stats.totalComics | number }}</h2>
+            <span class="card-subtext"><i class="fa-solid fa-tags"></i> Tất cả thể loại</span>
+          </div>
+        </div>
+
+        <!-- Card 2: Total Chapters -->
+        <div class="stat-card bg-glass card-purple">
+          <div class="card-icon">
+            <i class="fa-solid fa-layer-group"></i>
+          </div>
+          <div class="card-info">
+            <span class="card-label">Tổng Chapter</span>
+            <h2 class="card-value">{{ stats.totalChapters | number }}</h2>
+            <span class="card-subtext"><i class="fa-solid fa-upload"></i> Cập nhật liên tục</span>
+          </div>
+        </div>
+
+        <!-- Card 3: Total Users -->
+        <div class="stat-card bg-glass card-green">
+          <div class="card-icon">
+            <i class="fa-solid fa-users"></i>
+          </div>
+          <div class="card-info">
+            <span class="card-label">Tổng Người Dùng</span>
+            <h2 class="card-value">{{ stats.totalUsers | number }}</h2>
+            <span class="card-subtext"><i class="fa-solid fa-user-check"></i> Thành viên đăng ký</span>
+          </div>
+        </div>
+
+        <!-- Card 4: Total Views -->
+        <div class="stat-card bg-glass card-orange">
+          <div class="card-icon">
+            <i class="fa-solid fa-eye"></i>
+          </div>
+          <div class="card-info">
+            <span class="card-label">Tổng Lượt Xem</span>
+            <h2 class="card-value">{{ stats.totalViews | number }}</h2>
+            <span class="card-subtext"><i class="fa-solid fa-fire text-warning"></i> Toàn bộ hệ thống</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. BIỂU ĐỒ LƯỢT ĐỌC (READING VIEWS CHART) -->
+      <div class="chart-section bg-glass">
+        <div class="chart-header">
+          <div class="title-wrap">
+            <h3><i class="fa-solid fa-chart-line text-primary"></i> Biểu Đồ Thống Kê Lượt Đọc</h3>
+            <span class="chart-subtitle">Lượt tương tác đọc truyện theo từng ngày</span>
+          </div>
+
+          <div class="chart-badge-info" *ngIf="peakDay">
+            <span class="peak-badge">
+              <i class="fa-solid fa-crown text-warning"></i> Cao nhất: <strong>{{ peakDay.views | number }}</strong> lượt ({{ peakDay.date }})
+            </span>
+          </div>
+        </div>
+
+        <!-- SVG Line & Bar Visual Chart -->
+        <div class="chart-body">
+          <div class="svg-chart-container">
+            <svg viewBox="0 0 600 180" class="svg-chart" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.45"/>
+                  <stop offset="100%" stop-color="#00f2fe" stop-opacity="0.0"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Gridlines -->
+              <line x1="0" y1="30" x2="600" y2="30" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+              <line x1="0" y1="80" x2="600" y2="80" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+              <line x1="0" y1="130" x2="600" y2="130" stroke="rgba(255,255,255,0.06)" stroke-dasharray="4"/>
+
+              <!-- Filled Area -->
+              <path [attr.d]="getSvgAreaPath()" fill="url(#chartGradient)"/>
+
+              <!-- Main Trend Line -->
+              <polyline [attr.points]="getSvgPolylinePoints()" 
+                        fill="none" 
+                        stroke="#00f2fe" 
+                        stroke-width="3.5" 
+                        stroke-linecap="round" 
+                        stroke-linejoin="round"/>
+            </svg>
+
+            <!-- Interactive Bar Columns Overlay -->
+            <div class="chart-bars-overlay">
+              <div *ngFor="let item of stats.readingStats" class="bar-col">
+                <div class="bar-fill-wrap" [title]="item.date + ': ' + item.views + ' lượt xem'">
+                  <div class="bar-fill" [style.height.%]="getBarHeightPercentage(item.views)">
+                    <span class="bar-tooltip">{{ item.views | number }}</span>
+                  </div>
+                </div>
+                <span class="bar-date">{{ item.date }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-footer">
+          <div class="stat-summary">
+            <span><i class="fa-solid fa-chart-column"></i> Trung bình/ngày: <strong>{{ avgDailyViews | number }}</strong> lượt đọc</span>
+            <span><i class="fa-solid fa-calendar-check"></i> Thống kê 7 ngày gần nhất</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. DASHBOARD TWO-COLUMN SECTION -->
+      <div class="dashboard-columns">
+        <!-- LEFT COLUMN: TRUYỆN ĐƯỢC XEM NHIỀU (TOP VIEWED COMICS) -->
+        <div class="dashboard-card bg-glass">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-fire text-gradient"></i> Truyện Được Xem Nhiều</h3>
+            <span class="badge badge-primary">Top 5</span>
+          </div>
+
+          <div class="top-comics-list">
+            <div *ngFor="let comic of stats.topViewedComics; let i = index" class="top-comic-item">
+              <div class="rank-badge" [class.rank-1]="i === 0" [class.rank-2]="i === 1" [class.rank-3]="i === 2">
+                #{{ i + 1 }}
+              </div>
+
+              <div class="comic-thumb">
+                <img [src]="comic.coverImage" [alt]="comic.title" />
+              </div>
+
+              <div class="comic-details">
+                <div class="comic-title-row">
+                  <h4>{{ comic.title }}</h4>
+                  <span class="comic-views"><i class="fa-solid fa-eye"></i> {{ comic.views | number }}</span>
+                </div>
+
+                <div class="comic-meta">
+                  <span class="author" *ngIf="comic.author"><i class="fa-solid fa-user-pen"></i> {{ comic.author }}</span>
+                  <span class="rating"><i class="fa-solid fa-star text-warning"></i> {{ comic.rating }}</span>
+                  <span class="status-pill">{{ comic.status }}</span>
+                </div>
+
+                <!-- Views Progress Bar -->
+                <div class="views-bar-track">
+                  <div class="views-bar-fill" [style.width.%]="getComicViewPercentage(comic.views)"></div>
+                </div>
+              </div>
+
+              <button (click)="editComic(comic)" class="btn btn-secondary btn-sm action-btn" title="Chỉnh sửa">
+                <i class="fa-solid fa-pen"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: CHAPTER MỚI ĐĂNG (RECENTLY PUBLISHED CHAPTERS) -->
+        <div class="dashboard-card bg-glass">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-clock-rotate-left text-primary"></i> Chapter Mới Đăng</h3>
+            <span class="badge badge-secondary">Gần đây</span>
+          </div>
+
+          <div class="recent-chapters-list">
+            <div *ngFor="let ch of stats.recentChapters" class="recent-chapter-item">
+              <div class="chapter-comic-thumb">
+                <img [src]="ch.comicCoverImage || 'assets/images/default-cover.jpg'" [alt]="ch.comicTitle" />
+              </div>
+
+              <div class="chapter-info">
+                <div class="chapter-title-line">
+                  <span class="chapter-number">Ch. {{ ch.chapterNumber }}</span>
+                  <span class="chapter-name">{{ ch.title }}</span>
+                </div>
+                <div class="chapter-comic-name">
+                  <i class="fa-solid fa-book-bookmark text-muted"></i> {{ ch.comicTitle }}
+                </div>
+              </div>
+
+              <div class="chapter-meta">
+                <span class="time-tag"><i class="fa-regular fa-clock"></i> {{ formatTimeAgo(ch.createdAt) }}</span>
+                <span class="views-count"><i class="fa-regular fa-eye"></i> {{ ch.views | number }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </ng-container>
   </div>
 
   <!-- TAB 1: COMICS LIST TABLE -->

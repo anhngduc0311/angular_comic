@@ -3,6 +3,7 @@ export interface Category {
   name: string;
   slug: string;
   description?: string;
+  imageUrl?: string;
   comicCount?: number;
 }
 
@@ -12,6 +13,8 @@ export interface Chapter {
   chapterNumber: number;
   title: string;
   views: number;
+  isPublic?: boolean;
+  publishedAt?: string | null;
   createdAt: string;
 }
 
@@ -36,10 +39,15 @@ export interface Comic {
   coverImage?: string;
   bannerImage?: string;
   author?: string;
+  otherNames?: string;
+  artist?: string;
+  country?: string;
+  releaseYear?: number;
   status: string;
   views: number;
   rating: number;
   isFeatured: boolean;
+  isPublic?: boolean;
   updatedAt: string;
   categories: Category[];
   latestChapter?: Chapter;
@@ -60,3 +68,31 @@ export interface ComicDetail extends Comic {
   chapters: Chapter[];
   comments: Comment[];
 }
+
+export interface RecentChapter {
+  id: number;
+  comicId: number;
+  comicTitle: string;
+  comicSlug: string;
+  comicCoverImage?: string;
+  chapterNumber: number;
+  title: string;
+  views: number;
+  createdAt: string;
+}
+
+export interface DailyViewStat {
+  date: string;
+  views: number;
+}
+
+export interface DashboardStats {
+  totalComics: number;
+  totalChapters: number;
+  totalUsers: number;
+  totalViews: number;
+  topViewedComics: Comic[];
+  recentChapters: RecentChapter[];
+  readingStats: DailyViewStat[];
+}
+

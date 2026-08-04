@@ -9,8 +9,15 @@
         <div class="category-tags">
           <span class="tag" *ngFor="let cat of comic.categories">{{ cat.name }}</span>
         </div>
-        <h1 class="comic-title">{{ comic.title }}</h1>
-        <p class="author"><i class="fa-solid fa-pen-nib text-primary"></i> Tác giả: <strong>{{ comic.author || 'Đang cập nhật' }}</strong></p>
+        <p class="other-names" *ngIf="comic.otherNames"><i class="fa-solid fa-tags text-muted"></i> Tên khác: <span>{{ comic.otherNames }}</span></p>
+        <p class="author">
+          <i class="fa-solid fa-pen-nib text-primary"></i> Tác giả: <strong>{{ comic.author || 'Đang cập nhật' }}</strong>
+          <span *ngIf="comic.artist" style="margin-left: 1rem;"><i class="fa-solid fa-palette text-secondary"></i> Họa sĩ: <strong>{{ comic.artist }}</strong></span>
+        </p>
+        <p class="meta-origin" *ngIf="comic.country || comic.releaseYear">
+          <span *ngIf="comic.country"><i class="fa-solid fa-earth-asia text-info"></i> Quốc gia: <strong>{{ comic.country }}</strong></span>
+          <span *ngIf="comic.releaseYear" style="margin-left: 1rem;"><i class="fa-solid fa-calendar-alt text-warning"></i> Năm phát hành: <strong>{{ comic.releaseYear }}</strong></span>
+        </p>
 
         <div class="stats-row bg-glass">
           <div class="stat"><i class="fa-solid fa-star text-warning"></i> <span>{{ comic.rating }}</span> <label>Đánh giá</label></div>

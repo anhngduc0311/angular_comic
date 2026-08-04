@@ -1,0 +1,286 @@
+<div class="admin-form-container">
+  <!-- Toast Notification -->
+  <div *ngIf="message" class="toast-message" [ngClass]="{'error': isError}">
+    <i class="fas" [ngClass]="isError ? 'fa-exclamation-circle' : 'fa-check-circle'"></i>
+    <span>{{ message }}</span>
+  </div>
+
+  <!-- Header -->
+  <header class="page-header">
+    <div class="header-left">
+      <a routerLink="/admin/stories" class="btn-back">
+        <i class="fas fa-arrow-left"></i> Quay lại
+      </a>
+      <div class="title-group">
+        <h1>
+          <i class="fas" [ngClass]="isEditing ? 'fa-edit' : 'fa-plus-circle'"></i>
+          {{ isEditing ? 'Chỉnh Sửa Bộ Truyện' : 'Thêm Bộ Truyện Mới' }}
+        </h1>
+        <p class="subtitle">Đường dẫn: <code>/admin/stories/create</code></p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/admin/stories" class="btn-cancel">Hủy bỏ</a>
+      <button class="btn-submit" (click)="saveStory()" [disabled]="isSaving || isLoading">
+        <i class="fas" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-save'"></i>
+        <span>{{ isSaving ? 'Đang lưu...' : (isEditing ? 'Cập nhật truyện' : 'Tạo truyện mới') }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="spinner"></div>
+    <p>Đang tải thông tin bộ truyện...</p>
+  </div>
+
+  <!-- Main Form Content -->
+  <div *ngIf="!isLoading" class="form-layout">
+    <!-- Left Column: Core Fields -->
+    <div class="form-main">
+      <!-- Card 1: Basic Information -->
+      <section class="form-card">
+        <h2 class="card-title">
+          <i class="fas fa-info-circle"></i> Thông Tin Cơ Bản
+        </h2>
+        
+        <!-- 1. Tên truyện & 2. Slug -->
+        <div class="form-row grid-2">
+          <div class="form-group required">
+            <label for="title">1. Tên truyện</label>
+            <input 
+              type="text" 
+              id="title" 
+              [(ngModel)]="form.title" 
+              (ngModelChange)="onTitleChange()"
+              placeholder="VD: Đấu La Đại Lục, One Piece..." 
+              required
+            />
+          </div>
+
+          <div class="form-group required">
+            <label for="slug">
+              2. Slug (Đường dẫn tĩnh)
+              <span class="tip" title="Tự động sinh từ tên truyện, có thể tùy chỉnh">(Tự động sinh)</span>
+            </label>
+            <div class="input-with-prefix">
+              <span class="prefix">/comic/</span>
+              <input 
+                type="text" 
+                id="slug" 
+                [(ngModel)]="form.slug" 
+                (input)="onSlugInput()"
+                placeholder="dau-la-dai-luc" 
+                required
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Tên khác -->
+        <div class="form-group">
+          <label for="otherNames">3. Tên khác (Tên gọi phụ, Tên tiếng Anh/Nhật/Trung)</label>
+          <input 
+            type="text" 
+            id="otherNames" 
+            [(ngModel)]="form.otherNames" 
+            placeholder="VD: Soul Land, Douluo Dalu, 斗罗大陆..." 
+          />
+        </div>
+
+        <!-- 5. Tác giả & 6. Họa sĩ -->
+        <div class="form-row grid-2">
+          <div class="form-group">
+            <label for="author">5. Tác giả</label>
+            <input 
+              type="text" 
+              id="author" 
+              [(ngModel)]="form.author" 
+              placeholder="VD: Đường Gia Tam Thiếu, Oda Eiichiro..." 
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="artist">6. Họa sĩ</label>
+            <input 
+              type="text" 
+              id="artist" 
+              [(ngModel)]="form.artist" 
+              placeholder="VD: Chu Hân, Murata Yuusuke..." 
+            />
+          </div>
+        </div>
+
+        <!-- 7. Mô tả -->
+        <div class="form-group">
+          <label for="description">7. Mô tả (Tóm tắt nội dung truyện)</label>
+          <textarea 
+            id="description" 
+            rows="6" 
+            [(ngModel)]="form.description" 
+            placeholder="Nhập nội dung tóm tắt chi tiết bộ truyện..."
+          ></textarea>
+        </div>
+      </section>
+
+      <!-- Card 2: Categories -->
+      <section class="form-card">
+        <h2 class="card-title">
+          <i class="fas fa-tags"></i> 8. Thể loại Truyện
+          <span class="badge-count" *ngIf="form.selectedCategoryIds.length">
+            Đã chọn {{ form.selectedCategoryIds.length }}
+          </span>
+        </h2>
+        <p class="section-desc">Bấm chọn các thể loại phù hợp với bộ truyện này:</p>
+
+        <div class="category-grid">
+          <button 
+            type="button"
+            *ngFor="let cat of categories" 
+            class="cat-chip"
+            [class.active]="isCategorySelected(cat.id)"
+            (click)="toggleCategory(cat.id)"
+          >
+            <i class="fas" [ngClass]="isCategorySelected(cat.id) ? 'fa-check-square' : 'fa-plus'"></i>
+            <span>{{ cat.name }}</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- Card 3: Publishing Details -->
+      <section class="form-card">
+        <h2 class="card-title">
+          <i class="fas fa-globe"></i> Thông Tin Xuất Bản & Trạng Thái
+        </h2>
+
+        <div class="form-row grid-3">
+          <!-- 9. Trạng thái -->
+          <div class="form-group">
+            <label for="status">9. Trạng thái</label>
+            <select id="status" [(ngModel)]="form.status">
+              <option *ngFor="let st of statusOptions" [value]="st.value">{{ st.label }}</option>
+            </select>
+          </div>
+
+          <!-- 10. Quốc gia -->
+          <div class="form-group">
+            <label for="country">10. Quốc gia</label>
+            <select id="country" [(ngModel)]="form.country">
+              <option *ngFor="let c of countryOptions" [value]="c">{{ c }}</option>
+            </select>
+          </div>
+
+          <!-- 11. Năm phát hành -->
+          <div class="form-group">
+            <label for="releaseYear">11. Năm phát hành</label>
+            <input 
+              type="number" 
+              id="releaseYear" 
+              [(ngModel)]="form.releaseYear" 
+              min="1950" 
+              max="2030"
+              placeholder="2026"
+            />
+          </div>
+        </div>
+
+        <!-- Meta Toggles -->
+        <div class="form-toggles">
+          <label class="toggle-control">
+            <input type="checkbox" [(ngModel)]="form.isPublic" />
+            <span class="control-indicator"></span>
+            <span class="control-label">
+              <strong>Công khai (Public)</strong>
+              <small>Cho phép độc giả nhìn thấy truyện trên ứng dụng</small>
+            </span>
+          </label>
+
+          <label class="toggle-control">
+            <input type="checkbox" [(ngModel)]="form.isFeatured" />
+            <span class="control-indicator"></span>
+            <span class="control-label">
+              <strong>Truyện Nổi Bật (Featured)</strong>
+              <small>Hiển thị ở danh sách Hero Slider / Nổi bật trên Trang chủ</small>
+            </span>
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Sidebar: Image Media & Quick Action -->
+    <div class="form-sidebar">
+      <!-- 4. Ảnh bìa Preview -->
+      <section class="form-card media-card">
+        <h2 class="card-title">
+          <i class="fas fa-image"></i> 4. Ảnh Bìa Truyện
+        </h2>
+
+        <div class="cover-preview-box">
+          <img 
+            [src]="form.coverImage || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80'" 
+            alt="Preview Ảnh bìa" 
+            (error)="form.coverImage = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80'"
+          />
+        </div>
+
+        <div class="form-group">
+          <label for="coverImage">URL Ảnh bìa</label>
+          <input 
+            type="text" 
+            id="coverImage" 
+            [(ngModel)]="form.coverImage" 
+            placeholder="https://..." 
+          />
+        </div>
+
+        <button type="button" class="btn-preset" (click)="showPresetModal = true">
+          <i class="fas fa-images"></i> Chọn từ thư viện ảnh mẫu
+        </button>
+
+        <div class="form-group mt-3">
+          <label for="bannerImage">URL Ảnh Banner (Tùy chọn)</label>
+          <input 
+            type="text" 
+            id="bannerImage" 
+            [(ngModel)]="form.bannerImage" 
+            placeholder="https://..." 
+          />
+        </div>
+      </section>
+
+      <!-- Save Box Sticky -->
+      <div class="save-box">
+        <button class="btn-submit-large" (click)="saveStory()" [disabled]="isSaving || isLoading">
+          <i class="fas" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+          <span>{{ isSaving ? 'Đang lưu...' : (isEditing ? 'Cập Nhật Truyện' : 'Tạo Truyện Mới') }}</span>
+        </button>
+        <p class="save-note">Vui lòng kiểm tra kỹ các thông tin trước khi nhấn lưu.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Choose Preset Covers -->
+  <div *ngIf="showPresetModal" class="modal-backdrop" (click)="showPresetModal = false">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fas fa-photo-video"></i> Chọn Ảnh Bìa Gợi Ý</h3>
+        <button class="btn-close" (click)="showPresetModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="preset-gallery">
+          <div 
+            *ngFor="let url of presetCovers" 
+            class="preset-item"
+            [class.selected]="form.coverImage === url"
+            (click)="selectPresetCover(url)"
+          >
+            <img [src]="url" alt="Preset Cover" />
+            <div class="hover-overlay">
+              <i class="fas fa-check"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

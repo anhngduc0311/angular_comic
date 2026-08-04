@@ -12,6 +12,8 @@ namespace MangaFlux.API.Models
         public double ChapterNumber { get; set; }
         public string Title { get; set; } = string.Empty;
         public int Views { get; set; } = 0;
+        public bool IsPublic { get; set; } = true;
+        public DateTime? PublishedAt { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation Properties

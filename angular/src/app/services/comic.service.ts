@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Comic, ComicDetail, Category, ChapterDetail, Comment } from '../models/comic.model';
+import { Comic, ComicDetail, Category, ChapterDetail, Comment, DashboardStats } from '../models/comic.model';
 
 @Injectable({
   providedIn: 'root'
@@ -32,6 +32,10 @@ export class ComicService {
     return this.api.get<ComicDetail>(`comics/${slug}`);
   }
 
+  getComicById(id: number): Observable<ComicDetail> {
+    return this.api.get<ComicDetail>(`admin/comics/${id}`);
+  }
+
   getChapterById(id: number): Observable<ChapterDetail> {
     return this.api.get<ChapterDetail>(`chapters/${id}`);
   }
@@ -45,6 +49,10 @@ export class ComicService {
   }
 
   // Admin Actions
+  getAdminDashboardStats(): Observable<DashboardStats> {
+    return this.api.get<DashboardStats>('admin/stats');
+  }
+
   createComic(data: any): Observable<Comic> {
     return this.api.post<Comic>('admin/comics', data);
   }
@@ -53,11 +61,43 @@ export class ComicService {
     return this.api.put<Comic>(`admin/comics/${id}`, data);
   }
 
+  toggleComicVisibility(id: number): Observable<{ success: boolean; isPublic: boolean }> {
+    return this.api.put<{ success: boolean; isPublic: boolean }>(`admin/comics/${id}/toggle-visibility`, {});
+  }
+
   deleteComic(id: number): Observable<{ success: boolean }> {
     return this.api.delete<{ success: boolean }>(`admin/comics/${id}`);
   }
 
+  getAdminChaptersByComicId(comicId: number): Observable<ChapterDetail[]> {
+    return this.api.get<ChapterDetail[]>(`admin/comics/${comicId}/chapters`);
+  }
+
   addChapter(data: any): Observable<any> {
     return this.api.post<any>('admin/chapters', data);
+  }
+
+  updateChapter(id: number, data: any): Observable<any> {
+    return this.api.put<any>(`admin/chapters/${id}`, data);
+  }
+
+  toggleChapterVisibility(id: number): Observable<{ success: boolean; isPublic: boolean }> {
+    return this.api.put<{ success: boolean; isPublic: boolean }>(`admin/chapters/${id}/toggle-visibility`, {});
+  }
+
+  deleteChapter(id: number): Observable<{ success: boolean }> {
+    return this.api.delete<{ success: boolean }>(`admin/chapters/${id}`);
+  }
+
+  createCategory(data: any): Observable<Category> {
+    return this.api.post<Category>('admin/categories', data);
+  }
+
+  updateCategory(id: number, data: any): Observable<Category> {
+    return this.api.put<Category>(`admin/categories/${id}`, data);
+  }
+
+  deleteCategory(id: number): Observable<{ success: boolean }> {
+    return this.api.delete<{ success: boolean }>(`admin/categories/${id}`);
   }
 }

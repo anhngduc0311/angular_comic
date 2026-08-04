@@ -1,0 +1,202 @@
+<div class="container admin-genres-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1><i class="fa-solid fa-tags text-gradient"></i> Quản Lý Thể Loại Truyện</h1>
+      <p>Quản lý toàn bộ danh mục thể loại, thiết lập slug tự động, ảnh đại diện và mô tả chi tiết.</p>
+    </div>
+    <div class="header-actions">
+      <button (click)="openAddModal()" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Thêm Thể Loại Mới
+      </button>
+    </div>
+  </div>
+
+  <!-- Admin Sub-Navigation -->
+  <div class="admin-tabs bg-glass">
+    <a routerLink="/admin" class="tab-link">
+      <i class="fa-solid fa-chart-pie"></i> Dashboard Thống Kê
+    </a>
+    <a routerLink="/admin/stories" class="tab-link">
+      <i class="fa-solid fa-book-open"></i> Quản Lý Truyện
+    </a>
+    <a routerLink="/admin/genres" class="tab-link active">
+      <i class="fa-solid fa-tags"></i> Quản Lý Thể Loại ({{ filteredGenres.length }})
+    </a>
+  </div>
+
+  <!-- Alert Notification -->
+  <div class="alert" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
+    <i class="fa-solid" [class.fa-circle-check]="!isError" [class.fa-triangle-exclamation]="isError"></i>
+    {{ message }}
+  </div>
+
+  <!-- Search & Filter Bar -->
+  <div class="filters-bar bg-glass">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text"
+             [(ngModel)]="searchTerm"
+             (input)="applyFilters()"
+             placeholder="Tìm theo tên thể loại, slug, mô tả..." />
+      <button *ngIf="searchTerm" (click)="searchTerm = ''; applyFilters()" class="clear-btn">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="filters-group">
+      <div class="filter-item">
+        <label><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp Xếp:</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="name">Tên thể loại (A - Z)</option>
+          <option value="comicCount">Số lượng truyện (Nhiều -> Ít)</option>
+          <option value="id">ID (Mới -> Cũ)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-box bg-glass" *ngIf="isLoading">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <p>Đang tải danh sách thể loại...</p>
+  </div>
+
+  <!-- Genre Cards Grid -->
+  <div class="genres-grid-container" *ngIf="!isLoading">
+    <!-- Empty State -->
+    <div class="empty-state bg-glass" *ngIf="filteredGenres.length === 0">
+      <i class="fa-solid fa-folder-open"></i>
+      <h3>Không tìm thấy thể loại nào</h3>
+      <p>Thử thay đổi từ khóa tìm kiếm hoặc bấm nút "Thêm Thể Loại Mới" để tạo mới.</p>
+      <button (click)="openAddModal()" class="btn btn-primary btn-sm">
+        <i class="fa-solid fa-plus"></i> Thêm Thể Loại Ngay
+      </button>
+    </div>
+
+    <div class="genres-grid" *ngIf="filteredGenres.length > 0">
+      <div *ngFor="let genre of filteredGenres" class="genre-card bg-glass">
+        <div class="card-cover">
+          <img [src]="genre.imageUrl || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80'" [alt]="genre.name" />
+          <div class="cover-gradient"></div>
+          <span class="comic-count-badge">
+            <i class="fa-solid fa-book"></i> {{ genre.comicCount || 0 }} truyện
+          </span>
+        </div>
+
+        <div class="card-body">
+          <div class="genre-header">
+            <h3 class="genre-name">{{ genre.name }}</h3>
+            <span class="genre-slug-tag">/{{ genre.slug }}</span>
+          </div>
+
+          <p class="genre-desc">
+            {{ genre.description || 'Chưa có mô tả chi tiết cho thể loại này.' }}
+          </p>
+
+          <div class="card-actions">
+            <a [routerLink]="['/categories']" [queryParams]="{ category: genre.slug }" class="btn btn-icon btn-view" title="Xem danh sách truyện">
+              <i class="fa-solid fa-eye"></i> Xem Truyện
+            </a>
+            <button (click)="openEditModal(genre)" class="btn btn-icon btn-edit" title="Chỉnh sửa thể loại">
+              <i class="fa-solid fa-pen-to-square"></i> Sửa
+            </button>
+            <button (click)="deleteGenre(genre)" class="btn btn-icon btn-delete" title="Xóa thể loại">
+              <i class="fa-solid fa-trash-can"></i> Xóa
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL: CREATE / EDIT GENRE FORM MODAL
+     ========================================================================== -->
+<div class="modal-overlay" *ngIf="showFormModal" (click)="closeFormModal()">
+  <div class="modal-card bg-glass genre-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="fa-solid" [class.fa-plus]="!isEditing" [class.fa-pen-to-square]="isEditing"></i>
+        {{ isEditing ? 'Chỉnh Sửa Thể Loại' : 'Thêm Thể Loại Mới' }}
+      </h3>
+      <button (click)="closeFormModal()" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <form (ngSubmit)="saveGenre()" class="admin-form">
+      <div class="modal-body">
+        <div class="form-grid">
+          <!-- Name Input -->
+          <div class="form-group full-width">
+            <label>Tên Thể Loại *</label>
+            <input type="text"
+                   [(ngModel)]="genreForm.name"
+                   (input)="onNameChange()"
+                   name="name"
+                   required
+                   placeholder="Ví dụ: Action, Hành Động, Romance..." />
+          </div>
+
+          <!-- Slug Input -->
+          <div class="form-group full-width">
+            <label>
+              Slug Thể Loại (Đường dẫn URL) *
+              <small class="slug-status" *ngIf="!isCustomSlug && !isEditing">(Tự động tạo)</small>
+            </label>
+            <div class="slug-input-wrap">
+              <span class="slug-prefix">/categories?category=</span>
+              <input type="text"
+                     [(ngModel)]="genreForm.slug"
+                     (input)="isCustomSlug = true"
+                     name="slug"
+                     required
+                     placeholder="hanh-dong" />
+            </div>
+          </div>
+
+          <!-- Description Textarea -->
+          <div class="form-group full-width">
+            <label>Mô tả chi tiết</label>
+            <textarea [(ngModel)]="genreForm.description"
+                      name="description"
+                      rows="3"
+                      placeholder="Nhập mô tả tóm tắt ý nghĩa của thể loại này..."></textarea>
+          </div>
+
+          <!-- Image / Avatar Section -->
+          <div class="form-group full-width">
+            <label>URL Ảnh Đại Diện / Ảnh Bìa Thể Loại</label>
+            <input type="text"
+                   [(ngModel)]="genreForm.imageUrl"
+                   name="imageUrl"
+                   placeholder="https://..." />
+          </div>
+
+          <!-- Preset Gallery Selection -->
+          <div class="form-group full-width">
+            <label class="section-label">Hoặc chọn từ kho ảnh bìa mẫu:</label>
+            <div class="preset-grid">
+              <div *ngFor="let preset of presetGenreImages"
+                   class="preset-item"
+                   [class.active]="genreForm.imageUrl === preset"
+                   (click)="selectPresetImage(preset)">
+                <img [src]="preset" alt="Preset Avatar" />
+                <div class="check-overlay" *ngIf="genreForm.imageUrl === preset">
+                  <i class="fa-solid fa-circle-check"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" (click)="closeFormModal()" class="btn btn-secondary">Hủy Bỏ</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-floppy-disk"></i> {{ isEditing ? 'Cập Nhật Thể Loại' : 'Tạo Thể Loại Mới' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -9,7 +9,16 @@ namespace MangaFlux.API.DTOs
         public string Name { get; set; } = string.Empty;
         public string Slug { get; set; } = string.Empty;
         public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
         public int ComicCount { get; set; }
+    }
+
+    public class CategoryCreateUpdateDto
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Slug { get; set; }
+        public string? Description { get; set; }
+        public string? ImageUrl { get; set; }
     }
 
     public class ComicDto
@@ -21,10 +30,15 @@ namespace MangaFlux.API.DTOs
         public string? CoverImage { get; set; }
         public string? BannerImage { get; set; }
         public string? Author { get; set; }
+        public string? OtherNames { get; set; }
+        public string? Artist { get; set; }
+        public string? Country { get; set; }
+        public int? ReleaseYear { get; set; }
         public string Status { get; set; } = "Ongoing";
         public int Views { get; set; }
         public decimal Rating { get; set; }
         public bool IsFeatured { get; set; }
+        public bool IsPublic { get; set; } = true;
         public DateTime UpdatedAt { get; set; }
         public List<CategoryDto> Categories { get; set; } = new();
         public ChapterDto? LatestChapter { get; set; }
@@ -39,12 +53,18 @@ namespace MangaFlux.API.DTOs
     public class ComicCreateUpdateDto
     {
         public string Title { get; set; } = string.Empty;
+        public string? Slug { get; set; }
         public string? Description { get; set; }
         public string? CoverImage { get; set; }
         public string? BannerImage { get; set; }
         public string? Author { get; set; }
+        public string? OtherNames { get; set; }
+        public string? Artist { get; set; }
+        public string? Country { get; set; }
+        public int? ReleaseYear { get; set; }
         public string Status { get; set; } = "Ongoing";
         public bool IsFeatured { get; set; }
+        public bool IsPublic { get; set; } = true;
         public List<int> CategoryIds { get; set; } = new();
     }
 
@@ -55,6 +75,8 @@ namespace MangaFlux.API.DTOs
         public double ChapterNumber { get; set; }
         public string Title { get; set; } = string.Empty;
         public int Views { get; set; }
+        public bool IsPublic { get; set; } = true;
+        public DateTime? PublishedAt { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 
@@ -78,6 +100,17 @@ namespace MangaFlux.API.DTOs
         public int ComicId { get; set; }
         public double ChapterNumber { get; set; }
         public string Title { get; set; } = string.Empty;
+        public bool IsPublic { get; set; } = true;
+        public DateTime? PublishedAt { get; set; }
+        public List<string> ImageUrls { get; set; } = new();
+    }
+
+    public class ChapterUpdateDto
+    {
+        public double ChapterNumber { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public bool IsPublic { get; set; } = true;
+        public DateTime? PublishedAt { get; set; }
         public List<string> ImageUrls { get; set; } = new();
     }
 
@@ -103,4 +136,35 @@ namespace MangaFlux.API.DTOs
         public int? ParentCommentId { get; set; }
         public string Content { get; set; } = string.Empty;
     }
+
+    public class RecentChapterDto
+    {
+        public int Id { get; set; }
+        public int ComicId { get; set; }
+        public string ComicTitle { get; set; } = string.Empty;
+        public string ComicSlug { get; set; } = string.Empty;
+        public string? ComicCoverImage { get; set; }
+        public double ChapterNumber { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int Views { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class DailyViewStatDto
+    {
+        public string Date { get; set; } = string.Empty;
+        public int Views { get; set; }
+    }
+
+    public class DashboardStatsDto
+    {
+        public int TotalComics { get; set; }
+        public int TotalChapters { get; set; }
+        public int TotalUsers { get; set; }
+        public int TotalViews { get; set; }
+        public List<ComicDto> TopViewedComics { get; set; } = new();
+        public List<RecentChapterDto> RecentChapters { get; set; } = new();
+        public List<DailyViewStatDto> ReadingStats { get; set; } = new();
+    }
 }
+

@@ -12,10 +12,15 @@ namespace MangaFlux.API.Models
         public string? CoverImage { get; set; }
         public string? BannerImage { get; set; }
         public string? Author { get; set; }
+        public string? OtherNames { get; set; }
+        public string? Artist { get; set; }
+        public string? Country { get; set; }
+        public int? ReleaseYear { get; set; }
         public string Status { get; set; } = "Ongoing"; // "Ongoing", "Completed"
         public int Views { get; set; } = 0;
         public decimal Rating { get; set; } = 5.0m;
         public bool IsFeatured { get; set; } = false;
+        public bool IsPublic { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 

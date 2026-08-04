@@ -1,0 +1,327 @@
+<div class="container admin-stories-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1><i class="fa-solid fa-book-bookmark text-gradient"></i> Quản Lý Danh Sách Truyện Tranh</h1>
+      <p>Quản lý chi tiết toàn bộ kho truyện, tìm kiếm, chỉnh sửa, tải ảnh bìa và phân quyền hiển thị.</p>
+    </div>
+    <div class="header-actions">
+      <a routerLink="/admin/stories/create" class="btn btn-primary">
+        <i class="fa-solid fa-plus"></i> Thêm Truyện Mới
+      </a>
+    </div>
+  </div>
+
+  <!-- Admin Sub-Navigation -->
+  <div class="admin-tabs bg-glass">
+    <a routerLink="/admin" class="tab-link">
+      <i class="fa-solid fa-chart-pie"></i> Dashboard Thống Kê
+    </a>
+    <a routerLink="/admin/stories" class="tab-link active">
+      <i class="fa-solid fa-book-open"></i> Quản Lý Truyện ({{ filteredComics.length }})
+    </a>
+    <a routerLink="/admin/genres" class="tab-link">
+      <i class="fa-solid fa-tags"></i> Quản Lý Thể Loại
+    </a>
+  </div>
+
+  <!-- Alert Message -->
+  <div class="alert" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
+    {{ message }}
+  </div>
+
+  <!-- Search & Filters Bar -->
+  <div class="filters-bar bg-glass">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text" 
+             [(ngModel)]="searchTerm" 
+             (input)="applyFilters()" 
+             placeholder="Tìm theo tên truyện, tác giả..." />
+      <button *ngIf="searchTerm" (click)="searchTerm = ''; applyFilters()" class="clear-btn">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="filters-group">
+      <!-- Status Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-signal"></i> Trạng Thái:</label>
+        <select [(ngModel)]="selectedStatus" (change)="applyFilters()">
+          <option value="All">Tất cả trạng thái</option>
+          <option value="Ongoing">Đang tiến hành</option>
+          <option value="Completed">Hoàn thành</option>
+        </select>
+      </div>
+
+      <!-- Visibility Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-eye"></i> Hiển Thị:</label>
+        <select [(ngModel)]="selectedVisibility" (change)="applyFilters()">
+          <option value="All">Tất cả (Công khai & Ẩn)</option>
+          <option value="Public">Công khai</option>
+          <option value="Hidden">Đang ẩn</option>
+        </select>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-folder-tree"></i> Thể Loại:</label>
+        <select [(ngModel)]="selectedCategory" (change)="applyFilters()">
+          <option value="All">Tất cả thể loại</option>
+          <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+        </select>
+      </div>
+
+      <!-- Sort By -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp Xếp:</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="latest">Mới cập nhật</option>
+          <option value="views">Lượt xem nhiều nhất</option>
+          <option value="rating">Đánh giá cao nhất</option>
+          <option value="title">Tên A-Z</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-box bg-glass" *ngIf="isLoading">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <p>Đang tải danh sách truyện tranh...</p>
+  </div>
+
+  <!-- Comics Table Section -->
+  <div class="table-container bg-glass" *ngIf="!isLoading">
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredComics.length === 0">
+      <i class="fa-solid fa-folder-open"></i>
+      <h3>Không tìm thấy truyện phù hợp</h3>
+      <p>Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn.</p>
+      <button (click)="searchTerm = ''; selectedStatus = 'All'; selectedVisibility = 'All'; selectedCategory = 'All'; applyFilters()" class="btn btn-secondary btn-sm">
+        <i class="fa-solid fa-arrow-rotate-left"></i> Đặt lại bộ lọc
+      </button>
+    </div>
+
+    <!-- Table -->
+    <table class="admin-table" *ngIf="filteredComics.length > 0">
+      <thead>
+        <tr>
+          <th style="width: 50px;">ID</th>
+          <th style="width: 80px;">Ảnh Bìa</th>
+          <th>Thông Tin Bộ Truyện</th>
+          <th>Thể Loại</th>
+          <th>Trạng Thái</th>
+          <th>Lượt Xem</th>
+          <th>Hiển Thị</th>
+          <th style="width: 140px; text-align: right;">Hành Động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let comic of filteredComics">
+          <td>#{{ comic.id }}</td>
+          <td>
+            <div class="cover-thumb-wrap" (click)="openCoverManager(comic)" title="Bấm để đổi ảnh bìa">
+              <img [src]="comic.coverImage || 'assets/images/default-cover.jpg'" [alt]="comic.title" class="table-cover" />
+              <div class="cover-hover-icon">
+                <i class="fa-solid fa-camera"></i>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="comic-info-cell">
+              <strong class="comic-title">{{ comic.title }}</strong>
+              <span class="comic-author" *ngIf="comic.author"><i class="fa-solid fa-user-pen"></i> {{ comic.author }}</span>
+              <div class="comic-badges">
+                <span class="badge badge-featured" *ngIf="comic.isFeatured"><i class="fa-solid fa-star"></i> Hero Slide</span>
+                <span class="rating-tag"><i class="fa-solid fa-star text-warning"></i> {{ comic.rating }}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="category-tags">
+              <span *ngFor="let cat of comic.categories" class="cat-tag">{{ cat.name }}</span>
+              <span *ngIf="!comic.categories.length" class="text-muted font-italic">Chưa xếp loại</span>
+            </div>
+          </td>
+          <td>
+            <span class="status-badge" [class.status-ongoing]="comic.status === 'Ongoing'" [class.status-completed]="comic.status === 'Completed'">
+              {{ comic.status === 'Ongoing' ? 'Đang tiến hành' : 'Hoàn thành' }}
+            </span>
+          </td>
+          <td>
+            <div class="views-cell">
+              <span class="views-count"><i class="fa-solid fa-eye"></i> {{ comic.views | number }}</span>
+            </div>
+          </td>
+          <td>
+            <!-- Toggle Visibility Switch -->
+            <button class="visibility-btn" 
+                    [class.is-public]="comic.isPublic !== false" 
+                    [class.is-hidden]="comic.isPublic === false"
+                    (click)="toggleVisibility(comic)" 
+                    [title]="comic.isPublic !== false ? 'Bấm để ẩn truyện' : 'Bấm để công khai truyện'">
+              <i class="fa-solid" [class.fa-eye]="comic.isPublic !== false" [class.fa-eye-slash]="comic.isPublic === false"></i>
+              {{ comic.isPublic !== false ? 'Công khai' : 'Đang ẩn' }}
+            </button>
+          </td>
+          <td style="text-align: right;">
+            <div class="actions-group">
+              <a [routerLink]="['/admin/stories', comic.id, 'chapters']" class="btn btn-icon btn-chapters" title="Quản lý Chapter">
+                <i class="fa-solid fa-list-ol"></i>
+              </a>
+              <button (click)="openCoverManager(comic)" class="btn btn-icon btn-cover" title="Quản lý ảnh bìa">
+                <i class="fa-solid fa-image"></i>
+              </button>
+              <a [routerLink]="['/admin/stories/edit', comic.id]" class="btn btn-icon btn-edit" title="Chỉnh sửa truyện">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </a>
+              <button (click)="deleteComic(comic)" class="btn btn-icon btn-delete" title="Xóa truyện">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL 1: CREATE / EDIT COMIC MODAL
+     ========================================================================== -->
+<div class="modal-overlay" *ngIf="showFormModal" (click)="closeFormModal()">
+  <div class="modal-card bg-glass" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="fa-solid" [class.fa-plus]="!isEditing" [class.fa-pen-to-square]="isEditing"></i>
+        {{ isEditing ? 'Chỉnh Sửa Bộ Truyện' : 'Thêm Truyện Tranh Mới' }}
+      </h3>
+      <button (click)="closeFormModal()" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <form (ngSubmit)="saveComic()" class="admin-form">
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>Tên truyện *</label>
+            <input type="text" [(ngModel)]="comicForm.title" name="title" required placeholder="Nhập tên truyện..." />
+          </div>
+
+          <div class="form-group">
+            <label>Tác giả</label>
+            <input type="text" [(ngModel)]="comicForm.author" name="author" placeholder="Nhập tên tác giả..." />
+          </div>
+
+          <div class="form-group">
+            <label>Trạng thái</label>
+            <select [(ngModel)]="comicForm.status" name="status">
+              <option value="Ongoing">Đang tiến hành</option>
+              <option value="Completed">Hoàn thành</option>
+            </select>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Mô tả nội dung</label>
+            <textarea [(ngModel)]="comicForm.description" name="description" rows="4" placeholder="Nhập tóm tắt nội dung truyện..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label>URL Ảnh Bìa (Cover Image)</label>
+            <input type="text" [(ngModel)]="comicForm.coverImage" name="coverImage" placeholder="https://..." />
+          </div>
+
+          <div class="form-group">
+            <label>URL Ảnh Banner (Hero Header)</label>
+            <input type="text" [(ngModel)]="comicForm.bannerImage" name="bannerImage" placeholder="https://..." />
+          </div>
+
+          <div class="form-group checkbox-row full-width">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="comicForm.isFeatured" name="isFeatured" /> 
+              <span><i class="fa-solid fa-star text-warning"></i> Đặt làm Truyện Nổi Bật (Hero Slide Trang Chủ)</span>
+            </label>
+
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="comicForm.isPublic" name="isPublic" /> 
+              <span><i class="fa-solid fa-eye text-primary"></i> Công khai cho người dùng đọc (Bỏ chọn để Ẩn)</span>
+            </label>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Thể loại truyện</label>
+            <div class="categories-checkboxes">
+              <label *ngFor="let cat of categories" class="cat-checkbox">
+                <input type="checkbox" 
+                       [checked]="comicForm.selectedCategoryIds.includes(cat.id)" 
+                       (change)="toggleCategorySelection(cat.id)" />
+                {{ cat.name }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" (click)="closeFormModal()" class="btn btn-secondary">Hủy Bỏ</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-floppy-disk"></i> {{ isEditing ? 'Cập Nhật Truyện' : 'Tạo Truyện Mới' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL 2: COVER IMAGE MANAGER MODAL (QUẢN LÝ ẢNH BÌA)
+     ========================================================================== -->
+<div class="modal-overlay" *ngIf="showCoverModal" (click)="closeCoverModal()">
+  <div class="modal-card bg-glass cover-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3><i class="fa-solid fa-image text-primary"></i> Quản Lý Ảnh Bìa — {{ selectedComicForCover?.title }}</h3>
+      <button (click)="closeCoverModal()" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <div class="modal-body cover-modal-body">
+      <!-- Live Cover Preview Box -->
+      <div class="cover-preview-section">
+        <label class="section-label">Xem Trước Ảnh Bìa Live:</label>
+        <div class="preview-box">
+          <img [src]="coverUrlInput || 'assets/images/default-cover.jpg'" alt="Cover Preview" (error)="coverUrlInput = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80'" />
+          <div class="preview-badge">Preview</div>
+        </div>
+      </div>
+
+      <!-- URL Input & Preset Selector -->
+      <div class="cover-input-section">
+        <div class="form-group">
+          <label>URL Đường Dẫn Ảnh Bìa (Custom URL):</label>
+          <input type="text" [(ngModel)]="coverUrlInput" placeholder="Nhập đường dẫn URL ảnh (https://...)" />
+        </div>
+
+        <div class="preset-gallery">
+          <label class="section-label">Hoặc chọn từ bộ sưu tập ảnh bìa mẫu:</label>
+          <div class="preset-grid">
+            <div *ngFor="let preset of presetCovers" 
+                 class="preset-item" 
+                 [class.active]="coverUrlInput === preset"
+                 (click)="selectPresetCover(preset)">
+              <img [src]="preset" alt="Preset Cover" />
+              <div class="check-overlay" *ngIf="coverUrlInput === preset">
+                <i class="fa-solid fa-circle-check"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" (click)="closeCoverModal()" class="btn btn-secondary">Hủy Bỏ</button>
+      <button type="button" (click)="saveCoverImage()" class="btn btn-primary">
+        <i class="fa-solid fa-floppy-disk"></i> Lưu Ảnh Bìa Mới
+      </button>
+    </div>
+  </div>
+</div>

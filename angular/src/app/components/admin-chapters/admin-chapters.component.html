@@ -1,0 +1,282 @@
+<div class="container admin-chapters-page">
+  <!-- Page Header & Breadcrumb -->
+  <div class="page-header bg-glass">
+    <div class="breadcrumb">
+      <a routerLink="/admin/stories"><i class="fa-solid fa-arrow-left"></i> Quay lại Danh Sách Truyện</a>
+      <span class="sep">/</span>
+      <span class="active">Quản Lý Chapter</span>
+    </div>
+
+    <div class="header-main" *ngIf="comic">
+      <div class="comic-brief">
+        <img [src]="comic.coverImage || 'assets/images/default-cover.jpg'" [alt]="comic.title" class="comic-thumb" />
+        <div class="comic-details">
+          <h2><i class="fa-solid fa-layer-group text-gradient"></i> Quản Lý Chapter — {{ comic.title }}</h2>
+          <div class="comic-meta-tags">
+            <span class="meta-tag"><i class="fa-solid fa-user-pen"></i> {{ comic.author || 'Tác giả: N/A' }}</span>
+            <span class="meta-tag"><i class="fa-solid fa-book-open"></i> {{ chapters.length }} Chapters</span>
+            <span class="meta-tag status-tag" [class.status-ongoing]="comic.status === 'Ongoing'" [class.status-completed]="comic.status === 'Completed'">
+              {{ comic.status === 'Ongoing' ? 'Đang tiến hành' : 'Hoàn thành' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button (click)="openAddModal()" class="btn btn-primary btn-add-chap">
+          <i class="fa-solid fa-plus"></i> Thêm Chapter Mới
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Notification -->
+  <div class="alert" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
+    <i class="fa-solid" [class.fa-circle-check]="!isError" [class.fa-triangle-exclamation]="isError"></i>
+    {{ message }}
+  </div>
+
+  <!-- Filters & Search Bar -->
+  <div class="filters-bar bg-glass">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text"
+             [(ngModel)]="searchTerm"
+             (input)="applyFilters()"
+             placeholder="Tìm theo số chapter, tiêu đề..." />
+      <button *ngIf="searchTerm" (click)="searchTerm = ''; applyFilters()" class="clear-btn">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="filters-group">
+      <!-- Visibility Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-eye"></i> Hiển Thị:</label>
+        <select [(ngModel)]="selectedVisibility" (change)="applyFilters()">
+          <option value="All">Tất cả (Công khai & Ẩn)</option>
+          <option value="Public">Công khai</option>
+          <option value="Hidden">Đang ẩn</option>
+        </select>
+      </div>
+
+      <!-- Sort By -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp Xếp:</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="number-desc">Số Chapter giảm dần (Mới -> Cũ)</option>
+          <option value="number-asc">Số Chapter tăng dần (Cũ -> Mới)</option>
+          <option value="views">Lượt xem nhiều nhất</option>
+          <option value="date">Ngày tạo mới nhất</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-box bg-glass" *ngIf="isLoading">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <p>Đang tải danh sách chapter...</p>
+  </div>
+
+  <!-- Chapters Table Section -->
+  <div class="table-container bg-glass" *ngIf="!isLoading">
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredChapters.length === 0">
+      <i class="fa-solid fa-folder-open"></i>
+      <h3>Chưa có chapter nào phù hợp</h3>
+      <p>Bấm nút "Thêm Chapter Mới" để bắt đầu đăng tải nội dung cho bộ truyện này.</p>
+      <button (click)="openAddModal()" class="btn btn-primary btn-sm">
+        <i class="fa-solid fa-plus"></i> Thêm Chapter Ngay
+      </button>
+    </div>
+
+    <!-- Table -->
+    <table class="admin-table" *ngIf="filteredChapters.length > 0">
+      <thead>
+        <tr>
+          <th style="width: 100px;">Chapter</th>
+          <th>Tên Chapter</th>
+          <th style="width: 110px; text-align: center;">Số Trang</th>
+          <th style="width: 120px;">Lượt Xem</th>
+          <th style="width: 170px;">Lịch Xuất Bản</th>
+          <th style="width: 120px;">Trạng Thái</th>
+          <th style="width: 160px; text-align: right;">Hành Động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let chap of filteredChapters">
+          <td>
+            <span class="chap-badge">Chap {{ chap.chapterNumber }}</span>
+          </td>
+          <td>
+            <strong class="chap-title">{{ chap.title }}</strong>
+            <div class="chap-created">Tạo lúc: {{ chap.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
+          </td>
+          <td style="text-align: center;">
+            <span class="pages-badge">
+              <i class="fa-regular fa-images"></i> {{ chap.pages ? chap.pages.length : 0 }} trang
+            </span>
+          </td>
+          <td>
+            <span class="views-count"><i class="fa-solid fa-eye"></i> {{ chap.views | number }}</span>
+          </td>
+          <td>
+            <div class="publish-time-cell">
+              <span *ngIf="!chap.publishedAt" class="badge-pub-now"><i class="fa-solid fa-bolt"></i> Ngay lập tức</span>
+              <span *ngIf="chap.publishedAt" [class.badge-pub-future]="isScheduled(chap)" [class.badge-pub-passed]="!isScheduled(chap)">
+                <i class="fa-solid" [class.fa-clock]="isScheduled(chap)" [class.fa-calendar-check]="!isScheduled(chap)"></i>
+                {{ formatDate(chap.publishedAt) }}
+              </span>
+              <small *ngIf="isScheduled(chap)" class="scheduled-hint"> (Hẹn giờ)</small>
+            </div>
+          </td>
+          <td>
+            <!-- Toggle Visibility Switch -->
+            <button class="visibility-btn"
+                    [class.is-public]="chap.isPublic !== false"
+                    [class.is-hidden]="chap.isPublic === false"
+                    (click)="toggleVisibility(chap)"
+                    [title]="chap.isPublic !== false ? 'Bấm để ẩn chapter này' : 'Bấm để công khai chapter này'">
+              <i class="fa-solid" [class.fa-eye]="chap.isPublic !== false" [class.fa-eye-slash]="chap.isPublic === false"></i>
+              {{ chap.isPublic !== false ? 'Công khai' : 'Đang ẩn' }}
+            </button>
+          </td>
+          <td style="text-align: right;">
+            <div class="actions-group">
+              <a [routerLink]="['/read', chap.id]" target="_blank" class="btn btn-icon btn-view" title="Đọc thử chapter">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i>
+              </a>
+              <button (click)="openEditModal(chap)" class="btn btn-icon btn-edit" title="Chỉnh sửa chapter">
+                <i class="fa-solid fa-pen-to-square"></i>
+              </button>
+              <button (click)="deleteChapter(chap)" class="btn btn-icon btn-delete" title="Xóa chapter">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ==========================================================================
+     MODAL: CREATE / EDIT CHAPTER FORM MODAL
+     ========================================================================== -->
+<div class="modal-overlay" *ngIf="showFormModal" (click)="closeFormModal()">
+  <div class="modal-card bg-glass chapter-modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>
+        <i class="fa-solid" [class.fa-plus]="!isEditing" [class.fa-pen-to-square]="isEditing"></i>
+        {{ isEditing ? 'Chỉnh Sửa Chapter' : 'Thêm Chapter Mới' }} — {{ comic?.title }}
+      </h3>
+      <button (click)="closeFormModal()" class="close-btn"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+
+    <form (ngSubmit)="saveChapter()" class="admin-form">
+      <div class="modal-body">
+        <!-- Basic Info Row -->
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Số Chapter *</label>
+            <input type="number" step="0.1" [(ngModel)]="chapterForm.chapterNumber" name="chapterNumber" required placeholder="1, 1.5, 2..." />
+          </div>
+
+          <div class="form-group">
+            <label>Tên / Tiêu đề Chapter *</label>
+            <input type="text" [(ngModel)]="chapterForm.title" name="title" required placeholder="Nhập tiêu đề chapter..." />
+          </div>
+
+          <div class="form-group">
+            <label><i class="fa-solid fa-clock"></i> Đặt lịch xuất bản (Tùy chọn)</label>
+            <input type="datetime-local" [(ngModel)]="chapterForm.publishedAt" name="publishedAt" />
+            <small class="form-hint">Để trống nếu muốn xuất bản ngay lập tức khi công khai.</small>
+          </div>
+
+          <div class="form-group checkbox-cell">
+            <label class="checkbox-label">
+              <input type="checkbox" [(ngModel)]="chapterForm.isPublic" name="isPublic" />
+              <span><i class="fa-solid fa-eye text-primary"></i> Công khai Chapter cho người đọc</span>
+            </label>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Image Upload & Management Section -->
+        <div class="images-section">
+          <div class="section-header">
+            <h4><i class="fa-solid fa-images text-gradient"></i> Danh Sách Trang Ảnh ({{ chapterForm.imageUrls.length }} trang)</h4>
+
+            <div class="upload-tools">
+              <!-- Multi-file Upload Button -->
+              <label class="btn btn-sm btn-secondary btn-upload">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Upload Ảnh từ Máy
+                <input type="file" multiple accept="image/*" (change)="onFilesSelected($event)" style="display: none;" />
+              </label>
+
+              <!-- Bulk URL Paste Button -->
+              <button type="button" (click)="toggleBulkUrlInput()" class="btn btn-sm btn-outline">
+                <i class="fa-solid fa-link"></i> Nhập URL Hàng Loạt
+              </button>
+
+              <!-- Sample Preset Demo Images -->
+              <button type="button" (click)="addPresetImages()" class="btn btn-sm btn-preset">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> Nạp Ảnh Mẫu Demo
+              </button>
+
+              <!-- Clear All Images -->
+              <button type="button" *ngIf="chapterForm.imageUrls.length > 0" (click)="clearAllImages()" class="btn btn-sm btn-danger-outline">
+                <i class="fa-solid fa-trash-can"></i> Xóa Tất Cả Ảnh
+              </button>
+            </div>
+          </div>
+
+          <!-- Bulk URL Paste Panel -->
+          <div class="bulk-url-box bg-glass-dark" *ngIf="showBulkUrlInput">
+            <label>Dán danh sách URL ảnh (mỗi đường dẫn 1 dòng hoặc cách nhau bởi dấu phẩy):</label>
+            <textarea [(ngModel)]="bulkUrlInput" name="bulkUrlInput" rows="4" placeholder="https://example.com/page1.jpg&#10;https://example.com/page2.jpg"></textarea>
+            <div class="bulk-actions">
+              <button type="button" (click)="addBulkUrls()" class="btn btn-sm btn-primary">Thêm Vào Danh Sách</button>
+              <button type="button" (click)="showBulkUrlInput = false" class="btn btn-sm btn-secondary">Đóng</button>
+            </div>
+          </div>
+
+          <!-- Empty Images Warning -->
+          <div class="empty-images-box" *ngIf="chapterForm.imageUrls.length === 0">
+            <i class="fa-solid fa-file-image"></i>
+            <p>Chưa có ảnh nào trong chapter này. Vui lòng bấm "Upload Ảnh từ Máy" hoặc "Nhập URL Hàng Loạt" để thêm trang ảnh truyện.</p>
+          </div>
+
+          <!-- Reorderable Image Cards Grid / List -->
+          <div class="image-pages-list" *ngIf="chapterForm.imageUrls.length > 0">
+            <div *ngFor="let imgUrl of chapterForm.imageUrls; let i = index" class="page-card">
+              <div class="page-num">Trang {{ i + 1 }}</div>
+              <div class="thumb-wrap">
+                <img [src]="imgUrl" alt="Page {{ i + 1 }}" (error)="chapterForm.imageUrls[i] = 'assets/images/default-cover.jpg'" />
+              </div>
+              <div class="page-actions">
+                <button type="button" (click)="moveImageUp(i)" [disabled]="i === 0" class="btn-page-move" title="Di chuyển lên">
+                  <i class="fa-solid fa-chevron-up"></i>
+                </button>
+                <button type="button" (click)="moveImageDown(i)" [disabled]="i === chapterForm.imageUrls.length - 1" class="btn-page-move" title="Di chuyển xuống">
+                  <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <button type="button" (click)="removeImage(i)" class="btn-page-delete" title="Xóa trang này">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" (click)="closeFormModal()" class="btn btn-secondary">Hủy Bỏ</button>
+        <button type="submit" class="btn btn-primary">
+          <i class="fa-solid fa-floppy-disk"></i> {{ isEditing ? 'Cập Nhật Chapter' : 'Lưu Chapter Mới' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

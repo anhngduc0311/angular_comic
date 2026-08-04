@@ -9,6 +9,10 @@ import { AuthComponent } from './components/auth/auth.component';
 import { FollowedComponent } from './components/followed/followed.component';
 import { HistoryComponent } from './components/history/history.component';
 import { AdminComponent } from './components/admin/admin.component';
+import { AdminStoriesComponent } from './components/admin-stories/admin-stories.component';
+import { AdminStoryFormComponent } from './components/admin-story-form/admin-story-form.component';
+import { AdminChaptersComponent } from './components/admin-chapters/admin-chapters.component';
+import { AdminGenresComponent } from './components/admin-genres/admin-genres.component';
 import { ProfileComponent } from './components/profile/profile.component';
 import { NotificationsComponent } from './components/notifications/notifications.component';
 import { SettingsComponent } from './components/settings/settings.component';
@@ -27,5 +31,10 @@ export const routes: Routes = [
   { path: 'notifications', component: NotificationsComponent, title: 'Thông Báo - MangaFlux' },
   { path: 'settings', component: SettingsComponent, title: 'Cài Đặt Tài Khoản - MangaFlux' },
   { path: 'admin', component: AdminComponent, title: 'Admin Quản Lý - MangaFlux' },
+  { path: 'admin/stories', component: AdminStoriesComponent, title: 'Quản Lý Truyện - MangaFlux' },
+  { path: 'admin/stories/create', component: AdminStoryFormComponent, title: 'Thêm / Sửa Truyện - MangaFlux' },
+  { path: 'admin/stories/edit/:id', component: AdminStoryFormComponent, title: 'Chỉnh Sửa Truyện - MangaFlux' },
+  { path: 'admin/stories/:id/chapters', component: AdminChaptersComponent, title: 'Quản Lý Chapter - MangaFlux' },
+  { path: 'admin/genres', component: AdminGenresComponent, title: 'Quản Lý Thể Loại - MangaFlux' },
   { path: '**', redirectTo: '' }
 ];
