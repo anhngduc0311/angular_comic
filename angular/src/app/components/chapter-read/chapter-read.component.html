@@ -39,7 +39,6 @@
   <div class="reader-gallery">
     <div class="page-item" *ngFor="let page of chapter.pages">
       <img [src]="page.imageUrl" [alt]="'Trang ' + page.pageNumber" loading="lazy" (error)="onImgError($event)" />
-      <span class="page-num">{{ page.pageNumber }} / {{ chapter.pages.length }}</span>
     </div>
   </div>
 

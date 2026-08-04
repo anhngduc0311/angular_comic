@@ -206,4 +206,8 @@ body {
     transform: translateY(-3px) scale(1.05);
     background: var(--primary-hover);
   }
+
+  @media (max-width: 768px) {
+    display: none !important;
+  }
 }

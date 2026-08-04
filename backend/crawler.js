@@ -104,7 +104,7 @@ async function uploadToMinio(objectName, buffer, contentType = 'image/jpeg') {
     });
     await minioClient.setBucketPolicy(BUCKET_NAME, policy);
     await minioClient.putObject(BUCKET_NAME, objectName, buffer, buffer.length, { 'Content-Type': contentType });
-    return `http://localhost:9000/${BUCKET_NAME}/${objectName}`;
+    return `https://hypermmo.site/${BUCKET_NAME}/${objectName}`;
   } catch (err) {
     console.error(`❌ Lỗi upload MinIO [${objectName}]:`, err.message);
     return null;

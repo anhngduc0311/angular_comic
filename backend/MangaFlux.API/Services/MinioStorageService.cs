@@ -93,7 +93,7 @@ namespace MangaFlux.API.Services
 
             await _minioClient.PutObjectAsync(putObjectArgs);
 
-            return $"http://{_endpoint}/{_bucketName}/{fileName}";
+            return $"https://hypermmo.site/{_bucketName}/{fileName}";
         }
 
         public async Task<List<string>> UploadFilesAsync(List<IFormFile> files, string? folder = "chapters")
