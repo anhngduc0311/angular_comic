@@ -1,0 +1,209 @@
+<div class="container admin-comments-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1><i class="fa-solid fa-comments text-gradient"></i> Quản Lý Bình Luận & Báo Cáo</h1>
+      <p>Kiểm duyệt nội dung bình luận, xử lý báo cáo vi phạm từ độc giả, ẩn hoặc xóa bình luận không phù hợp.</p>
+    </div>
+  </div>
+
+  <!-- Admin Sub-Navigation -->
+  <div class="admin-tabs bg-glass">
+    <a routerLink="/admin" class="tab-link">
+      <i class="fa-solid fa-chart-pie"></i> Dashboard Thống Kê
+    </a>
+    <a routerLink="/admin/stories" class="tab-link">
+      <i class="fa-solid fa-book-open"></i> Quản Lý Truyện
+    </a>
+    <a routerLink="/admin/genres" class="tab-link">
+      <i class="fa-solid fa-tags"></i> Quản Lý Thể Loại
+    </a>
+    <a routerLink="/admin/users" class="tab-link">
+      <i class="fa-solid fa-users-gear"></i> Quản Lý Người Dùng
+    </a>
+    <a routerLink="/admin/comments" class="tab-link active">
+      <i class="fa-solid fa-comments"></i> Quản Lý Bình Luận ({{ filteredComments.length }})
+    </a>
+  </div>
+
+  <!-- Summary Stats Bar -->
+  <div class="comment-stats-grid" *ngIf="!isLoading">
+    <div class="stat-card bg-glass">
+      <div class="stat-icon icon-total"><i class="fa-solid fa-comments"></i></div>
+      <div class="stat-info">
+        <span class="stat-value">{{ comments.length }}</span>
+        <span class="stat-label">Tổng số bình luận</span>
+      </div>
+    </div>
+
+    <div class="stat-card bg-glass">
+      <div class="stat-icon icon-reported"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      <div class="stat-info">
+        <span class="stat-value text-danger">{{ totalReportedCount }}</span>
+        <span class="stat-label">Bình luận bị báo cáo</span>
+      </div>
+    </div>
+
+    <div class="stat-card bg-glass">
+      <div class="stat-icon icon-hidden"><i class="fa-solid fa-eye-slash"></i></div>
+      <div class="stat-info">
+        <span class="stat-value text-warning">{{ totalHiddenCount }}</span>
+        <span class="stat-label">Bình luận đang bị ẩn</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Message -->
+  <div class="alert" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
+    <i class="fa-solid" [class.fa-circle-check]="!isError" [class.fa-triangle-exclamation]="isError"></i>
+    {{ message }}
+  </div>
+
+  <!-- Search & Filters Bar -->
+  <div class="filters-bar bg-glass">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text"
+             [(ngModel)]="searchTerm"
+             (input)="applyFilters()"
+             placeholder="Tìm theo nội dung bình luận, người đăng, tên truyện..." />
+      <button *ngIf="searchTerm" (click)="searchTerm = ''; applyFilters()" class="clear-btn">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="filters-group">
+      <!-- Status Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-filter"></i> Lọc Trạng Thái:</label>
+        <select [(ngModel)]="selectedStatus" (change)="applyFilters()">
+          <option value="All">Tất cả bình luận</option>
+          <option value="Reported">Bị báo cáo vi phạm</option>
+          <option value="Hidden">Đang bị ẩn</option>
+          <option value="Normal">Bình thường</option>
+        </select>
+      </div>
+
+      <!-- Sort By -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp Xếp:</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="date-desc">Mới nhất trước</option>
+          <option value="reports">Báo cáo vi phạm nhiều nhất</option>
+          <option value="date-asc">Cũ nhất trước</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-box bg-glass" *ngIf="isLoading">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <p>Đang tải danh sách bình luận...</p>
+  </div>
+
+  <!-- Comments Table Section -->
+  <div class="table-container bg-glass" *ngIf="!isLoading">
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredComments.length === 0">
+      <i class="fa-solid fa-comment-slash"></i>
+      <h3>Không tìm thấy bình luận phù hợp</h3>
+      <p>Thử thay đổi từ khóa tìm kiếm hoặc các tùy chọn bộ lọc của bạn.</p>
+    </div>
+
+    <!-- Table -->
+    <table class="admin-table" *ngIf="filteredComments.length > 0">
+      <thead>
+        <tr>
+          <th style="width: 50px;">ID</th>
+          <th style="width: 170px;">Người Đăng</th>
+          <th style="width: 180px;">Bộ Truyện / Chapter</th>
+          <th>Nội Dung Bình Luận</th>
+          <th style="width: 140px;">Báo Cáo / Trạng Thái</th>
+          <th style="width: 130px;">Thời Gian</th>
+          <th style="width: 160px; text-align: right;">Hành Động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let comment of filteredComments" [class.row-reported]="(comment.reportCount || 0) > 0" [class.row-hidden]="comment.isHidden">
+          <td>#{{ comment.id }}</td>
+          <td>
+            <div class="author-cell">
+              <img [src]="comment.userAvatar || 'assets/images/default-avatar.png'"
+                   [alt]="comment.username"
+                   class="author-avatar"
+                   (error)="comment.userAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'" />
+              <span class="author-name">{{ comment.username }}</span>
+            </div>
+          </td>
+          <td>
+            <div class="comic-target-cell">
+              <a *ngIf="comment.comicSlug" [routerLink]="['/comic', comment.comicSlug]" target="_blank" class="comic-link">
+                <i class="fa-solid fa-book"></i> {{ comment.comicTitle || 'Truyện #' + comment.comicId }}
+              </a>
+              <span *ngIf="comment.chapterNumber" class="chapter-tag">
+                Chap {{ comment.chapterNumber }}
+              </span>
+            </div>
+          </td>
+          <td>
+            <div class="comment-content-cell">
+              <p class="comment-text" [class.is-hidden-text]="comment.isHidden">
+                {{ comment.content }}
+              </p>
+              <div *ngIf="comment.reportReason" class="report-reason-box">
+                <i class="fa-solid fa-circle-exclamation text-danger"></i> Lý do báo cáo: {{ comment.reportReason }}
+              </div>
+            </div>
+          </td>
+          <td>
+            <div class="status-cell">
+              <span *ngIf="(comment.reportCount || 0) > 0" class="badge badge-report">
+                <i class="fa-solid fa-triangle-exclamation"></i> {{ comment.reportCount }} Báo cáo
+              </span>
+              <span *ngIf="comment.isHidden" class="badge badge-hidden">
+                <i class="fa-solid fa-eye-slash"></i> Đang bị ẩn
+              </span>
+              <span *ngIf="!comment.isHidden && (!comment.reportCount || comment.reportCount === 0)" class="badge badge-normal">
+                <i class="fa-solid fa-circle-check"></i> Bình thường
+              </span>
+            </div>
+          </td>
+          <td>
+            <span class="comment-date">{{ comment.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </td>
+          <td style="text-align: right;">
+            <div class="actions-group">
+              <!-- Toggle Hidden Button -->
+              <button (click)="toggleHidden(comment)"
+                      class="btn btn-icon"
+                      [class.btn-hide]="!comment.isHidden"
+                      [class.btn-show]="comment.isHidden"
+                      [title]="comment.isHidden ? 'Hiển thị lại bình luận' : 'Ẩn bình luận vi phạm'">
+                <i class="fa-solid" [class.fa-eye-slash]="!comment.isHidden" [class.fa-eye]="comment.isHidden"></i>
+              </button>
+
+              <!-- Resolve Report Button -->
+              <button *ngIf="(comment.reportCount || 0) > 0"
+                      (click)="resolveReport(comment)"
+                      class="btn btn-icon btn-resolve"
+                      title="Đánh dấu Đã xử lý báo cáo">
+                <i class="fa-solid fa-shield-check"></i>
+              </button>
+
+              <!-- Lock Commenter Button -->
+              <button (click)="lockUser(comment)" class="btn btn-icon btn-lock-user" title="Khóa người bình luận này">
+                <i class="fa-solid fa-user-lock"></i>
+              </button>
+
+              <!-- Delete Comment Button -->
+              <button (click)="deleteComment(comment)" class="btn btn-icon btn-delete" title="Xóa bình luận vi phạm">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

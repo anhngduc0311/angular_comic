@@ -20,6 +20,12 @@
     <a routerLink="/admin/genres" class="tab-link-btn" title="Trang chuyên Quản lý thể loại">
       <i class="fa-solid fa-tags text-primary"></i> Quản Lý Thể Loại
     </a>
+    <a routerLink="/admin/users" class="tab-link-btn" title="Trang chuyên Quản lý người dùng">
+      <i class="fa-solid fa-users-gear text-primary"></i> Quản Lý Người Dùng
+    </a>
+    <a routerLink="/admin/comments" class="tab-link-btn" title="Trang chuyên Quản lý bình luận">
+      <i class="fa-solid fa-comments text-primary"></i> Quản Lý Bình Luận
+    </a>
     <button [class.active]="activeTab === 'comics'" (click)="activeTab = 'comics'">
       <i class="fa-solid fa-table-list"></i> Quick Table ({{ comics.length }})
     </button>

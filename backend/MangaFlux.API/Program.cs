@@ -141,6 +141,47 @@ using (var scope = app.Services.CreateScope())
             BEGIN
                 ALTER TABLE Categories ADD ImageUrl NVARCHAR(MAX) NULL;
             END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'IsLocked')
+            BEGIN
+                ALTER TABLE Users ADD IsLocked BIT NOT NULL DEFAULT 0;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'ChapterId')
+            BEGIN
+                ALTER TABLE Comments ADD ChapterId INT NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'ParentCommentId')
+            BEGIN
+                ALTER TABLE Comments ADD ParentCommentId INT NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'IsHidden')
+            BEGIN
+                ALTER TABLE Comments ADD IsHidden BIT NOT NULL DEFAULT 0;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'ReportCount')
+            BEGIN
+                ALTER TABLE Comments ADD ReportCount INT NOT NULL DEFAULT 0;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'ReportReason')
+            BEGIN
+                ALTER TABLE Comments ADD ReportReason NVARCHAR(MAX) NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = N'CommentLikes')
+            BEGIN
+                CREATE TABLE [dbo].[CommentLikes] (
+                    [Id] INT IDENTITY(1,1) NOT NULL,
+                    [UserId] INT NOT NULL,
+                    [CommentId] INT NOT NULL,
+                    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                    CONSTRAINT [PK_CommentLikes] PRIMARY KEY CLUSTERED ([Id] ASC)
+                );
+            END;
         ");
     }
     catch (Exception ex)

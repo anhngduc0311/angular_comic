@@ -7,6 +7,7 @@ export interface User {
   fullName?: string;
   avatar?: string;
   role: string;
+  isLocked?: boolean;
   token?: string;
 }
 
@@ -33,6 +34,7 @@ export interface UserProfile {
   fullName?: string;
   avatar?: string;
   role: string;
+  isLocked?: boolean;
   createdAt: string;
   followedCount: number;
   commentsCount: number;

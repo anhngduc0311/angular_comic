@@ -12,6 +12,7 @@ namespace MangaFlux.API.Models
         public string? FullName { get; set; }
         public string? Avatar { get; set; }
         public string Role { get; set; } = "User"; // "User" or "Admin"
+        public bool IsLocked { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation Properties

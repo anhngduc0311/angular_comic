@@ -121,12 +121,23 @@ namespace MangaFlux.API.DTOs
         public string Username { get; set; } = string.Empty;
         public string? UserAvatar { get; set; }
         public int ComicId { get; set; }
+        public string? ComicTitle { get; set; }
+        public string? ComicSlug { get; set; }
         public int? ChapterId { get; set; }
+        public double? ChapterNumber { get; set; }
         public int? ParentCommentId { get; set; }
         public string Content { get; set; } = string.Empty;
+        public bool IsHidden { get; set; }
+        public int ReportCount { get; set; }
+        public string? ReportReason { get; set; }
         public int LikesCount { get; set; }
         public bool IsLiked { get; set; }
         public DateTime CreatedAt { get; set; }
+    }
+
+    public class ReportCommentDto
+    {
+        public string Reason { get; set; } = string.Empty;
     }
 
     public class CreateCommentDto

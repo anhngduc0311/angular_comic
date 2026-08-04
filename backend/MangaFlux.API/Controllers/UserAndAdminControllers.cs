@@ -132,11 +132,13 @@ namespace MangaFlux.API.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IComicService _comicService;
+        private readonly IUserService _userService;
         private readonly INotificationService _notificationService;
 
-        public AdminController(IComicService comicService, INotificationService notificationService)
+        public AdminController(IComicService comicService, IUserService userService, INotificationService notificationService)
         {
             _comicService = comicService;
+            _userService = userService;
             _notificationService = notificationService;
         }
 
@@ -244,6 +246,79 @@ namespace MangaFlux.API.Controllers
         public async Task<IActionResult> DeleteCategory(int id)
         {
             var result = await _comicService.DeleteCategoryAsync(id);
+            return Ok(new { success = result });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers()
+        {
+            var users = await _userService.GetAllUsersForAdminAsync();
+            return Ok(users);
+        }
+
+        [AllowAnonymous]
+        [HttpPut("users/{id}/toggle-lock")]
+        public async Task<IActionResult> ToggleUserLock(int id)
+        {
+            var isLocked = await _userService.ToggleUserLockAsync(id);
+            return Ok(new { success = true, isLocked });
+        }
+
+        [AllowAnonymous]
+        [HttpPut("users/{id}/role")]
+        public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UserRoleUpdateDto dto)
+        {
+            var success = await _userService.UpdateUserRoleAsync(id, dto.Role);
+            if (!success) return NotFound(new { message = "Không tìm thấy người dùng." });
+            return Ok(new { success = true, role = dto.Role });
+        }
+
+        [AllowAnonymous]
+        [HttpDelete("users/{id}")]
+        public async Task<IActionResult> DeleteUser(int id)
+        {
+            var result = await _userService.AdminDeleteUserAsync(id);
+            return Ok(new { success = result });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("comments")]
+        public async Task<IActionResult> GetComments()
+        {
+            var comments = await _comicService.GetAllCommentsForAdminAsync();
+            return Ok(comments);
+        }
+
+        [AllowAnonymous]
+        [HttpPut("comments/{id}/toggle-hidden")]
+        public async Task<IActionResult> ToggleCommentHidden(int id)
+        {
+            var isHidden = await _comicService.ToggleCommentHiddenAsync(id);
+            return Ok(new { success = true, isHidden });
+        }
+
+        [AllowAnonymous]
+        [HttpPost("comments/{id}/report")]
+        public async Task<IActionResult> ReportComment(int id, [FromBody] ReportCommentDto dto)
+        {
+            var result = await _comicService.ReportCommentAsync(id, dto.Reason);
+            return Ok(new { success = result });
+        }
+
+        [AllowAnonymous]
+        [HttpPut("comments/{id}/resolve-report")]
+        public async Task<IActionResult> ResolveCommentReport(int id)
+        {
+            var result = await _comicService.ResolveCommentReportAsync(id);
+            return Ok(new { success = result });
+        }
+
+        [AllowAnonymous]
+        [HttpDelete("comments/{id}")]
+        public async Task<IActionResult> DeleteComment(int id)
+        {
+            var result = await _comicService.DeleteCommentAsync(id);
             return Ok(new { success = result });
         }
 

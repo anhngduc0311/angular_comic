@@ -69,6 +69,7 @@ namespace MangaFlux.API.Services
                 u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail);
 
             if (user == null) return null;
+            if (user.IsLocked) return null; // Account locked
 
             bool isPasswordValid = false;
             try

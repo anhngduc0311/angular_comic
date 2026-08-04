@@ -1,0 +1,196 @@
+<div class="container admin-users-page">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="header-content">
+      <h1><i class="fa-solid fa-users-gear text-gradient"></i> Quản Lý Người Dùng Hệ Thống</h1>
+      <p>Quản lý toàn bộ danh sách thành viên, khóa/mở khóa tài khoản, phân quyền Quản trị viên và xóa người dùng.</p>
+    </div>
+  </div>
+
+  <!-- Admin Sub-Navigation -->
+  <div class="admin-tabs bg-glass">
+    <a routerLink="/admin" class="tab-link">
+      <i class="fa-solid fa-chart-pie"></i> Dashboard Thống Kê
+    </a>
+    <a routerLink="/admin/stories" class="tab-link">
+      <i class="fa-solid fa-book-open"></i> Quản Lý Truyện
+    </a>
+    <a routerLink="/admin/genres" class="tab-link">
+      <i class="fa-solid fa-tags"></i> Quản Lý Thể Loại
+    </a>
+    <a routerLink="/admin/users" class="tab-link active">
+      <i class="fa-solid fa-users-gear"></i> Quản Lý Người Dùng ({{ filteredUsers.length }})
+    </a>
+    <a routerLink="/admin/comments" class="tab-link">
+      <i class="fa-solid fa-comments"></i> Quản Lý Bình Luận
+    </a>
+  </div>
+
+  <!-- Summary Stats Bar -->
+  <div class="user-stats-grid" *ngIf="!isLoading">
+    <div class="stat-card bg-glass">
+      <div class="stat-icon icon-total"><i class="fa-solid fa-users"></i></div>
+      <div class="stat-info">
+        <span class="stat-value">{{ users.length }}</span>
+        <span class="stat-label">Tổng số thành viên</span>
+      </div>
+    </div>
+
+    <div class="stat-card bg-glass">
+      <div class="stat-icon icon-admin"><i class="fa-solid fa-user-shield"></i></div>
+      <div class="stat-info">
+        <span class="stat-value text-primary">{{ totalAdminsCount }}</span>
+        <span class="stat-label">Quản trị viên (Admin)</span>
+      </div>
+    </div>
+
+    <div class="stat-card bg-glass">
+      <div class="stat-icon icon-locked"><i class="fa-solid fa-user-lock"></i></div>
+      <div class="stat-info">
+        <span class="stat-value text-danger">{{ totalLockedCount }}</span>
+        <span class="stat-label">Tài khoản bị khóa</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert Message -->
+  <div class="alert" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
+    <i class="fa-solid" [class.fa-circle-check]="!isError" [class.fa-triangle-exclamation]="isError"></i>
+    {{ message }}
+  </div>
+
+  <!-- Search & Filters Bar -->
+  <div class="filters-bar bg-glass">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input type="text"
+             [(ngModel)]="searchTerm"
+             (input)="applyFilters()"
+             placeholder="Tìm theo Username, Email, Họ và tên..." />
+      <button *ngIf="searchTerm" (click)="searchTerm = ''; applyFilters()" class="clear-btn">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <div class="filters-group">
+      <!-- Role Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-user-gear"></i> Vai Trò:</label>
+        <select [(ngModel)]="selectedRole" (change)="applyFilters()">
+          <option value="All">Tất cả vai trò</option>
+          <option value="Admin">Quản trị viên (Admin)</option>
+          <option value="User">Thành viên (User)</option>
+        </select>
+      </div>
+
+      <!-- Lock Status Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-lock"></i> Trạng Thái:</label>
+        <select [(ngModel)]="selectedStatus" (change)="applyFilters()">
+          <option value="All">Tất cả trạng thái</option>
+          <option value="Active">Đang hoạt động</option>
+          <option value="Locked">Đã bị khóa</option>
+        </select>
+      </div>
+
+      <!-- Sort By -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp Xếp:</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()">
+          <option value="date-desc">Ngày tham gia (Mới -> Cũ)</option>
+          <option value="date-asc">Ngày tham gia (Cũ -> Mới)</option>
+          <option value="username">Tên tài khoản (A - Z)</option>
+          <option value="role">Chức vụ (Admin trước)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-box bg-glass" *ngIf="isLoading">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <p>Đang tải danh sách thành viên...</p>
+  </div>
+
+  <!-- Users Table Section -->
+  <div class="table-container bg-glass" *ngIf="!isLoading">
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredUsers.length === 0">
+      <i class="fa-solid fa-user-slash"></i>
+      <h3>Không tìm thấy thành viên nào</h3>
+      <p>Thử thay đổi từ khóa tìm kiếm hoặc các tùy chọn bộ lọc của bạn.</p>
+    </div>
+
+    <!-- Table -->
+    <table class="admin-table" *ngIf="filteredUsers.length > 0">
+      <thead>
+        <tr>
+          <th style="width: 60px;">ID</th>
+          <th>Người Dùng</th>
+          <th>Email</th>
+          <th style="width: 130px;">Vai Trò</th>
+          <th style="width: 140px;">Trạng Thái</th>
+          <th style="width: 160px;">Ngày Tham Gia</th>
+          <th style="width: 150px; text-align: right;">Hành Động</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let user of filteredUsers">
+          <td>#{{ user.id }}</td>
+          <td>
+            <div class="user-info-cell">
+              <img [src]="user.avatar || 'assets/images/default-avatar.png'"
+                   [alt]="user.username"
+                   class="user-avatar"
+                   (error)="user.avatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'" />
+              <div class="user-names">
+                <strong class="user-username">{{ user.username }}</strong>
+                <span class="user-fullname" *ngIf="user.fullName">{{ user.fullName }}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="user-email"><i class="fa-regular fa-envelope"></i> {{ user.email }}</span>
+          </td>
+          <td>
+            <span class="role-badge" [class.role-admin]="user.role === 'Admin'" [class.role-user]="user.role === 'User'">
+              <i class="fa-solid" [class.fa-user-shield]="user.role === 'Admin'" [class.fa-user]="user.role === 'User'"></i>
+              {{ user.role }}
+            </span>
+          </td>
+          <td>
+            <span class="status-badge" [class.status-active]="!user.isLocked" [class.status-locked]="user.isLocked">
+              <i class="fa-solid" [class.fa-circle-check]="!user.isLocked" [class.fa-lock]="user.isLocked"></i>
+              {{ user.isLocked ? 'Đã bị khóa' : 'Hoạt động' }}
+            </span>
+          </td>
+          <td>
+            <span class="user-date">{{ user.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </td>
+          <td style="text-align: right;">
+            <div class="actions-group">
+              <!-- Toggle Lock Button -->
+              <button (click)="toggleLock(user)"
+                      class="btn btn-icon"
+                      [class.btn-lock]="!user.isLocked"
+                      [class.btn-unlock]="user.isLocked"
+                      [title]="user.isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'">
+                <i class="fa-solid" [class.fa-lock]="!user.isLocked" [class.fa-lock-open]="user.isLocked"></i>
+              </button>
+
+              <!-- Toggle Role Button -->
+              <button (click)="toggleRole(user)" class="btn btn-icon btn-role" title="Phân quyền (Đổi Role Admin/User)">
+                <i class="fa-solid fa-user-shield"></i>
+              </button>
+
+              <!-- Delete User Button -->
+              <button (click)="deleteUser(user)" class="btn btn-icon btn-delete" title="Xóa tài khoản vĩnh viễn">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

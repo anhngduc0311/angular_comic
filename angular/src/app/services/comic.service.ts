@@ -100,4 +100,20 @@ export class ComicService {
   deleteCategory(id: number): Observable<{ success: boolean }> {
     return this.api.delete<{ success: boolean }>(`admin/categories/${id}`);
   }
+
+  getAdminComments(): Observable<Comment[]> {
+    return this.api.get<Comment[]>('admin/comments');
+  }
+
+  toggleCommentHidden(id: number): Observable<{ success: boolean; isHidden: boolean }> {
+    return this.api.put<{ success: boolean; isHidden: boolean }>(`admin/comments/${id}/toggle-hidden`, {});
+  }
+
+  resolveCommentReport(id: number): Observable<{ success: boolean }> {
+    return this.api.put<{ success: boolean }>(`admin/comments/${id}/resolve-report`, {});
+  }
+
+  deleteComment(id: number): Observable<{ success: boolean }> {
+    return this.api.delete<{ success: boolean }>(`admin/comments/${id}`);
+  }
 }

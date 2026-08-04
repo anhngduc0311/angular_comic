@@ -21,6 +21,12 @@ namespace MangaFlux.API.Services
         Task<bool> RemoveBookmarkAsync(int userId, int comicId);
         Task<List<ReadingHistoryDto>> GetUserHistoryAsync(int userId);
         Task<bool> TrackReadingHistoryAsync(int userId, int comicId, int chapterId);
+
+        // Admin Operations
+        Task<List<UserProfileDto>> GetAllUsersForAdminAsync();
+        Task<bool> ToggleUserLockAsync(int userId);
+        Task<bool> UpdateUserRoleAsync(int userId, string role);
+        Task<bool> AdminDeleteUserAsync(int userId);
     }
 
     public class UserService : IUserService
@@ -169,6 +175,7 @@ namespace MangaFlux.API.Services
                 FullName = user.FullName,
                 Avatar = user.Avatar,
                 Role = user.Role,
+                IsLocked = user.IsLocked,
                 CreatedAt = user.CreatedAt,
                 FollowedCount = followedCount,
                 CommentsCount = commentsCount
@@ -283,6 +290,76 @@ namespace MangaFlux.API.Services
             {
                 return (password == "123456");
             }
+        }
+
+        // Admin Operations
+        public async Task<List<UserProfileDto>> GetAllUsersForAdminAsync()
+        {
+            var users = await _context.Users
+                .OrderByDescending(u => u.CreatedAt)
+                .ToListAsync();
+
+            var result = new List<UserProfileDto>();
+            foreach (var u in users)
+            {
+                var followedCount = await _context.Bookmarks.CountAsync(b => b.UserId == u.Id);
+                var commentsCount = await _context.Comments.CountAsync(c => c.UserId == u.Id);
+
+                result.Add(new UserProfileDto
+                {
+                    Id = u.Id,
+                    Username = u.Username,
+                    Email = u.Email,
+                    FullName = u.FullName,
+                    Avatar = u.Avatar,
+                    Role = u.Role,
+                    IsLocked = u.IsLocked,
+                    CreatedAt = u.CreatedAt,
+                    FollowedCount = followedCount,
+                    CommentsCount = commentsCount
+                });
+            }
+
+            return result;
+        }
+
+        public async Task<bool> ToggleUserLockAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            user.IsLocked = !user.IsLocked;
+            await _context.SaveChangesAsync();
+            return user.IsLocked;
+        }
+
+        public async Task<bool> UpdateUserRoleAsync(int userId, string role)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            user.Role = (role == "Admin") ? "Admin" : "User";
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> AdminDeleteUserAsync(int userId)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            var bookmarks = await _context.Bookmarks.Where(b => b.UserId == userId).ToListAsync();
+            _context.Bookmarks.RemoveRange(bookmarks);
+
+            var histories = await _context.ReadingHistories.Where(rh => rh.UserId == userId).ToListAsync();
+            _context.ReadingHistories.RemoveRange(histories);
+
+            var comments = await _context.Comments.Where(c => c.UserId == userId).ToListAsync();
+            _context.Comments.RemoveRange(comments);
+
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+            return true;
         }
     }
 }

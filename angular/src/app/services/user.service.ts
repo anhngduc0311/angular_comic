@@ -48,4 +48,21 @@ export class UserService {
   trackHistory(comicId: number, chapterId: number): Observable<{ success: boolean }> {
     return this.api.post<{ success: boolean }>('user/history', { comicId, chapterId });
   }
+
+  // Admin Methods
+  getAdminUsers(): Observable<UserProfile[]> {
+    return this.api.get<UserProfile[]>('admin/users');
+  }
+
+  toggleUserLock(id: number): Observable<{ success: boolean; isLocked: boolean }> {
+    return this.api.put<{ success: boolean; isLocked: boolean }>(`admin/users/${id}/toggle-lock`, {});
+  }
+
+  updateUserRole(id: number, role: string): Observable<{ success: boolean; role: string }> {
+    return this.api.put<{ success: boolean; role: string }>(`admin/users/${id}/role`, { role });
+  }
+
+  adminDeleteUser(id: number): Observable<{ success: boolean }> {
+    return this.api.delete<{ success: boolean }>(`admin/users/${id}`);
+  }
 }

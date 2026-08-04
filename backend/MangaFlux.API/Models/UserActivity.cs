@@ -45,6 +45,9 @@ namespace MangaFlux.API.Models
         public Comment? ParentComment { get; set; }
 
         public string Content { get; set; } = string.Empty;
+        public bool IsHidden { get; set; } = false;
+        public int ReportCount { get; set; } = 0;
+        public string? ReportReason { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public System.Collections.Generic.ICollection<CommentLike> Likes { get; set; } = new System.Collections.Generic.List<CommentLike>();

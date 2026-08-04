@@ -39,9 +39,15 @@ namespace MangaFlux.API.DTOs
         public string? FullName { get; set; }
         public string? Avatar { get; set; }
         public string Role { get; set; } = "User";
+        public bool IsLocked { get; set; }
         public DateTime CreatedAt { get; set; }
         public int FollowedCount { get; set; }
         public int CommentsCount { get; set; }
+    }
+
+    public class UserRoleUpdateDto
+    {
+        public string Role { get; set; } = "User";
     }
 
     public class UserCommentDto

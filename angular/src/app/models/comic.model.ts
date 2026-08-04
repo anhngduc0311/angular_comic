@@ -59,8 +59,15 @@ export interface Comment {
   username: string;
   userAvatar?: string;
   comicId: number;
+  comicTitle?: string;
+  comicSlug?: string;
   chapterId?: number;
+  chapterNumber?: number;
   content: string;
+  isHidden?: boolean;
+  reportCount?: number;
+  reportReason?: string;
+  likesCount?: number;
   createdAt: string;
 }
 

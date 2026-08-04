@@ -13,6 +13,8 @@ import { AdminStoriesComponent } from './components/admin-stories/admin-stories.
 import { AdminStoryFormComponent } from './components/admin-story-form/admin-story-form.component';
 import { AdminChaptersComponent } from './components/admin-chapters/admin-chapters.component';
 import { AdminGenresComponent } from './components/admin-genres/admin-genres.component';
+import { AdminUsersComponent } from './components/admin-users/admin-users.component';
+import { AdminCommentsComponent } from './components/admin-comments/admin-comments.component';
 import { ProfileComponent } from './components/profile/profile.component';
 import { NotificationsComponent } from './components/notifications/notifications.component';
 import { SettingsComponent } from './components/settings/settings.component';
@@ -36,5 +38,7 @@ export const routes: Routes = [
   { path: 'admin/stories/edit/:id', component: AdminStoryFormComponent, title: 'Chỉnh Sửa Truyện - MangaFlux' },
   { path: 'admin/stories/:id/chapters', component: AdminChaptersComponent, title: 'Quản Lý Chapter - MangaFlux' },
   { path: 'admin/genres', component: AdminGenresComponent, title: 'Quản Lý Thể Loại - MangaFlux' },
+  { path: 'admin/users', component: AdminUsersComponent, title: 'Quản Lý Người Dùng - MangaFlux' },
+  { path: 'admin/comments', component: AdminCommentsComponent, title: 'Quản Lý Bình Luận - MangaFlux' },
   { path: '**', redirectTo: '' }
 ];

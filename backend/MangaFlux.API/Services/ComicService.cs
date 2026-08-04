@@ -35,6 +35,11 @@ namespace MangaFlux.API.Services
         Task<CategoryDto> CreateCategoryAsync(CategoryCreateUpdateDto dto);
         Task<CategoryDto?> UpdateCategoryAsync(int id, CategoryCreateUpdateDto dto);
         Task<bool> DeleteCategoryAsync(int id);
+        Task<List<CommentDto>> GetAllCommentsForAdminAsync();
+        Task<bool> ToggleCommentHiddenAsync(int commentId);
+        Task<bool> ReportCommentAsync(int commentId, string reason);
+        Task<bool> ResolveCommentReportAsync(int commentId);
+        Task<bool> DeleteCommentAsync(int commentId);
     }
 
     public class ComicService : IComicService
@@ -176,20 +181,26 @@ namespace MangaFlux.API.Services
                         PublishedAt = ch.PublishedAt,
                         CreatedAt = ch.CreatedAt
                     }).ToList(),
-                Comments = comic.Comments.OrderByDescending(cm => cm.CreatedAt).Select(cm => new CommentDto
-                {
-                    Id = cm.Id,
-                    UserId = cm.UserId,
-                    Username = cm.User.Username,
-                    UserAvatar = cm.User.Avatar,
-                    ComicId = cm.ComicId,
-                    ChapterId = cm.ChapterId,
-                    ParentCommentId = cm.ParentCommentId,
-                    Content = cm.Content,
-                    LikesCount = cm.Likes.Count,
-                    IsLiked = false,
-                    CreatedAt = cm.CreatedAt
-                }).ToList()
+                Comments = comic.Comments
+                    .Where(cm => !cm.IsHidden)
+                    .OrderByDescending(cm => cm.CreatedAt)
+                    .Select(cm => new CommentDto
+                    {
+                        Id = cm.Id,
+                        UserId = cm.UserId,
+                        Username = cm.User.Username,
+                        UserAvatar = cm.User.Avatar,
+                        ComicId = cm.ComicId,
+                        ChapterId = cm.ChapterId,
+                        ParentCommentId = cm.ParentCommentId,
+                        Content = cm.Content,
+                        IsHidden = cm.IsHidden,
+                        ReportCount = cm.ReportCount,
+                        ReportReason = cm.ReportReason,
+                        LikesCount = cm.Likes.Count,
+                        IsLiked = false,
+                        CreatedAt = cm.CreatedAt
+                    }).ToList()
             };
         }
 
@@ -664,6 +675,92 @@ namespace MangaFlux.API.Services
             if (category == null) return false;
 
             _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<List<CommentDto>> GetAllCommentsForAdminAsync()
+        {
+            var comments = await _context.Comments
+                .Include(c => c.User)
+                .Include(c => c.Comic)
+                .Include(c => c.Chapter)
+                .Include(c => c.Likes)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            return comments.Select(c => new CommentDto
+            {
+                Id = c.Id,
+                UserId = c.UserId,
+                Username = c.User?.Username ?? "N/A",
+                UserAvatar = c.User?.Avatar,
+                ComicId = c.ComicId,
+                ComicTitle = c.Comic?.Title,
+                ComicSlug = c.Comic?.Slug,
+                ChapterId = c.ChapterId,
+                ChapterNumber = c.Chapter?.ChapterNumber,
+                ParentCommentId = c.ParentCommentId,
+                Content = c.Content,
+                IsHidden = c.IsHidden,
+                ReportCount = c.ReportCount,
+                ReportReason = c.ReportReason,
+                LikesCount = c.Likes != null ? c.Likes.Count : 0,
+                IsLiked = false,
+                CreatedAt = c.CreatedAt
+            }).ToList();
+        }
+
+        public async Task<bool> ToggleCommentHiddenAsync(int commentId)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null) return false;
+
+            comment.IsHidden = !comment.IsHidden;
+            await _context.SaveChangesAsync();
+            return comment.IsHidden;
+        }
+
+        public async Task<bool> ReportCommentAsync(int commentId, string reason)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null) return false;
+
+            comment.ReportCount += 1;
+            if (string.IsNullOrEmpty(comment.ReportReason))
+            {
+                comment.ReportReason = reason;
+            }
+            else
+            {
+                comment.ReportReason += $"; {reason}";
+            }
+
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> ResolveCommentReportAsync(int commentId)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null) return false;
+
+            comment.ReportCount = 0;
+            comment.ReportReason = null;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteCommentAsync(int commentId)
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null) return false;
+
+            // Remove comment likes first
+            var likes = await _context.CommentLikes.Where(cl => cl.CommentId == commentId).ToListAsync();
+            _context.CommentLikes.RemoveRange(likes);
+
+            _context.Comments.Remove(comment);
             await _context.SaveChangesAsync();
             return true;
         }
