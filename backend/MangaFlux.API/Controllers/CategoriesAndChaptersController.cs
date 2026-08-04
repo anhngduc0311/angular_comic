@@ -41,5 +41,13 @@ namespace MangaFlux.API.Controllers
             if (chapter == null) return NotFound(new { message = "Không tìm thấy chương này." });
             return Ok(chapter);
         }
+
+        [HttpGet("by-slug/{comicSlug}/chuong-{chapterNumber}")]
+        public async Task<IActionResult> GetBySlugAndNumber(string comicSlug, double chapterNumber)
+        {
+            var chapter = await _comicService.GetChapterBySlugAndNumberAsync(comicSlug, chapterNumber);
+            if (chapter == null) return NotFound(new { message = "Không tìm thấy chương này." });
+            return Ok(chapter);
+        }
     }
 }

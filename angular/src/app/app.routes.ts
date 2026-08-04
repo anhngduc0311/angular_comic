@@ -1,7 +1,39 @@
-import { Routes } from '@angular/router';
+import { Routes, UrlSegment, UrlMatchResult } from '@angular/router';
 import { HomeComponent } from './components/home/home.component';
 import { authGuard } from './guards/auth.guard';
 import { adminGuard } from './guards/admin.guard';
+
+export function chapterUrlMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  if (segments.length === 2 && segments[1].path.startsWith('chuong-')) {
+    const slug = segments[0].path;
+    const chapStr = segments[1].path.replace('chuong-', '');
+    const chapterNumber = parseFloat(chapStr);
+    if (!isNaN(chapterNumber)) {
+      return {
+        consumed: segments,
+        posParams: {
+          slug: new UrlSegment(slug, {}),
+          chapterNumber: new UrlSegment(chapStr, {})
+        }
+      };
+    }
+  }
+  if (segments.length === 3 && segments[0].path === 'comic' && segments[2].path.startsWith('chuong-')) {
+    const slug = segments[1].path;
+    const chapStr = segments[2].path.replace('chuong-', '');
+    const chapterNumber = parseFloat(chapStr);
+    if (!isNaN(chapterNumber)) {
+      return {
+        consumed: segments,
+        posParams: {
+          slug: new UrlSegment(slug, {}),
+          chapterNumber: new UrlSegment(chapStr, {})
+        }
+      };
+    }
+  }
+  return null;
+}
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, title: 'MangaFlux - Trang Chủ' },
@@ -19,6 +51,11 @@ export const routes: Routes = [
     path: 'comic/:slug', 
     loadComponent: () => import('./components/comic-detail/comic-detail.component').then(m => m.ComicDetailComponent), 
     title: 'Chi Tiết Truyện - MangaFlux' 
+  },
+  { 
+    matcher: chapterUrlMatcher, 
+    loadComponent: () => import('./components/chapter-read/chapter-read.component').then(m => m.ChapterReadComponent), 
+    title: 'Đọc Chapter - MangaFlux' 
   },
   { 
     path: 'read/:id', 

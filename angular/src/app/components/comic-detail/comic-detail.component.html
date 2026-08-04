@@ -27,7 +27,7 @@
         </div>
 
         <div class="action-buttons">
-          <a [routerLink]="['/read', firstChapterId]" *ngIf="firstChapterId" class="btn btn-primary btn-read">
+          <a [routerLink]="['/', comic.slug, 'chuong-' + firstChapterNumber]" *ngIf="firstChapterNumber" class="btn btn-primary btn-read">
             <i class="fa-solid fa-book-open"></i> Đọc Từ Đầu
           </a>
           <button (click)="toggleBookmark()" class="btn btn-follow" [class.btn-secondary]="!isBookmarked" [class.btn-primary]="isBookmarked">
@@ -51,7 +51,7 @@
       <h2><i class="fa-solid fa-list-ol text-gradient"></i> Danh Sách Chương ({{ comic.chapters.length }})</h2>
       <div class="chapter-list">
         <div class="chapter-item" *ngFor="let ch of comic.chapters">
-          <a [routerLink]="['/read', ch.id]" class="ch-title">Chapter {{ ch.chapterNumber }}: {{ ch.title }}</a>
+          <a [routerLink]="['/', comic.slug, 'chuong-' + ch.chapterNumber]" class="ch-title">Chapter {{ ch.chapterNumber }}: {{ ch.title }}</a>
           <span class="ch-date">{{ ch.createdAt | date:'dd/MM/yyyy' }}</span>
         </div>
       </div>

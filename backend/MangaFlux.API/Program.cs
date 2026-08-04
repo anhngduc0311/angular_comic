@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MangaFlux.API.Data;
 using MangaFlux.API.Middleware;
+using MangaFlux.API.Models;
 using MangaFlux.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,6 +41,7 @@ builder.Services.AddScoped<IComicService, ComicService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<IStorageService, MinioStorageService>();
 
 // 2b. Add Rate Limiting Policies for Anti-Spam & Anti-BruteForce
 builder.Services.AddRateLimiter(options =>
@@ -185,11 +187,48 @@ using (var scope = app.Services.CreateScope())
             BEGIN
                 ALTER TABLE [Users] ADD [RefreshTokenExpiryTime] DATETIME2 NULL;
             END;
+
+            DELETE FROM ChapterPages WHERE ChapterId IN (
+                SELECT Id FROM (
+                    SELECT Id, ComicId, ChapterNumber,
+                           ROW_NUMBER() OVER(PARTITION BY ComicId, ChapterNumber ORDER BY Id DESC) as rn
+                    FROM Chapters
+                ) t WHERE t.rn > 1
+            );
+
+            DELETE FROM Chapters WHERE Id IN (
+                SELECT Id FROM (
+                    SELECT Id, ComicId, ChapterNumber,
+                           ROW_NUMBER() OVER(PARTITION BY ComicId, ChapterNumber ORDER BY Id DESC) as rn
+                    FROM Chapters
+                ) t WHERE t.rn > 1
+            );
         ");
+
+        var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin");
+        if (adminUser == null)
+        {
+            db.Users.Add(new User
+            {
+                Username = "admin",
+                Email = "admin@mangaflux.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                FullName = "Quản Trị Viên",
+                Role = "Admin",
+                CreatedAt = DateTime.UtcNow
+            });
+            db.SaveChanges();
+        }
+        else if (adminUser.Role != "Admin")
+        {
+            adminUser.Role = "Admin";
+            adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
+            db.SaveChanges();
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"DB Column Sync notice: {ex.Message}");
+        Console.WriteLine($"DB Column / Admin Sync notice: {ex.Message}");
     }
 }
 

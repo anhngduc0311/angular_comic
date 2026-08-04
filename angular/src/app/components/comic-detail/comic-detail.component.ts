@@ -58,6 +58,10 @@ export class ComicDetailComponent implements OnInit {
     return (this.comic && this.comic.chapters.length > 0) ? this.comic.chapters[0].id : null;
   }
 
+  get firstChapterNumber(): number | null {
+    return (this.comic && this.comic.chapters.length > 0) ? this.comic.chapters[0].chapterNumber : null;
+  }
+
   formatViews(views: number): string {
     if (views >= 1_000_000) {
       return (views / 1_000_000).toFixed(1) + 'M';

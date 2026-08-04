@@ -46,7 +46,7 @@
   <div class="comic-grid" *ngIf="!isLoading && results.length > 0">
     <div class="comic-card card-hover" *ngFor="let comic of results">
       <a [routerLink]="['/comic', comic.slug]" class="card-cover">
-        <img [src]="comic.coverImage" [alt]="comic.title" />
+        <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" />
       </a>
       <div class="card-info">
         <h3 class="comic-title"><a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a></h3>

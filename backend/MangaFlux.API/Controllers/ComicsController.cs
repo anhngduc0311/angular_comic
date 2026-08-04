@@ -48,6 +48,37 @@ namespace MangaFlux.API.Controllers
             return Ok(comic);
         }
 
+        [HttpPost("import-scraped")]
+        public async Task<IActionResult> ImportScraped([FromBody] ChapterCreateDto dto, [FromQuery] string comicTitle, [FromQuery] string comicSlug, [FromQuery] string coverImage)
+        {
+            var existingComic = await _comicService.GetComicBySlugAsync(comicSlug);
+            int comicId;
+            if (existingComic == null)
+            {
+                var created = await _comicService.CreateComicAsync(new ComicCreateUpdateDto
+                {
+                    Title = comicTitle,
+                    Slug = comicSlug,
+                    Description = "Truyện Kiến Trúc Sư Hầm Ngục Cấp Quốc Gia Tiếng Việt bản dịch Full mới nhất.",
+                    CoverImage = coverImage,
+                    BannerImage = coverImage,
+                    Author = "Đang cập nhật",
+                    Status = "Ongoing",
+                    IsFeatured = true,
+                    IsPublic = true
+                });
+                comicId = created.Id;
+            }
+            else
+            {
+                comicId = existingComic.Id;
+            }
+
+            dto.ComicId = comicId;
+            var chapter = await _comicService.AddChapterAsync(dto);
+            return Ok(new { comicId, comicSlug, chapterId = chapter.Id });
+        }
+
         [Authorize]
         [EnableRateLimiting("comment-limiter")]
         [HttpPost("comments")]

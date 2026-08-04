@@ -61,4 +61,11 @@ export class ComicListComponent implements OnInit {
       queryParamsHandling: 'merge'
     });
   }
+
+  onImgError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80';
+    }
+  }
 }

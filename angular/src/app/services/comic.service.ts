@@ -40,12 +40,29 @@ export class ComicService {
     return this.api.get<ChapterDetail>(`chapters/${id}`);
   }
 
+  getChapterBySlugAndNumber(comicSlug: string, chapterNumber: number): Observable<ChapterDetail> {
+    return this.api.get<ChapterDetail>(`chapters/by-slug/${comicSlug}/chuong-${chapterNumber}`);
+  }
+
   getCategories(): Observable<Category[]> {
     return this.api.get<Category[]>('categories');
   }
 
   addComment(data: { comicId: number; chapterId?: number; content: string }): Observable<Comment> {
     return this.api.post<Comment>('comics/comments', data);
+  }
+
+  // File Upload to MinIO Storage
+  uploadImage(file: File, folder = 'covers'): Observable<{ url: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.api.post<{ url: string }>(`upload/image?folder=${folder}`, formData);
+  }
+
+  uploadImages(files: FileList | File[], folder = 'chapters'): Observable<{ urls: string[] }> {
+    const formData = new FormData();
+    Array.from(files).forEach(file => formData.append('files', file));
+    return this.api.post<{ urls: string[] }>(`upload/images?folder=${folder}`, formData);
   }
 
   // Admin Actions

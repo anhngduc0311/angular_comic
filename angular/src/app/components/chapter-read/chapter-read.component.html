@@ -9,7 +9,7 @@
       </div>
 
       <div class="chapter-controls">
-        <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? ['/read', prevChapterId] : null" class="btn btn-secondary btn-sm">
+        <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null" class="btn btn-secondary btn-sm">
           <i class="fa-solid fa-chevron-left"></i> Chap Trước
         </button>
 
@@ -19,7 +19,7 @@
           </option>
         </select>
 
-        <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? ['/read', nextChapterId] : null" class="btn btn-secondary btn-sm">
+        <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null" class="btn btn-secondary btn-sm">
           Chap Sau <i class="fa-solid fa-chevron-right"></i>
         </button>
 
@@ -38,20 +38,20 @@
   <!-- Vertical Manga Reader Gallery -->
   <div class="reader-gallery">
     <div class="page-item" *ngFor="let page of chapter.pages">
-      <img [src]="page.imageUrl" [alt]="'Trang ' + page.pageNumber" loading="lazy" />
+      <img [src]="page.imageUrl" [alt]="'Trang ' + page.pageNumber" loading="lazy" (error)="onImgError($event)" />
       <span class="page-num">{{ page.pageNumber }} / {{ chapter.pages.length }}</span>
     </div>
   </div>
 
   <!-- Bottom Navigation -->
   <div class="container bottom-nav">
-    <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? ['/read', prevChapterId] : null" class="btn btn-secondary">
+    <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null" class="btn btn-secondary">
       <i class="fa-solid fa-chevron-left"></i> Chap Trước
     </button>
     <button (click)="openReportModal()" class="btn btn-warning">
       <i class="fa-solid fa-flag"></i> Báo Lỗi
     </button>
-    <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? ['/read', nextChapterId] : null" class="btn btn-primary">
+    <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null" class="btn btn-primary">
       Chap Sau <i class="fa-solid fa-chevron-right"></i>
     </button>
   </div>

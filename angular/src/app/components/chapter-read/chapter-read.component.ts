@@ -51,8 +51,15 @@ export class ChapterReadComponent implements OnInit {
 
   ngOnInit(): void {
     this.route.params.subscribe(params => {
+      const slug = params['slug'];
+      const chapterNumber = params['chapterNumber'];
       const id = +params['id'];
-      if (id) this.fetchChapter(id);
+
+      if (slug && chapterNumber) {
+        this.fetchChapterBySlugAndNumber(slug, +chapterNumber);
+      } else if (id) {
+        this.fetchChapter(id);
+      }
     });
   }
 
@@ -74,9 +81,9 @@ export class ChapterReadComponent implements OnInit {
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent): void {
     if (event.key === 'ArrowLeft' && this.prevChapterId) {
-      this.router.navigate(['/read', this.prevChapterId]);
+      this.navigateToChapter(this.prevChapterId);
     } else if (event.key === 'ArrowRight' && this.nextChapterId) {
-      this.router.navigate(['/read', this.nextChapterId]);
+      this.navigateToChapter(this.nextChapterId);
     }
   }
 
@@ -103,6 +110,50 @@ export class ChapterReadComponent implements OnInit {
         this.router.navigate(['/404']);
       }
     });
+  }
+
+  fetchChapterBySlugAndNumber(slug: string, chapterNumber: number): void {
+    this.isLoading = true;
+    this.restoredPosition = false;
+
+    this.comicService.getChapterBySlugAndNumber(slug, chapterNumber).subscribe({
+      next: (detail) => {
+        if (!detail) {
+          this.router.navigate(['/404']);
+          return;
+        }
+        this.chapter = detail;
+        this.selectedChapterId = detail.id;
+        this.isLoading = false;
+        this.calculateNavChapters();
+        this.trackHistory();
+        this.restoreReadingPosition(detail.id);
+        this.preloadNextChapter();
+      },
+      error: () => {
+        this.isLoading = false;
+        this.router.navigate(['/404']);
+      }
+    });
+  }
+
+  navigateToChapter(chId: number | null): void {
+    if (!chId || !this.chapter) return;
+    const ch = this.chapter.allChapters.find(c => c.id === chId);
+    if (ch && this.chapter.comicSlug) {
+      this.router.navigate(['/', this.chapter.comicSlug, `chuong-${ch.chapterNumber}`]);
+    } else {
+      this.router.navigate(['/read', chId]);
+    }
+  }
+
+  getChapterRoute(chId: number | null): any[] {
+    if (!chId || !this.chapter) return ['/404'];
+    const ch = this.chapter.allChapters.find(c => c.id === chId);
+    if (ch && this.chapter.comicSlug) {
+      return ['/', this.chapter.comicSlug, `chuong-${ch.chapterNumber}`];
+    }
+    return ['/read', chId];
   }
 
   restoreReadingPosition(chapterId: number): void {
@@ -147,7 +198,7 @@ export class ChapterReadComponent implements OnInit {
 
   onSelectChapter(): void {
     if (this.selectedChapterId) {
-      this.router.navigate(['/read', this.selectedChapterId]);
+      this.navigateToChapter(this.selectedChapterId);
     }
   }
 
@@ -176,6 +227,13 @@ export class ChapterReadComponent implements OnInit {
 
   closeReportModal(): void {
     this.showReportModal = false;
+  }
+
+  onImgError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    if (target) {
+      target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80';
+    }
   }
 
   submitReport(): void {

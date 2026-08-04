@@ -18,6 +18,7 @@ namespace MangaFlux.API.Services
         Task<ComicDetailDto?> GetComicBySlugAsync(string slug);
         Task<ComicDetailDto?> GetComicByIdAsync(int id);
         Task<ChapterDetailDto?> GetChapterByIdAsync(int chapterId);
+        Task<ChapterDetailDto?> GetChapterBySlugAndNumberAsync(string comicSlug, double chapterNumber);
         Task<List<CategoryDto>> GetAllCategoriesAsync();
         Task<CommentDto> AddCommentAsync(int userId, CreateCommentDto dto);
         Task<bool> LikeCommentAsync(int userId, int commentId);
@@ -297,6 +298,16 @@ namespace MangaFlux.API.Services
             return result;
         }
 
+        public async Task<ChapterDetailDto?> GetChapterBySlugAndNumberAsync(string comicSlug, double chapterNumber)
+        {
+            var chapter = await _context.Chapters
+                .Include(ch => ch.Comic)
+                .FirstOrDefaultAsync(ch => ch.Comic.Slug == comicSlug && Math.Abs(ch.ChapterNumber - chapterNumber) < 0.001);
+
+            if (chapter == null) return null;
+            return await GetChapterByIdAsync(chapter.Id);
+        }
+
         public async Task<List<CategoryDto>> GetAllCategoriesAsync()
         {
             const string cacheKey = "all_categories_cache";
@@ -540,18 +551,31 @@ namespace MangaFlux.API.Services
 
         public async Task<ChapterDto> AddChapterAsync(ChapterCreateDto dto)
         {
-            var chapter = new Chapter
-            {
-                ComicId = dto.ComicId,
-                ChapterNumber = dto.ChapterNumber,
-                Title = dto.Title,
-                IsPublic = dto.IsPublic,
-                PublishedAt = dto.PublishedAt,
-                CreatedAt = DateTime.UtcNow
-            };
+            var chapter = await _context.Chapters
+                .Include(c => c.Pages)
+                .FirstOrDefaultAsync(c => c.ComicId == dto.ComicId && Math.Abs(c.ChapterNumber - dto.ChapterNumber) < 0.001);
 
-            _context.Chapters.Add(chapter);
-            await _context.SaveChangesAsync();
+            if (chapter == null)
+            {
+                chapter = new Chapter
+                {
+                    ComicId = dto.ComicId,
+                    ChapterNumber = dto.ChapterNumber,
+                    Title = dto.Title,
+                    IsPublic = dto.IsPublic,
+                    PublishedAt = dto.PublishedAt,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _context.Chapters.Add(chapter);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                chapter.Title = dto.Title;
+                chapter.IsPublic = dto.IsPublic;
+                chapter.PublishedAt = dto.PublishedAt;
+                _context.ChapterPages.RemoveRange(chapter.Pages);
+            }
 
             for (int i = 0; i < dto.ImageUrls.Count; i++)
             {
@@ -563,9 +587,13 @@ namespace MangaFlux.API.Services
                 });
             }
 
-            // Update comic updated time
+            // Update comic updated time & clear cache
             var comic = await _context.Comics.FindAsync(dto.ComicId);
-            if (comic != null) comic.UpdatedAt = DateTime.UtcNow;
+            if (comic != null)
+            {
+                comic.UpdatedAt = DateTime.UtcNow;
+                await _cache.RemoveAsync($"comic_detail_slug_{comic.Slug}");
+            }
 
             await _context.SaveChangesAsync();
 

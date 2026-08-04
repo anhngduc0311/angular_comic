@@ -38,7 +38,7 @@
   <div class="comic-grid" *ngIf="!isLoading && comics.length > 0">
     <div class="comic-card card-hover" *ngFor="let comic of comics">
       <a [routerLink]="['/comic', comic.slug]" class="card-cover">
-        <img [src]="comic.coverImage" [alt]="comic.title" />
+        <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" />
         <span class="chapter-badge" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
       </a>
       <div class="card-info">
