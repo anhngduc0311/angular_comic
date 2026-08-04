@@ -142,7 +142,6 @@ namespace MangaFlux.API.Controllers
             _notificationService = notificationService;
         }
 
-        [AllowAnonymous]
         [HttpGet("stats")]
         public async Task<IActionResult> GetStats()
         {
@@ -150,7 +149,6 @@ namespace MangaFlux.API.Controllers
             return Ok(stats);
         }
 
-        [AllowAnonymous]
         [HttpGet("comics/{id}")]
         public async Task<IActionResult> GetComicById(int id)
         {
@@ -174,7 +172,6 @@ namespace MangaFlux.API.Controllers
             return Ok(comic);
         }
 
-        [AllowAnonymous]
         [HttpPut("comics/{id}/toggle-visibility")]
         public async Task<IActionResult> ToggleVisibility(int id)
         {
@@ -189,7 +186,6 @@ namespace MangaFlux.API.Controllers
             return Ok(new { success = result });
         }
 
-        [AllowAnonymous]
         [HttpGet("comics/{comicId}/chapters")]
         public async Task<IActionResult> GetAdminChapters(int comicId)
         {
@@ -212,7 +208,6 @@ namespace MangaFlux.API.Controllers
             return Ok(updated);
         }
 
-        [AllowAnonymous]
         [HttpPut("chapters/{id}/toggle-visibility")]
         public async Task<IActionResult> ToggleChapterVisibility(int id)
         {
@@ -249,7 +244,6 @@ namespace MangaFlux.API.Controllers
             return Ok(new { success = result });
         }
 
-        [AllowAnonymous]
         [HttpGet("users")]
         public async Task<IActionResult> GetUsers()
         {
@@ -257,7 +251,6 @@ namespace MangaFlux.API.Controllers
             return Ok(users);
         }
 
-        [AllowAnonymous]
         [HttpPut("users/{id}/toggle-lock")]
         public async Task<IActionResult> ToggleUserLock(int id)
         {
@@ -265,7 +258,6 @@ namespace MangaFlux.API.Controllers
             return Ok(new { success = true, isLocked });
         }
 
-        [AllowAnonymous]
         [HttpPut("users/{id}/role")]
         public async Task<IActionResult> UpdateUserRole(int id, [FromBody] UserRoleUpdateDto dto)
         {
@@ -274,7 +266,6 @@ namespace MangaFlux.API.Controllers
             return Ok(new { success = true, role = dto.Role });
         }
 
-        [AllowAnonymous]
         [HttpDelete("users/{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
@@ -282,7 +273,6 @@ namespace MangaFlux.API.Controllers
             return Ok(new { success = result });
         }
 
-        [AllowAnonymous]
         [HttpGet("comments")]
         public async Task<IActionResult> GetComments()
         {
@@ -290,7 +280,6 @@ namespace MangaFlux.API.Controllers
             return Ok(comments);
         }
 
-        [AllowAnonymous]
         [HttpPut("comments/{id}/toggle-hidden")]
         public async Task<IActionResult> ToggleCommentHidden(int id)
         {
@@ -306,7 +295,6 @@ namespace MangaFlux.API.Controllers
             return Ok(new { success = result });
         }
 
-        [AllowAnonymous]
         [HttpPut("comments/{id}/resolve-report")]
         public async Task<IActionResult> ResolveCommentReport(int id)
         {
@@ -314,7 +302,6 @@ namespace MangaFlux.API.Controllers
             return Ok(new { success = result });
         }
 
-        [AllowAnonymous]
         [HttpDelete("comments/{id}")]
         public async Task<IActionResult> DeleteComment(int id)
         {

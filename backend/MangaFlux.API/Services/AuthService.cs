@@ -109,7 +109,9 @@ namespace MangaFlux.API.Services
         private string GenerateJwtToken(User user)
         {
             var jwtSettings = _config.GetSection("JwtSettings");
-            var secret = jwtSettings["Secret"] ?? "SuperSecretKeyForMangaFluxAPI2026!";
+            var secret = jwtSettings["Secret"] 
+                         ?? Environment.GetEnvironmentVariable("JWT_SECRET") 
+                         ?? throw new InvalidOperationException("JwtSettings:Secret configuration is missing!");
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
 
             var claims = new[]
@@ -124,8 +126,8 @@ namespace MangaFlux.API.Services
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddDays(7),
-                Issuer = jwtSettings["Issuer"],
-                Audience = jwtSettings["Audience"],
+                Issuer = jwtSettings["Issuer"] ?? "MangaFluxAPI",
+                Audience = jwtSettings["Audience"] ?? "MangaFluxClient",
                 SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature)
             };
 

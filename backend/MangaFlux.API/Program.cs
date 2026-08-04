@@ -33,7 +33,9 @@ builder.Services.AddCors(options =>
 
 // 4. Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secret = jwtSettings["Secret"] ?? "SuperSecretKeyForMangaFluxAPI2026!";
+var secret = jwtSettings["Secret"] 
+             ?? Environment.GetEnvironmentVariable("JWT_SECRET") 
+             ?? throw new InvalidOperationException("JwtSettings:Secret configuration is missing!");
 
 builder.Services.AddAuthentication(options =>
 {
@@ -49,9 +51,9 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
         ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"],
+        ValidIssuer = jwtSettings["Issuer"] ?? "MangaFluxAPI",
         ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"],
+        ValidAudience = jwtSettings["Audience"] ?? "MangaFluxClient",
         ClockSkew = TimeSpan.Zero
     };
 });

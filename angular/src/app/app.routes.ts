@@ -27,6 +27,8 @@ import { FaqComponent } from './components/faq/faq.component';
 import { NotFoundComponent } from './components/not-found/not-found.component';
 import { MaintenanceComponent } from './components/maintenance/maintenance.component';
 import { ComicRemovedComponent } from './components/comic-removed/comic-removed.component';
+import { authGuard } from './guards/auth.guard';
+import { adminGuard } from './guards/admin.guard';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, title: 'MangaFlux - Trang Chủ' },
@@ -36,11 +38,11 @@ export const routes: Routes = [
   { path: 'read/:id', component: ChapterReadComponent, title: 'Đọc Chapter - MangaFlux' },
   { path: 'search', component: SearchComponent, title: 'Tìm Kiếm Truyện - MangaFlux' },
   { path: 'auth', component: AuthComponent, title: 'Đăng Nhập & Đăng Ký - MangaFlux' },
-  { path: 'followed', component: FollowedComponent, title: 'Truyện Theo Dõi - MangaFlux' },
-  { path: 'history', component: HistoryComponent, title: 'Lịch Sử Đọc - MangaFlux' },
-  { path: 'profile', component: ProfileComponent, title: 'Trang Cá Nhân - MangaFlux' },
-  { path: 'notifications', component: NotificationsComponent, title: 'Thông Báo - MangaFlux' },
-  { path: 'settings', component: SettingsComponent, title: 'Cài Đặt Tài Khoản - MangaFlux' },
+  { path: 'followed', component: FollowedComponent, title: 'Truyện Theo Dõi - MangaFlux', canActivate: [authGuard] },
+  { path: 'history', component: HistoryComponent, title: 'Lịch Sử Đọc - MangaFlux', canActivate: [authGuard] },
+  { path: 'profile', component: ProfileComponent, title: 'Trang Cá Nhân - MangaFlux', canActivate: [authGuard] },
+  { path: 'notifications', component: NotificationsComponent, title: 'Thông Báo - MangaFlux', canActivate: [authGuard] },
+  { path: 'settings', component: SettingsComponent, title: 'Cài Đặt Tài Khoản - MangaFlux', canActivate: [authGuard] },
   
   // Informational Pages
   { path: 'about', component: AboutComponent, title: 'Giới Thiệu - MangaFlux' },
@@ -55,16 +57,17 @@ export const routes: Routes = [
   { path: '404', component: NotFoundComponent, title: '404 Not Found - MangaFlux' },
 
   // Admin Routes
-  { path: 'admin', component: AdminComponent, title: 'Admin Quản Lý - MangaFlux' },
-  { path: 'admin/stories', component: AdminStoriesComponent, title: 'Quản Lý Truyện - MangaFlux' },
-  { path: 'admin/stories/create', component: AdminStoryFormComponent, title: 'Thêm / Sửa Truyện - MangaFlux' },
-  { path: 'admin/stories/edit/:id', component: AdminStoryFormComponent, title: 'Chỉnh Sửa Truyện - MangaFlux' },
-  { path: 'admin/stories/:id/chapters', component: AdminChaptersComponent, title: 'Quản Lý Chapter - MangaFlux' },
-  { path: 'admin/genres', component: AdminGenresComponent, title: 'Quản Lý Thể Loại - MangaFlux' },
-  { path: 'admin/users', component: AdminUsersComponent, title: 'Quản Lý Người Dùng - MangaFlux' },
-  { path: 'admin/comments', component: AdminCommentsComponent, title: 'Quản Lý Bình Luận - MangaFlux' },
-  { path: 'admin/reports', component: AdminReportsComponent, title: 'Quản Lý Báo Lỗi - MangaFlux' },
+  { path: 'admin', component: AdminComponent, title: 'Admin Quản Lý - MangaFlux', canActivate: [adminGuard] },
+  { path: 'admin/stories', component: AdminStoriesComponent, title: 'Quản Lý Truyện - MangaFlux', canActivate: [adminGuard] },
+  { path: 'admin/stories/create', component: AdminStoryFormComponent, title: 'Thêm / Sửa Truyện - MangaFlux', canActivate: [adminGuard] },
+  { path: 'admin/stories/edit/:id', component: AdminStoryFormComponent, title: 'Chỉnh Sửa Truyện - MangaFlux', canActivate: [adminGuard] },
+  { path: 'admin/stories/:id/chapters', component: AdminChaptersComponent, title: 'Quản Lý Chapter - MangaFlux', canActivate: [adminGuard] },
+  { path: 'admin/genres', component: AdminGenresComponent, title: 'Quản Lý Thể Loại - MangaFlux', canActivate: [adminGuard] },
+  { path: 'admin/users', component: AdminUsersComponent, title: 'Quản Lý Người Dùng - MangaFlux', canActivate: [adminGuard] },
+  { path: 'admin/comments', component: AdminCommentsComponent, title: 'Quản Lý Bình Luận - MangaFlux', canActivate: [adminGuard] },
+  { path: 'admin/reports', component: AdminReportsComponent, title: 'Quản Lý Báo Lỗi - MangaFlux', canActivate: [adminGuard] },
 
   // Fallback 404 Route
   { path: '**', component: NotFoundComponent, title: '404 Not Found - MangaFlux' }
 ];
+
