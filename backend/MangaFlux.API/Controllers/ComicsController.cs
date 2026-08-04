@@ -60,5 +60,19 @@ namespace MangaFlux.API.Controllers
             var comment = await _comicService.AddCommentAsync(userId, dto);
             return Ok(comment);
         }
+
+        [Authorize]
+        [HttpPost("comments/{id}/like")]
+        public async Task<IActionResult> LikeComment(int id)
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim == null || !int.TryParse(userIdClaim, out int userId))
+            {
+                return Unauthorized();
+            }
+
+            var result = await _comicService.LikeCommentAsync(userId, id);
+            return Ok(new { success = result });
+        }
     }
 }

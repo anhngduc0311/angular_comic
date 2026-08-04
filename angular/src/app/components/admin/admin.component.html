@@ -15,6 +15,9 @@
     <button [class.active]="activeTab === 'add-chapter'" (click)="activeTab = 'add-chapter'">
       <i class="fa-solid fa-file-circle-plus"></i> Thêm Chapter Mới
     </button>
+    <button [class.active]="activeTab === 'broadcast'" (click)="activeTab = 'broadcast'">
+      <i class="fa-solid fa-bullhorn"></i> Gửi Thông Báo Hệ Thống
+    </button>
   </div>
 
   <!-- Alert Message -->
@@ -149,6 +152,32 @@
 
       <div class="form-actions">
         <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload"></i> Đăng Chapter Mới</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- TAB 4: BROADCAST NOTIFICATION FORM -->
+  <div class="tab-content bg-glass" *ngIf="activeTab === 'broadcast'">
+    <form (ngSubmit)="sendBroadcast()" class="admin-form">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Tiêu đề thông báo</label>
+          <input type="text" [(ngModel)]="broadcastForm.title" name="broadcastTitle" placeholder="Ví dụ: Thông báo bảo trì hệ thống / Sự kiện mới..." />
+        </div>
+
+        <div class="form-group full-width">
+          <label>Nội dung thông báo *</label>
+          <textarea [(ngModel)]="broadcastForm.message" name="broadcastMessage" rows="4" required placeholder="Nhập nội dung chi tiết thông báo gửi đến toàn bộ người dùng..."></textarea>
+        </div>
+
+        <div class="form-group full-width">
+          <label>Đường dẫn liên kết (Link - Tùy chọn)</label>
+          <input type="text" [(ngModel)]="broadcastForm.link" name="broadcastLink" placeholder="Ví dụ: /comics hoặc /comic/solo-leveling" />
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-paper-plane"></i> Gửi Thông Báo Toàn Hệ Thống</button>
       </div>
     </form>
   </div>

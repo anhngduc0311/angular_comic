@@ -16,6 +16,8 @@ namespace MangaFlux.API.Data
         public DbSet<Bookmark> Bookmarks => Set<Bookmark>();
         public DbSet<ReadingHistory> ReadingHistories => Set<ReadingHistory>();
         public DbSet<Comment> Comments => Set<Comment>();
+        public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
+        public DbSet<Notification> Notifications => Set<Notification>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -38,6 +40,11 @@ namespace MangaFlux.API.Data
             // Unique Bookmark Constraint per User and Comic
             modelBuilder.Entity<Bookmark>()
                 .HasIndex(b => new { b.UserId, b.ComicId })
+                .IsUnique();
+
+            // Unique CommentLike Constraint per User and Comment
+            modelBuilder.Entity<CommentLike>()
+                .HasIndex(cl => new { cl.UserId, cl.CommentId })
                 .IsUnique();
 
             // Indexes for Search & Routing Performance

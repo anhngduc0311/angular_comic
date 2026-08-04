@@ -1,0 +1,108 @@
+<div class="notifications-container container">
+  <!-- Page Header -->
+  <div class="page-header glass-panel">
+    <div class="header-main">
+      <div class="header-title-group">
+        <i class="fa-solid fa-bell header-icon"></i>
+        <div>
+          <h1 class="page-title">Thông Báo</h1>
+          <p class="page-subtitle">Cập nhật tin tức mới nhất từ truyện theo dõi và tương tác của bạn</p>
+        </div>
+      </div>
+
+      <button (click)="markAllAsRead()" class="btn btn-secondary btn-sm btn-mark-read" [disabled]="notifications.length === 0">
+        <i class="fa-solid fa-check-double"></i> Đánh dấu tất cả đã đọc
+      </button>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'all'" 
+        (click)="applyFilter('all')">
+        Tất cả <span class="badge">{{ notifications.length }}</span>
+      </button>
+
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'unread'" 
+        (click)="applyFilter('unread')">
+        Chưa đọc
+      </button>
+
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'NewChapter'" 
+        (click)="applyFilter('NewChapter')">
+        <i class="fa-solid fa-book-open"></i> Chapter mới
+      </button>
+
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'CommentReply'" 
+        (click)="applyFilter('CommentReply')">
+        <i class="fa-solid fa-reply"></i> Trả lời
+      </button>
+
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'CommentLike'" 
+        (click)="applyFilter('CommentLike')">
+        <i class="fa-solid fa-heart"></i> Lượt thích
+      </button>
+
+      <button 
+        class="filter-tab" 
+        [class.active]="activeFilter === 'AdminSystem'" 
+        (click)="applyFilter('AdminSystem')">
+        <i class="fa-solid fa-bullhorn"></i> Hệ thống
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="loading-state" *ngIf="isLoading">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+    <p>Đang tải thông báo...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state glass-panel" *ngIf="!isLoading && filteredNotifications.length === 0">
+    <div class="empty-icon">
+      <i class="fa-regular fa-bell-slash"></i>
+    </div>
+    <h3>Không có thông báo nào</h3>
+    <p>Bạn không có thông báo nào trong mục này.</p>
+  </div>
+
+  <!-- Notification List -->
+  <div class="notification-list" *ngIf="!isLoading && filteredNotifications.length > 0">
+    <div 
+      class="notification-item glass-panel" 
+      *ngFor="let notification of filteredNotifications"
+      [class.unread]="!notification.isRead"
+      (click)="onNotificationClick(notification)"
+    >
+      <div class="notification-icon-wrapper">
+        <i class="fa-solid" [ngClass]="getIconClass(notification.type)"></i>
+      </div>
+
+      <div class="notification-content">
+        <div class="notification-meta">
+          <span class="type-badge" [attr.data-type]="notification.type">
+            {{ getTypeLabel(notification.type) }}
+          </span>
+          <span class="time-stamp">
+            <i class="fa-regular fa-clock"></i> {{ notification.createdAt | date:'HH:mm - dd/MM/yyyy' }}
+          </span>
+        </div>
+
+        <h3 class="notification-title">{{ notification.title }}</h3>
+        <p class="notification-message">{{ notification.message }}</p>
+      </div>
+
+      <div class="unread-dot" *ngIf="!notification.isRead"></div>
+    </div>
+  </div>
+</div>

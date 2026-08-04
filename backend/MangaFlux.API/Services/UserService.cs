@@ -11,6 +11,8 @@ namespace MangaFlux.API.Services
 {
     public interface IUserService
     {
+        Task<UserProfileDto?> GetUserProfileAsync(int userId);
+        Task<List<UserCommentDto>> GetUserCommentsAsync(int userId);
         Task<List<BookmarkDto>> GetUserBookmarksAsync(int userId);
         Task<bool> AddBookmarkAsync(int userId, int comicId);
         Task<bool> RemoveBookmarkAsync(int userId, int comicId);
@@ -146,6 +148,51 @@ namespace MangaFlux.API.Services
 
             await _context.SaveChangesAsync();
             return true;
+        }
+
+        public async Task<UserProfileDto?> GetUserProfileAsync(int userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null) return null;
+
+            var followedCount = await _context.Bookmarks.CountAsync(b => b.UserId == userId);
+            var commentsCount = await _context.Comments.CountAsync(c => c.UserId == userId);
+
+            return new UserProfileDto
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                FullName = user.FullName,
+                Avatar = user.Avatar,
+                Role = user.Role,
+                CreatedAt = user.CreatedAt,
+                FollowedCount = followedCount,
+                CommentsCount = commentsCount
+            };
+        }
+
+        public async Task<List<UserCommentDto>> GetUserCommentsAsync(int userId)
+        {
+            var comments = await _context.Comments
+                .Where(c => c.UserId == userId)
+                .Include(c => c.Comic)
+                .Include(c => c.Chapter)
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            return comments.Select(c => new UserCommentDto
+            {
+                Id = c.Id,
+                ComicId = c.ComicId,
+                ComicTitle = c.Comic.Title,
+                ComicSlug = c.Comic.Slug,
+                ComicCover = c.Comic.CoverImage,
+                ChapterId = c.ChapterId,
+                ChapterNumber = c.Chapter != null ? c.Chapter.ChapterNumber : null,
+                Content = c.Content,
+                CreatedAt = c.CreatedAt
+            }).ToList();
         }
     }
 }

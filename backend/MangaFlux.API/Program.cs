@@ -16,6 +16,7 @@ builder.Services.AddDbContext<MangaDbContext>(options =>
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IComicService, ComicService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // 3. Configure CORS (Allow Angular Frontend)
 builder.Services.AddCors(options =>

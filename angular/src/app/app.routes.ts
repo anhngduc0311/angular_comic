@@ -9,6 +9,8 @@ import { AuthComponent } from './components/auth/auth.component';
 import { FollowedComponent } from './components/followed/followed.component';
 import { HistoryComponent } from './components/history/history.component';
 import { AdminComponent } from './components/admin/admin.component';
+import { ProfileComponent } from './components/profile/profile.component';
+import { NotificationsComponent } from './components/notifications/notifications.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent, title: 'MangaFlux - Trang Chủ' },
@@ -20,6 +22,8 @@ export const routes: Routes = [
   { path: 'auth', component: AuthComponent, title: 'Đăng Nhập & Đăng Ký - MangaFlux' },
   { path: 'followed', component: FollowedComponent, title: 'Truyện Theo Dõi - MangaFlux' },
   { path: 'history', component: HistoryComponent, title: 'Lịch Sử Đọc - MangaFlux' },
+  { path: 'profile', component: ProfileComponent, title: 'Trang Cá Nhân - MangaFlux' },
+  { path: 'notifications', component: NotificationsComponent, title: 'Thông Báo - MangaFlux' },
   { path: 'admin', component: AdminComponent, title: 'Admin Quản Lý - MangaFlux' },
   { path: '**', redirectTo: '' }
 ];

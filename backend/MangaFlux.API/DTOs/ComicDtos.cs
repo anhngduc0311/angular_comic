@@ -89,7 +89,10 @@ namespace MangaFlux.API.DTOs
         public string? UserAvatar { get; set; }
         public int ComicId { get; set; }
         public int? ChapterId { get; set; }
+        public int? ParentCommentId { get; set; }
         public string Content { get; set; } = string.Empty;
+        public int LikesCount { get; set; }
+        public bool IsLiked { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 
@@ -97,6 +100,7 @@ namespace MangaFlux.API.DTOs
     {
         public int ComicId { get; set; }
         public int? ChapterId { get; set; }
+        public int? ParentCommentId { get; set; }
         public string Content { get; set; } = string.Empty;
     }
 }

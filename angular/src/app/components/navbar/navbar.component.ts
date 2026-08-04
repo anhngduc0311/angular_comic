@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
 
 @Component({
   selector: 'app-navbar',
@@ -15,7 +16,17 @@ export class NavbarComponent {
   searchQuery: string = '';
   isMobileMenuOpen: boolean = false;
 
-  constructor(public authService: AuthService, private router: Router) {}
+  constructor(
+    public authService: AuthService, 
+    public notificationService: NotificationService,
+    private router: Router
+  ) {
+    this.authService.currentUser$.subscribe((user) => {
+      if (user) {
+        this.notificationService.fetchUnreadCount().subscribe();
+      }
+    });
+  }
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;

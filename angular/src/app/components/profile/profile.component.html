@@ -1,0 +1,134 @@
+<div class="profile-container container">
+  <!-- Loading State -->
+  <div class="loading-spinner" *ngIf="isLoadingProfile">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <p>Đang tải thông tin cá nhân...</p>
+  </div>
+
+  <!-- Main Content -->
+  <div class="profile-wrapper" *ngIf="!isLoadingProfile && profile">
+    <!-- Header Hero Card -->
+    <div class="profile-card glass-panel">
+      <div class="profile-header-banner"></div>
+      
+      <div class="profile-info-content">
+        <div class="avatar-wrapper">
+          <img 
+            [src]="profile.avatar || defaultAvatar" 
+            alt="Avatar" 
+            class="profile-avatar" 
+          />
+          <span class="role-badge" [class.admin-badge]="profile.role === 'Admin'">
+            {{ profile.role === 'Admin' ? 'Quản trị viên' : 'Thành viên' }}
+          </span>
+        </div>
+
+        <div class="user-details">
+          <h1 class="user-name">
+            {{ profile.fullName || profile.username }}
+            <span class="username-sub">&#64;{{ profile.username }}</span>
+          </h1>
+
+          <div class="meta-row">
+            <div class="meta-item">
+              <i class="fa-solid fa-envelope meta-icon"></i>
+              <span>{{ profile.email }}</span>
+            </div>
+
+            <div class="meta-item">
+              <i class="fa-solid fa-calendar-days meta-icon"></i>
+              <span>Tham gia: {{ profile.createdAt | date:'dd/MM/yyyy' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Stats Grid -->
+    <div class="stats-grid">
+      <div class="stat-card glass-panel">
+        <div class="stat-icon-wrapper followed">
+          <i class="fa-solid fa-bookmark"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ profile.followedCount }}</span>
+          <span class="stat-label">Truyện đang theo dõi</span>
+        </div>
+        <a routerLink="/followed" class="stat-action-btn">
+          Xem danh sách <i class="fa-solid fa-arrow-right"></i>
+        </a>
+      </div>
+
+      <div class="stat-card glass-panel">
+        <div class="stat-icon-wrapper comments">
+          <i class="fa-solid fa-comments"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ profile.commentsCount }}</span>
+          <span class="stat-label">Bình luận đã gửi</span>
+        </div>
+        <div class="stat-badge">Hoạt động sôi nổi</div>
+      </div>
+    </div>
+
+    <!-- Comment History Section -->
+    <div class="section-container glass-panel">
+      <div class="section-header">
+        <h2 class="section-title">
+          <i class="fa-solid fa-clock-rotate-left title-icon"></i>
+          Lịch sử bình luận
+        </h2>
+        <span class="comment-count-badge" *ngIf="comments.length > 0">
+          {{ comments.length }} bình luận
+        </span>
+      </div>
+
+      <!-- Loading Comments Spinner -->
+      <div class="loading-comments" *ngIf="isLoadingComments">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <span>Đang tải bình luận...</span>
+      </div>
+
+      <!-- Empty State -->
+      <div class="empty-comments" *ngIf="!isLoadingComments && comments.length === 0">
+        <div class="empty-icon">
+          <i class="fa-regular fa-comment-dots"></i>
+        </div>
+        <h3>Chưa có bình luận nào</h3>
+        <p>Bạn chưa tham gia bình luận truyện nào. Hãy khám phá và chia sẻ cảm nghĩ của bạn!</p>
+        <a routerLink="/comics" class="btn btn-primary btn-sm">
+          <i class="fa-solid fa-book-open"></i> Khám phá truyện ngay
+        </a>
+      </div>
+
+      <!-- Comments List -->
+      <div class="comments-list" *ngIf="!isLoadingComments && comments.length > 0">
+        <div class="comment-item" *ngFor="let comment of comments">
+          <div class="comic-thumb" *ngIf="comment.comicCover">
+            <img [src]="comment.comicCover" [alt]="comment.comicTitle" />
+          </div>
+
+          <div class="comment-main">
+            <div class="comment-meta">
+              <a [routerLink]="['/comic', comment.comicSlug]" class="comic-title">
+                {{ comment.comicTitle }}
+              </a>
+
+              <span class="chapter-tag" *ngIf="comment.chapterNumber">
+                <i class="fa-regular fa-file-lines"></i> Chap {{ comment.chapterNumber }}
+              </span>
+
+              <span class="comment-date">
+                <i class="fa-regular fa-clock"></i> {{ comment.createdAt | date:'HH:mm - dd/MM/yyyy' }}
+              </span>
+            </div>
+
+            <div class="comment-body">
+              {{ comment.content }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

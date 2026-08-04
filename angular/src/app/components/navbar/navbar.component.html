@@ -19,6 +19,7 @@
         <a routerLink="/categories" (click)="closeMobileMenu()" routerLinkActive="active">Thể loại</a>
         <a routerLink="/followed" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Theo dõi</a>
         <a routerLink="/history" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Lịch sử</a>
+        <a routerLink="/profile" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Trang cá nhân</a>
         <a routerLink="/admin" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isAdmin" class="admin-badge">Admin</a>
       </nav>
 
@@ -37,9 +38,20 @@
         </ng-container>
 
         <ng-container *ngIf="authService.isLoggedIn">
+          <a routerLink="/notifications" (click)="closeMobileMenu()" class="nav-icon-btn" title="Thông báo">
+            <i class="fa-solid fa-bell"></i>
+            <ng-container *ngIf="(notificationService.unreadCount$ | async) as count">
+              <span class="notification-badge" *ngIf="count > 0">
+                {{ count > 99 ? '99+' : count }}
+              </span>
+            </ng-container>
+          </a>
+
           <div class="user-profile">
-            <img [src]="authService.currentUserValue?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar" />
-            <span class="username">{{ authService.currentUserValue?.fullName || authService.currentUserValue?.username }}</span>
+            <a routerLink="/profile" (click)="closeMobileMenu()" class="profile-link" title="Trang cá nhân">
+              <img [src]="authService.currentUserValue?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar" />
+              <span class="username">{{ authService.currentUserValue?.fullName || authService.currentUserValue?.username }}</span>
+            </a>
             <button (click)="logout()" class="btn-logout" title="Đăng xuất">
               <i class="fa-solid fa-power-off"></i>
             </button>

@@ -30,4 +30,30 @@ namespace MangaFlux.API.DTOs
         public int ComicId { get; set; }
         public int ChapterId { get; set; }
     }
+
+    public class UserProfileDto
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? FullName { get; set; }
+        public string? Avatar { get; set; }
+        public string Role { get; set; } = "User";
+        public DateTime CreatedAt { get; set; }
+        public int FollowedCount { get; set; }
+        public int CommentsCount { get; set; }
+    }
+
+    public class UserCommentDto
+    {
+        public int Id { get; set; }
+        public int ComicId { get; set; }
+        public string ComicTitle { get; set; } = string.Empty;
+        public string ComicSlug { get; set; } = string.Empty;
+        public string? ComicCover { get; set; }
+        public int? ChapterId { get; set; }
+        public double? ChapterNumber { get; set; }
+        public string Content { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+    }
 }

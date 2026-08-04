@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ComicService } from '../../services/comic.service';
+import { NotificationService } from '../../services/notification.service';
 import { Comic, Category } from '../../models/comic.model';
 
 @Component({
@@ -12,9 +13,16 @@ import { Comic, Category } from '../../models/comic.model';
   styleUrls: ['./admin.component.scss']
 })
 export class AdminComponent implements OnInit {
-  activeTab: 'comics' | 'add-comic' | 'add-chapter' = 'comics';
+  activeTab: 'comics' | 'add-comic' | 'add-chapter' | 'broadcast' = 'comics';
   comics: Comic[] = [];
   categories: Category[] = [];
+
+  // Broadcast Form Model
+  broadcastForm = {
+    title: '',
+    message: '',
+    link: ''
+  };
 
   // Add/Edit Comic Form Model
   comicForm = {
@@ -40,7 +48,26 @@ export class AdminComponent implements OnInit {
   message: string = '';
   isError: boolean = false;
 
-  constructor(private comicService: ComicService) {}
+  constructor(
+    private comicService: ComicService,
+    private notificationService: NotificationService
+  ) {}
+
+  sendBroadcast(): void {
+    if (!this.broadcastForm.message) {
+      this.showMessage('Vui lòng nhập nội dung thông báo.', true);
+      return;
+    }
+
+    this.notificationService.sendAdminBroadcast(this.broadcastForm).subscribe({
+      next: () => {
+        this.showMessage('Gửi thông báo toàn hệ thống thành công!');
+        this.broadcastForm = { title: '', message: '', link: '' };
+        this.activeTab = 'comics';
+      },
+      error: () => this.showMessage('Gửi thông báo thất bại.', true)
+    });
+  }
 
   ngOnInit(): void {
     this.loadData();

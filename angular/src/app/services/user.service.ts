@@ -1,13 +1,21 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Bookmark, ReadingHistory } from '../models/user.model';
+import { Bookmark, ReadingHistory, UserProfile, UserComment } from '../models/user.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class UserService {
   constructor(private api: ApiService) {}
+
+  getProfile(): Observable<UserProfile> {
+    return this.api.get<UserProfile>('user/profile');
+  }
+
+  getUserComments(): Observable<UserComment[]> {
+    return this.api.get<UserComment[]>('user/comments');
+  }
 
   getBookmarks(): Observable<Bookmark[]> {
     return this.api.get<Bookmark[]>('user/bookmarks');

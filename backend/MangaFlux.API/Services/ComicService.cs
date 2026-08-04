@@ -18,6 +18,7 @@ namespace MangaFlux.API.Services
         Task<ChapterDetailDto?> GetChapterByIdAsync(int chapterId);
         Task<List<CategoryDto>> GetAllCategoriesAsync();
         Task<CommentDto> AddCommentAsync(int userId, CreateCommentDto dto);
+        Task<bool> LikeCommentAsync(int userId, int commentId);
 
         // Admin operations
         Task<ComicDto> CreateComicAsync(ComicCreateUpdateDto dto);
@@ -29,10 +30,12 @@ namespace MangaFlux.API.Services
     public class ComicService : IComicService
     {
         private readonly MangaDbContext _context;
+        private readonly INotificationService _notificationService;
 
-        public ComicService(MangaDbContext context)
+        public ComicService(MangaDbContext context, INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         public async Task<List<ComicDto>> GetFeaturedComicsAsync()
@@ -96,6 +99,7 @@ namespace MangaFlux.API.Services
                 .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                 .Include(c => c.Chapters)
                 .Include(c => c.Comments).ThenInclude(cm => cm.User)
+                .Include(c => c.Comments).ThenInclude(cm => cm.Likes)
                 .FirstOrDefaultAsync(c => c.Slug == slug);
 
             if (comic == null) return null;
@@ -141,7 +145,10 @@ namespace MangaFlux.API.Services
                     UserAvatar = cm.User.Avatar,
                     ComicId = cm.ComicId,
                     ChapterId = cm.ChapterId,
+                    ParentCommentId = cm.ParentCommentId,
                     Content = cm.Content,
+                    LikesCount = cm.Likes.Count,
+                    IsLiked = false,
                     CreatedAt = cm.CreatedAt
                 }).ToList()
             };
@@ -213,17 +220,33 @@ namespace MangaFlux.API.Services
         public async Task<CommentDto> AddCommentAsync(int userId, CreateCommentDto dto)
         {
             var user = await _context.Users.FindAsync(userId);
+            var comic = await _context.Comics.FindAsync(dto.ComicId);
+
             var comment = new Comment
             {
                 UserId = userId,
                 ComicId = dto.ComicId,
                 ChapterId = dto.ChapterId,
+                ParentCommentId = dto.ParentCommentId,
                 Content = dto.Content,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
+
+            // Trigger notification if replying to a comment
+            if (dto.ParentCommentId.HasValue)
+            {
+                var parentComment = await _context.Comments.FindAsync(dto.ParentCommentId.Value);
+                if (parentComment != null && parentComment.UserId != userId)
+                {
+                    var link = comic != null ? $"/comic/{comic.Slug}" : "/comics";
+                    var title = "Có người trả lời bình luận";
+                    var message = $"{user?.Username ?? "Một người dùng"} đã trả lời bình luận của bạn.";
+                    await _notificationService.CreateNotificationAsync(parentComment.UserId, "CommentReply", title, message, link);
+                }
+            }
 
             return new CommentDto
             {
@@ -233,9 +256,51 @@ namespace MangaFlux.API.Services
                 UserAvatar = user.Avatar,
                 ComicId = comment.ComicId,
                 ChapterId = comment.ChapterId,
+                ParentCommentId = comment.ParentCommentId,
                 Content = comment.Content,
+                LikesCount = 0,
+                IsLiked = false,
                 CreatedAt = comment.CreatedAt
             };
+        }
+
+        public async Task<bool> LikeCommentAsync(int userId, int commentId)
+        {
+            var comment = await _context.Comments
+                .Include(c => c.Comic)
+                .FirstOrDefaultAsync(c => c.Id == commentId);
+
+            if (comment == null) return false;
+
+            var existingLike = await _context.CommentLikes
+                .FirstOrDefaultAsync(cl => cl.UserId == userId && cl.CommentId == commentId);
+
+            if (existingLike != null)
+            {
+                _context.CommentLikes.Remove(existingLike);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+
+            _context.CommentLikes.Add(new CommentLike
+            {
+                UserId = userId,
+                CommentId = commentId,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            // Notify comment author if it's someone else
+            if (comment.UserId != userId)
+            {
+                var user = await _context.Users.FindAsync(userId);
+                var link = comment.Comic != null ? $"/comic/{comment.Comic.Slug}" : "/comics";
+                var title = "Bình luận được thích";
+                var message = $"{user?.Username ?? "Một người dùng"} đã thích bình luận của bạn.";
+                await _notificationService.CreateNotificationAsync(comment.UserId, "CommentLike", title, message, link);
+            }
+
+            return true;
         }
 
         // Admin CRUD
@@ -333,6 +398,23 @@ namespace MangaFlux.API.Services
             if (comic != null) comic.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            // Notify bookmarked users
+            var bookmarkedUserIds = await _context.Bookmarks
+                .Where(b => b.ComicId == dto.ComicId)
+                .Select(b => b.UserId)
+                .ToListAsync();
+
+            if (comic != null && bookmarkedUserIds.Any())
+            {
+                foreach (var uId in bookmarkedUserIds)
+                {
+                    var link = $"/read/{chapter.Id}";
+                    var title = "Chapter mới!";
+                    var message = $"Truyện '{comic.Title}' bạn theo dõi vừa có Chapter {dto.ChapterNumber}.";
+                    await _notificationService.CreateNotificationAsync(uId, "NewChapter", title, message, link);
+                }
+            }
 
             return new ChapterDto
             {

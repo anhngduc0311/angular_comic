@@ -13,10 +13,12 @@ namespace MangaFlux.API.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly INotificationService _notificationService;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService, INotificationService notificationService)
         {
             _userService = userService;
+            _notificationService = notificationService;
         }
 
         private int GetUserId() => int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
@@ -55,6 +57,49 @@ namespace MangaFlux.API.Controllers
             var result = await _userService.TrackReadingHistoryAsync(GetUserId(), dto.ComicId, dto.ChapterId);
             return Ok(new { success = result });
         }
+
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile()
+        {
+            var profile = await _userService.GetUserProfileAsync(GetUserId());
+            if (profile == null) return NotFound(new { message = "Không tìm thấy người dùng." });
+            return Ok(profile);
+        }
+
+        [HttpGet("comments")]
+        public async Task<IActionResult> GetComments()
+        {
+            var comments = await _userService.GetUserCommentsAsync(GetUserId());
+            return Ok(comments);
+        }
+
+        [HttpGet("notifications")]
+        public async Task<IActionResult> GetNotifications()
+        {
+            var notifications = await _notificationService.GetUserNotificationsAsync(GetUserId());
+            return Ok(notifications);
+        }
+
+        [HttpGet("notifications/unread-count")]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            var count = await _notificationService.GetUnreadCountAsync(GetUserId());
+            return Ok(new UnreadCountDto { UnreadCount = count });
+        }
+
+        [HttpPut("notifications/{id}/read")]
+        public async Task<IActionResult> MarkAsRead(int id)
+        {
+            var result = await _notificationService.MarkAsReadAsync(GetUserId(), id);
+            return Ok(new { success = result });
+        }
+
+        [HttpPut("notifications/read-all")]
+        public async Task<IActionResult> MarkAllAsRead()
+        {
+            var result = await _notificationService.MarkAllAsReadAsync(GetUserId());
+            return Ok(new { success = result });
+        }
     }
 
     [Authorize(Roles = "Admin")]
@@ -63,10 +108,12 @@ namespace MangaFlux.API.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IComicService _comicService;
+        private readonly INotificationService _notificationService;
 
-        public AdminController(IComicService comicService)
+        public AdminController(IComicService comicService, INotificationService notificationService)
         {
             _comicService = comicService;
+            _notificationService = notificationService;
         }
 
         [HttpPost("comics")]
@@ -96,6 +143,13 @@ namespace MangaFlux.API.Controllers
         {
             var chapter = await _comicService.AddChapterAsync(dto);
             return Ok(chapter);
+        }
+
+        [HttpPost("notifications/broadcast")]
+        public async Task<IActionResult> BroadcastNotification([FromBody] BroadcastNotificationDto dto)
+        {
+            await _notificationService.BroadcastNotificationAsync(dto);
+            return Ok(new { success = true });
         }
     }
 }
