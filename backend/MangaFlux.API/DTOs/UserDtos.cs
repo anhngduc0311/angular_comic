@@ -56,4 +56,22 @@ namespace MangaFlux.API.DTOs
         public string Content { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
     }
+
+    public class UpdateProfileDto
+    {
+        public string? FullName { get; set; }
+        public string? Avatar { get; set; }
+        public string? Email { get; set; }
+    }
+
+    public class ChangePasswordDto
+    {
+        public string CurrentPassword { get; set; } = string.Empty;
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class DeleteAccountDto
+    {
+        public string Password { get; set; } = string.Empty;
+    }
 }

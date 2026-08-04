@@ -37,6 +37,20 @@
   --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+[data-theme="light"] {
+  --bg-main: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F1F5F9;
+  --bg-glass: rgba(255, 255, 255, 0.92);
+  --border-color: rgba(0, 0, 0, 0.08);
+
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --text-dark: #94A3B8;
+
+  --shadow-glow: 0 4px 20px rgba(99, 102, 241, 0.12);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

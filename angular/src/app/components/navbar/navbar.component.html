@@ -20,6 +20,7 @@
         <a routerLink="/followed" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Theo dõi</a>
         <a routerLink="/history" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Lịch sử</a>
         <a routerLink="/profile" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Trang cá nhân</a>
+        <a routerLink="/settings" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Cài đặt</a>
         <a routerLink="/admin" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isAdmin" class="admin-badge">Admin</a>
       </nav>
 

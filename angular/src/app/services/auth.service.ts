@@ -61,6 +61,15 @@ export class AuthService {
     );
   }
 
+  updateCurrentUser(updatedUserPartial: Partial<User>): void {
+    const current = this.currentUserValue;
+    if (current) {
+      const updatedUser = { ...current, ...updatedUserPartial };
+      localStorage.setItem('mangaflux_user', JSON.stringify(updatedUser));
+      this.currentUserSubject.next(updatedUser);
+    }
+  }
+
   logout(): void {
     localStorage.removeItem('mangaflux_token');
     localStorage.removeItem('mangaflux_user');

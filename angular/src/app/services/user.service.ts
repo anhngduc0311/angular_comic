@@ -13,6 +13,18 @@ export class UserService {
     return this.api.get<UserProfile>('user/profile');
   }
 
+  updateProfile(data: { fullName?: string; avatar?: string; email?: string }): Observable<UserProfile> {
+    return this.api.put<UserProfile>('user/profile', data);
+  }
+
+  changePassword(data: { currentPassword: string; newPassword: string }): Observable<{ success: boolean; message: string }> {
+    return this.api.put<{ success: boolean; message: string }>('user/change-password', data);
+  }
+
+  deleteAccount(data: { password: string }): Observable<{ success: boolean; message: string }> {
+    return this.api.post<{ success: boolean; message: string }>('user/delete-account', data);
+  }
+
   getUserComments(): Observable<UserComment[]> {
     return this.api.get<UserComment[]>('user/comments');
   }

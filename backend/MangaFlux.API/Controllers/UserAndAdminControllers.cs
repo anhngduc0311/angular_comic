@@ -66,6 +66,30 @@ namespace MangaFlux.API.Controllers
             return Ok(profile);
         }
 
+        [HttpPut("profile")]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+        {
+            var updated = await _userService.UpdateUserProfileAsync(GetUserId(), dto);
+            if (updated == null) return BadRequest(new { message = "Cập nhật thất bại." });
+            return Ok(updated);
+        }
+
+        [HttpPut("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+        {
+            var (success, message) = await _userService.ChangePasswordAsync(GetUserId(), dto);
+            if (!success) return BadRequest(new { message });
+            return Ok(new { success = true, message });
+        }
+
+        [HttpPost("delete-account")]
+        public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountDto dto)
+        {
+            var (success, message) = await _userService.DeleteAccountAsync(GetUserId(), dto);
+            if (!success) return BadRequest(new { message });
+            return Ok(new { success = true, message });
+        }
+
         [HttpGet("comments")]
         public async Task<IActionResult> GetComments()
         {
