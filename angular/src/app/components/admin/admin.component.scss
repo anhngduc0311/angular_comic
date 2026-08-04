@@ -1,0 +1,131 @@
+.admin-page {
+  padding-top: 2.5rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+  h1 { font-size: 2rem; font-weight: 800; }
+  p { color: var(--text-muted); }
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+
+  button {
+    padding: 0.7rem 1.2rem;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: var(--transition);
+
+    &.active {
+      background: var(--primary);
+      color: #FFF;
+    }
+  }
+}
+
+.alert {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+
+  &-success { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+  &-danger { background: rgba(239, 68, 68, 0.2); color: #F87171; }
+}
+
+.tab-content {
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 650px;
+
+  th, td {
+    padding: 0.85rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  th { color: var(--text-muted); font-size: 0.82rem; text-transform: uppercase; }
+
+  .table-thumb { width: 40px; height: 55px; border-radius: var(--radius-sm); object-fit: cover; }
+
+  .actions { display: flex; gap: 0.5rem; }
+}
+
+.admin-form {
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+
+    &.full-width { grid-column: 1 / -1; }
+
+    label { font-size: 0.9rem; font-weight: 600; color: var(--text-muted); }
+
+    input, select, textarea {
+      background: #181D28;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1rem;
+      color: var(--text-main);
+      outline: none;
+
+      &:focus { border-color: var(--primary); }
+    }
+  }
+
+  .categories-checkboxes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: #181D28;
+    padding: 1rem;
+    border-radius: var(--radius-md);
+
+    .cat-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+  }
+
+  .form-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    justify-content: flex-end;
+  }
+}

@@ -1,0 +1,34 @@
+<div class="container history-page">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-clock-rotate-left text-gradient"></i> Lịch Sử Đọc Truyện</h1>
+    <p>Danh sách các bộ truyện bạn vừa đọc gần đây và tiến độ từng chương.</p>
+  </div>
+
+  <div class="history-list" *ngIf="!isLoading && historyItems.length > 0">
+    <div class="history-card bg-glass card-hover" *ngFor="let item of historyItems">
+      <div class="thumb-wrapper">
+        <img [src]="item.comic.coverImage" [alt]="item.comic.title" class="thumb" />
+        <span class="chap-tag">Chap {{ item.chapter.chapterNumber }}</span>
+      </div>
+      <div class="info">
+        <h3 class="title">
+          <a [routerLink]="['/comic', item.comic.slug]" [title]="item.comic.title">{{ item.comic.title }}</a>
+        </h3>
+        <p class="last-chapter">
+          Đang đọc: <a [routerLink]="['/read', item.chapterId]" class="chapter-link">{{ item.chapter.title }}</a>
+        </p>
+        <span class="read-time"><i class="fa-regular fa-clock"></i> {{ item.lastReadAt | date:'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+      <div class="action-wrapper">
+        <a [routerLink]="['/read', item.chapterId]" class="btn btn-primary btn-continue">
+          <span>Đọc Tiếp</span> <i class="fa-solid fa-play"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && historyItems.length === 0">
+    <i class="fa-solid fa-clock-rotate-left empty-icon"></i>
+    <p>Lịch sử đọc truyện của bạn đang trống.</p>
+  </div>
+</div>

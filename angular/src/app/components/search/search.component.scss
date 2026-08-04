@@ -1,0 +1,113 @@
+.search-page {
+  padding-top: 2.5rem;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+  h1 { font-size: 2rem; font-weight: 800; }
+  p { color: var(--text-muted); }
+}
+
+.search-panel {
+  padding: 1.5rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 2rem;
+
+  .search-bar-wrapper {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.2rem;
+
+    .search-input {
+      flex: 1;
+      padding: 0.8rem 1.2rem;
+      background: #181D28;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      color: var(--text-main);
+      font-size: 1rem;
+      outline: none;
+
+      &:focus { border-color: var(--primary); }
+    }
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+
+    .field {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+
+      label { font-size: 0.9rem; color: var(--text-muted); }
+
+      select {
+        background: #181D28;
+        border: 1px solid var(--border-color);
+        color: var(--text-main);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        outline: none;
+      }
+    }
+  }
+}
+
+.results-header {
+  margin-bottom: 1.5rem;
+  h3 { font-size: 1.2rem; font-weight: 700; }
+}
+
+.comic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 1.5rem;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.75rem;
+  }
+}
+
+.comic-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+
+  .card-cover {
+    aspect-ratio: 3/4;
+    img { width: 100%; height: 100%; object-fit: cover; }
+  }
+
+  .card-info {
+    padding: 1rem;
+
+    .comic-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+      a { color: var(--text-main); text-decoration: none; &:hover { color: var(--primary); } }
+    }
+
+    .author { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; }
+
+    .card-footer {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      .rating { color: #F59E0B; }
+    }
+  }
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--text-muted);
+  .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.5; }
+}

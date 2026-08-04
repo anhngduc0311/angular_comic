@@ -1,0 +1,63 @@
+<div class="container comic-list-page">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-book-bookmark text-gradient"></i> Danh Sách Truyện Tranh</h1>
+    <p>Khám phá kho truyện phong phú đa dạng thể loại cập nhật liên tục mỗi ngày.</p>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="filter-card bg-glass">
+    <div class="filter-group">
+      <label><i class="fa-solid fa-list"></i> Thể loại:</label>
+      <select [(ngModel)]="selectedCategory" (change)="onFilterChange()">
+        <option value="">Tất cả thể loại</option>
+        <option *ngFor="let cat of categories" [value]="cat.slug">{{ cat.name }}</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label><i class="fa-solid fa-spinner"></i> Trạng thái:</label>
+      <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
+        <option value="All">Tất cả</option>
+        <option value="Ongoing">Đang tiến hành</option>
+        <option value="Completed">Hoàn thành</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp xếp:</label>
+      <select [(ngModel)]="selectedSort" (change)="onFilterChange()">
+        <option value="latest">Mới cập nhật</option>
+        <option value="views">Lượt xem nhiều nhất</option>
+        <option value="rating">Đánh giá cao nhất</option>
+        <option value="title">Tên A-Z</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Comic Cards Grid -->
+  <div class="comic-grid" *ngIf="!isLoading && comics.length > 0">
+    <div class="comic-card card-hover" *ngFor="let comic of comics">
+      <div class="card-cover">
+        <img [src]="comic.coverImage" [alt]="comic.title" />
+        <span class="chapter-badge" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
+      </div>
+      <div class="card-info">
+        <h3 class="comic-title" [title]="comic.title">
+          <a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
+        </h3>
+        <div class="tags">
+          <span class="tag" *ngFor="let cat of comic.categories.slice(0, 2)">{{ cat.name }}</span>
+        </div>
+        <div class="card-footer">
+          <span class="rating"><i class="fa-solid fa-star"></i> {{ comic.rating }}</span>
+          <span class="views"><i class="fa-solid fa-eye"></i> {{ comic.views | number }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && comics.length === 0">
+    <i class="fa-solid fa-folder-open empty-icon"></i>
+    <p>Không tìm thấy truyện phù hợp với bộ lọc hiện tại.</p>
+  </div>
+</div>

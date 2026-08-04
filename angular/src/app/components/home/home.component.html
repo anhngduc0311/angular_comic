@@ -1,0 +1,101 @@
+<div class="home-page">
+  <!-- Hero Featured Section -->
+  <section class="hero-section" *ngIf="currentHero">
+    <div class="hero-banner" [style.background-image]="'linear-gradient(to right, rgba(11, 14, 20, 0.95), rgba(11, 14, 20, 0.4)), url(' + (currentHero.bannerImage || currentHero.coverImage) + ')'">
+      <div class="container hero-content">
+        <span class="badge badge-hot"><i class="fa-solid fa-fire-flame-curved"></i> SIÊU PHẨM NỔI BẬT</span>
+        <h1 class="hero-title">{{ currentHero.title }}</h1>
+        <div class="hero-meta">
+          <span class="rating"><i class="fa-solid fa-star"></i> {{ currentHero.rating }}</span>
+          <span class="views"><i class="fa-solid fa-eye"></i> {{ formatViews(currentHero.views) }} lượt xem</span>
+          <span class="status badge badge-success">{{ currentHero.status === 'Ongoing' ? 'Đang tiến hành' : 'Hoàn thành' }}</span>
+        </div>
+        <p class="hero-description">{{ currentHero.description }}</p>
+        <div class="hero-actions">
+          <a [routerLink]="['/comic', currentHero.slug]" class="btn btn-primary">
+            <i class="fa-solid fa-book-open"></i> Đọc Ngay
+          </a>
+          <a [routerLink]="['/comic', currentHero.slug]" class="btn btn-secondary">
+            <i class="fa-solid fa-circle-info"></i> Chi tiết
+          </a>
+        </div>
+      </div>
+
+      <!-- Hero Indicators -->
+      <div class="hero-indicators">
+        <button *ngFor="let c of featuredComics; let i = index" 
+                [class.active]="i === activeHeroIndex" 
+                (click)="selectHero(i)">
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Category Bar -->
+  <div class="container category-quick-bar">
+    <span class="label"><i class="fa-solid fa-layer-group text-primary"></i> Thể loại hot:</span>
+    <div class="chips">
+      <a *ngFor="let cat of categories" [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }" class="chip">
+        {{ cat.name }}
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content Grid -->
+  <div class="container main-layout">
+    <!-- Left Column: Latest Comics -->
+    <div class="left-content">
+      <div class="section-header">
+        <h2><i class="fa-solid fa-clock-rotate-left text-gradient"></i> Mới Cập Nhật Mới Nhất</h2>
+        <a routerLink="/comics" class="view-all">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
+      </div>
+
+      <div class="comic-grid" *ngIf="!isLoading">
+        <div class="comic-card card-hover" *ngFor="let comic of latestComics">
+          <div class="card-cover">
+            <img [src]="comic.coverImage" [alt]="comic.title" />
+            <span class="chapter-badge" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
+            <span class="time-badge" *ngIf="comic.latestChapter">{{ formatTimeAgo(comic.latestChapter.createdAt) }}</span>
+            <div class="card-overlay">
+              <a [routerLink]="['/comic', comic.slug]" class="btn-play" title="Đọc truyện"><i class="fa-solid fa-play"></i></a>
+            </div>
+          </div>
+          <div class="card-info">
+            <h3 class="comic-title" [title]="comic.title">
+              <a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
+            </h3>
+            <div class="card-footer">
+              <span class="rating"><i class="fa-solid fa-star"></i> {{ comic.rating }}</span>
+              <span class="views"><i class="fa-solid fa-eye"></i> {{ formatViews(comic.views) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar: Top Rankings -->
+    <aside class="sidebar">
+      <div class="section-header">
+        <h2><i class="fa-solid fa-trophy text-gradient"></i> Bảng Xếp Hạng</h2>
+      </div>
+
+      <!-- Ranking Tabs -->
+      <div class="ranking-tabs bg-glass">
+        <button [class.active]="activeRankingTab === 'day'" (click)="switchRankingTab('day')">Top Ngày</button>
+        <button [class.active]="activeRankingTab === 'week'" (click)="switchRankingTab('week')">Top Tuần</button>
+        <button [class.active]="activeRankingTab === 'month'" (click)="switchRankingTab('month')">Top Tháng</button>
+      </div>
+
+      <div class="top-list bg-glass">
+        <div class="top-item" *ngFor="let comic of topViewComics; let i = index">
+          <span class="rank-num" [class.top-1]="i === 0" [class.top-2]="i === 1" [class.top-3]="i === 2">{{ i + 1 }}</span>
+          <img [src]="comic.coverImage" [alt]="comic.title" class="thumb" />
+          <div class="info">
+            <a [routerLink]="['/comic', comic.slug]" class="title" [title]="comic.title">{{ comic.title }}</a>
+            <span class="meta"><i class="fa-solid fa-eye text-muted"></i> {{ formatViews(comic.views) }} lượt xem</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>

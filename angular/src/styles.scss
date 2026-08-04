@@ -1,0 +1,195 @@
+/* ============================================================================
+   MANGAFLUX GLOBAL STYLESHEET & DESIGN TOKENS (VIETNAMESE ENHANCED)
+   ============================================================================ */
+
+:root {
+  --bg-main: #0B0E14;
+  --bg-card: #151922;
+  --bg-card-hover: #1E2330;
+  --bg-glass: rgba(21, 25, 34, 0.88);
+  --border-color: rgba(255, 255, 255, 0.08);
+
+  --primary: #6366F1;
+  --primary-hover: #4F46E5;
+  --primary-glow: rgba(99, 102, 241, 0.35);
+
+  --accent: #EC4899;
+  --accent-hover: #DB2777;
+  --accent-glow: rgba(236, 72, 153, 0.35);
+
+  --hot-gradient: linear-gradient(135deg, #FF416C 0%, #FF4B2B 100%);
+  --vip-gradient: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+
+  --text-main: #F3F4F6;
+  --text-muted: #9CA3AF;
+  --text-dark: #6B7280;
+
+  --success: #10B981;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.25);
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: #262B36;
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Utility Classes */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bg-glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-color);
+}
+
+.card-hover {
+  transition: var(--transition);
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 14px 28px rgba(0, 0, 0, 0.5), var(--shadow-glow);
+    border-color: rgba(99, 102, 241, 0.45);
+  }
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+
+  &-hot {
+    background: var(--hot-gradient);
+    color: #FFF;
+    box-shadow: 0 2px 8px rgba(255, 75, 43, 0.4);
+  }
+
+  &-primary {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818CF8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  &-success {
+    background: rgba(16, 185, 129, 0.15);
+    color: #34D399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: var(--transition);
+  text-decoration: none;
+
+  &-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, #4338CA 100%);
+    color: #FFF;
+    box-shadow: 0 4px 14px var(--primary-glow);
+    &:hover {
+      background: linear-gradient(135deg, var(--primary-hover) 0%, #3730A3 100%);
+      transform: translateY(-2px);
+    }
+  }
+
+  &-secondary {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    &:hover {
+      background: #1E2330;
+      border-color: var(--primary);
+    }
+  }
+
+  &-danger {
+    background: var(--danger);
+    color: #FFF;
+    &:hover { background: #DC2626; }
+  }
+}
+
+/* Floating Action Button */
+.btn-float-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #FFF;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: var(--transition);
+
+  &:hover {
+    transform: translateY(-3px) scale(1.05);
+    background: var(--primary-hover);
+  }
+}

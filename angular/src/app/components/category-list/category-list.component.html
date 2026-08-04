@@ -1,0 +1,19 @@
+<div class="container category-page">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-tags text-gradient"></i> Danh Sách Thể Loại</h1>
+    <p>Khám phá các thể loại truyện tranh phong phú tại MangaFlux.</p>
+  </div>
+
+  <div class="category-grid">
+    <a *ngFor="let cat of categories" [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }" class="category-card card-hover bg-glass">
+      <div class="cat-header">
+        <h3>{{ cat.name }}</h3>
+        <span class="count badge badge-primary">{{ cat.comicCount }} truyện</span>
+      </div>
+      <p class="desc">{{ cat.description || 'Truyện thuộc thể loại ' + cat.name + ' chọn lọc hấp dẫn.' }}</p>
+      <div class="cat-footer">
+        <span>Xem tất cả <i class="fa-solid fa-arrow-right"></i></span>
+      </div>
+    </a>
+  </div>
+</div>

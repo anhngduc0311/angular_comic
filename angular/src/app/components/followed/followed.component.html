@@ -1,0 +1,26 @@
+<div class="container followed-page">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-bookmark text-gradient"></i> Tủ Truyện Theo Dõi</h1>
+    <p>Danh sách các bộ truyện bạn đang quan tâm và theo dõi tiến độ cập nhật.</p>
+  </div>
+
+  <div class="comic-grid" *ngIf="!isLoading && bookmarks.length > 0">
+    <div class="comic-card card-hover" *ngFor="let b of bookmarks">
+      <div class="card-cover">
+        <img [src]="b.comic.coverImage" [alt]="b.comic.title" />
+        <button class="btn-remove" (click)="removeBookmark(b.comicId, $event)" title="Bỏ theo dõi">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="card-info">
+        <h3 class="comic-title"><a [routerLink]="['/comic', b.comic.slug]">{{ b.comic.title }}</a></h3>
+        <span class="status badge badge-success">{{ b.comic.status }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && bookmarks.length === 0">
+    <i class="fa-solid fa-bookmark empty-icon"></i>
+    <p>Bạn chưa theo dõi bộ truyện nào. Hãy khám phá và nhấn nút "Theo Dõi" nhé!</p>
+  </div>
+</div>

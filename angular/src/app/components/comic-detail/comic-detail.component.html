@@ -1,0 +1,78 @@
+<div class="comic-detail-page" *ngIf="comic && !isLoading">
+  <!-- Banner Header -->
+  <div class="detail-banner" [style.background-image]="'linear-gradient(to bottom, rgba(11, 14, 20, 0.75), #0B0E14), url(' + (comic.bannerImage || comic.coverImage) + ')'">
+    <div class="container banner-content">
+      <div class="cover-wrapper">
+        <img [src]="comic.coverImage" [alt]="comic.title" class="cover-img" />
+      </div>
+      <div class="info-wrapper">
+        <div class="category-tags">
+          <span class="tag" *ngFor="let cat of comic.categories">{{ cat.name }}</span>
+        </div>
+        <h1 class="comic-title">{{ comic.title }}</h1>
+        <p class="author"><i class="fa-solid fa-pen-nib text-primary"></i> Tác giả: <strong>{{ comic.author || 'Đang cập nhật' }}</strong></p>
+
+        <div class="stats-row bg-glass">
+          <div class="stat"><i class="fa-solid fa-star text-warning"></i> <span>{{ comic.rating }}</span> <label>Đánh giá</label></div>
+          <div class="stat"><i class="fa-solid fa-eye text-primary"></i> <span>{{ formatViews(comic.views) }}</span> <label>Lượt xem</label></div>
+          <div class="stat"><i class="fa-solid fa-list text-muted"></i> <span>{{ comic.chapters.length }}</span> <label>Chương</label></div>
+          <div class="stat status-stat"><span class="badge badge-success">{{ comic.status === 'Ongoing' ? 'Đang tiến hành' : 'Hoàn thành' }}</span></div>
+        </div>
+
+        <div class="action-buttons">
+          <a [routerLink]="['/read', firstChapterId]" *ngIf="firstChapterId" class="btn btn-primary btn-read">
+            <i class="fa-solid fa-book-open"></i> Đọc Từ Đầu
+          </a>
+          <button (click)="toggleBookmark()" class="btn btn-follow" [class.btn-secondary]="!isBookmarked" [class.btn-primary]="isBookmarked">
+            <i class="fa-solid" [class.fa-bookmark]="isBookmarked" [class.fa-regular]="!isBookmarked" [class.fa-bookmark-slash]="isBookmarked"></i>
+            {{ isBookmarked ? 'Đã Theo Dõi' : 'Theo Dõi' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container main-content">
+    <!-- Synopsis -->
+    <div class="section bg-glass">
+      <h2><i class="fa-solid fa-align-left text-gradient"></i> Tóm Tắt Nội Dung</h2>
+      <p class="synopsis">{{ comic.description || 'Chưa có mô tả cho bộ truyện này.' }}</p>
+    </div>
+
+    <!-- Chapter List -->
+    <div class="section bg-glass">
+      <h2><i class="fa-solid fa-list-ol text-gradient"></i> Danh Sách Chương ({{ comic.chapters.length }})</h2>
+      <div class="chapter-list">
+        <div class="chapter-item" *ngFor="let ch of comic.chapters">
+          <a [routerLink]="['/read', ch.id]" class="ch-title">Chapter {{ ch.chapterNumber }}: {{ ch.title }}</a>
+          <span class="ch-date">{{ ch.createdAt | date:'dd/MM/yyyy' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="section bg-glass">
+      <h2><i class="fa-solid fa-comments text-gradient"></i> Bình Luận ({{ comic.comments.length }})</h2>
+
+      <!-- Comment Form -->
+      <div class="comment-form">
+        <textarea [(ngModel)]="commentContent" placeholder="Viết bình luận của bạn về truyện..."></textarea>
+        <button (click)="submitComment()" class="btn btn-primary">Gửi Bình Luận</button>
+      </div>
+
+      <!-- Comment List -->
+      <div class="comment-list">
+        <div class="comment-item" *ngFor="let cm of comic.comments">
+          <img [src]="cm.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar" />
+          <div class="comment-body">
+            <div class="cm-header">
+              <span class="username">{{ cm.username }}</span>
+              <span class="time">{{ cm.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+            </div>
+            <p class="content">{{ cm.content }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

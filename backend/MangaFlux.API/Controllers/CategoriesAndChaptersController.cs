@@ -1,0 +1,45 @@
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using MangaFlux.API.Services;
+
+namespace MangaFlux.API.Controllers
+{
+    [ApiController]
+    [Route("api/[controller]")]
+    public class CategoriesController : ControllerBase
+    {
+        private readonly IComicService _comicService;
+
+        public CategoriesController(IComicService comicService)
+        {
+            _comicService = comicService;
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var categories = await _comicService.GetAllCategoriesAsync();
+            return Ok(categories);
+        }
+    }
+
+    [ApiController]
+    [Route("api/[controller]")]
+    public class ChaptersController : ControllerBase
+    {
+        private readonly IComicService _comicService;
+
+        public ChaptersController(IComicService comicService)
+        {
+            _comicService = comicService;
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var chapter = await _comicService.GetChapterByIdAsync(id);
+            if (chapter == null) return NotFound(new { message = "Không tìm thấy chương này." });
+            return Ok(chapter);
+        }
+    }
+}

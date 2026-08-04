@@ -1,0 +1,86 @@
+<div class="auth-page">
+  <div class="auth-card bg-glass">
+    <!-- Header Tabs -->
+    <div class="auth-tabs">
+      <button [class.active]="isLoginMode" (click)="switchMode(true)">Đăng Nhập</button>
+      <button [class.active]="!isLoginMode" (click)="switchMode(false)">Đăng Ký</button>
+    </div>
+
+    <!-- Error Alert -->
+    <div class="alert alert-danger" *ngIf="errorMessage">
+      <i class="fa-solid fa-triangle-exclamation"></i> {{ errorMessage }}
+    </div>
+
+    <!-- Login Form -->
+    <form (ngSubmit)="onLogin()" *ngIf="isLoginMode" class="auth-form">
+      <div class="form-group">
+        <label>Tên đăng nhập hoặc Email</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-user icon"></i>
+          <input type="text" [(ngModel)]="loginData.usernameOrEmail" name="usernameOrEmail" placeholder="Nhập username hoặc email..." required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Mật khẩu</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-lock icon"></i>
+          <input type="password" [(ngModel)]="loginData.password" name="password" placeholder="Nhập mật khẩu..." required />
+        </div>
+      </div>
+
+      <button type="submit" [disabled]="isLoading" class="btn btn-primary btn-block">
+        <i class="fa-solid fa-right-to-bracket" *ngIf="!isLoading"></i>
+        {{ isLoading ? 'Đang xử lý...' : 'Đăng Nhập' }}
+      </button>
+    </form>
+
+    <!-- Register Form -->
+    <form (ngSubmit)="onRegister()" *ngIf="!isLoginMode" class="auth-form">
+      <div class="form-group">
+        <label>Tên đăng nhập *</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-user icon"></i>
+          <input type="text" [(ngModel)]="registerData.username" name="username" placeholder="Nhập tên đăng nhập..." required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Email *</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-envelope icon"></i>
+          <input type="email" [(ngModel)]="registerData.email" name="email" placeholder="Nhập địa chỉ email..." required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Họ và tên</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-id-card icon"></i>
+          <input type="text" [(ngModel)]="registerData.fullName" name="fullName" placeholder="Nhập họ và tên..." />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Mật khẩu *</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-lock icon"></i>
+          <input type="password" [(ngModel)]="registerData.password" name="password" placeholder="Tạo mật khẩu..." required />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Xác nhận mật khẩu *</label>
+        <div class="input-wrapper">
+          <i class="fa-solid fa-shield-halved icon"></i>
+          <input type="password" [(ngModel)]="registerData.confirmPassword" name="confirmPassword" placeholder="Nhập lại mật khẩu..." required />
+        </div>
+      </div>
+
+      <button type="submit" [disabled]="isLoading" class="btn btn-primary btn-block">
+        <i class="fa-solid fa-user-plus" *ngIf="!isLoading"></i>
+        {{ isLoading ? 'Đang xử lý...' : 'Đăng Ký Tài Khoản' }}
+      </button>
+    </form>
+  </div>
+</div>

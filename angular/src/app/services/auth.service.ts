@@ -1,0 +1,69 @@
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { ApiService } from './api.service';
+import { User } from '../models/user.model';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthService {
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  public currentUser$ = this.currentUserSubject.asObservable();
+
+  constructor(private api: ApiService) {
+    this.loadUserFromStorage();
+  }
+
+  private loadUserFromStorage(): void {
+    const userJson = localStorage.getItem('mangaflux_user');
+    if (userJson) {
+      try {
+        this.currentUserSubject.next(JSON.parse(userJson));
+      } catch (e) {
+        localStorage.removeItem('mangaflux_user');
+      }
+    }
+  }
+
+  public get currentUserValue(): User | null {
+    return this.currentUserSubject.value;
+  }
+
+  public get isLoggedIn(): boolean {
+    return !!this.currentUserValue;
+  }
+
+  public get isAdmin(): boolean {
+    return this.currentUserValue?.role === 'Admin';
+  }
+
+  login(credentials: { usernameOrEmail: string; password: string }): Observable<User> {
+    return this.api.post<User>('auth/login', credentials).pipe(
+      tap((user) => {
+        if (user && user.token) {
+          localStorage.setItem('mangaflux_token', user.token);
+          localStorage.setItem('mangaflux_user', JSON.stringify(user));
+          this.currentUserSubject.next(user);
+        }
+      })
+    );
+  }
+
+  register(data: { username: string; email: string; password: string; fullName?: string }): Observable<User> {
+    return this.api.post<User>('auth/register', data).pipe(
+      tap((user) => {
+        if (user && user.token) {
+          localStorage.setItem('mangaflux_token', user.token);
+          localStorage.setItem('mangaflux_user', JSON.stringify(user));
+          this.currentUserSubject.next(user);
+        }
+      })
+    );
+  }
+
+  logout(): void {
+    localStorage.removeItem('mangaflux_token');
+    localStorage.removeItem('mangaflux_user');
+    this.currentUserSubject.next(null);
+  }
+}

@@ -1,0 +1,50 @@
+using Microsoft.EntityFrameworkCore;
+using MangaFlux.API.Models;
+
+namespace MangaFlux.API.Data
+{
+    public class MangaDbContext : DbContext
+    {
+        public MangaDbContext(DbContextOptions<MangaDbContext> options) : base(options) { }
+
+        public DbSet<User> Users => Set<User>();
+        public DbSet<Category> Categories => Set<Category>();
+        public DbSet<Comic> Comics => Set<Comic>();
+        public DbSet<ComicCategory> ComicCategories => Set<ComicCategory>();
+        public DbSet<Chapter> Chapters => Set<Chapter>();
+        public DbSet<ChapterPage> ChapterPages => Set<ChapterPage>();
+        public DbSet<Bookmark> Bookmarks => Set<Bookmark>();
+        public DbSet<ReadingHistory> ReadingHistories => Set<ReadingHistory>();
+        public DbSet<Comment> Comments => Set<Comment>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Composite Key for ComicCategory Many-to-Many
+            modelBuilder.Entity<ComicCategory>()
+                .HasKey(cc => new { cc.ComicId, cc.CategoryId });
+
+            modelBuilder.Entity<ComicCategory>()
+                .HasOne(cc => cc.Comic)
+                .WithMany(c => c.ComicCategories)
+                .HasForeignKey(cc => cc.ComicId);
+
+            modelBuilder.Entity<ComicCategory>()
+                .HasOne(cc => cc.Category)
+                .WithMany(cat => cat.ComicCategories)
+                .HasForeignKey(cc => cc.CategoryId);
+
+            // Unique Bookmark Constraint per User and Comic
+            modelBuilder.Entity<Bookmark>()
+                .HasIndex(b => new { b.UserId, b.ComicId })
+                .IsUnique();
+
+            // Indexes for Search & Routing Performance
+            modelBuilder.Entity<Comic>().HasIndex(c => c.Slug).IsUnique();
+            modelBuilder.Entity<Category>().HasIndex(c => c.Slug).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
+            modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+        }
+    }
+}

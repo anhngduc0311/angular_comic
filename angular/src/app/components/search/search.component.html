@@ -1,0 +1,66 @@
+<div class="container search-page">
+  <div class="page-header">
+    <h1><i class="fa-solid fa-magnifying-glass text-gradient"></i> Tìm Kiếm Truyện Tranh</h1>
+    <p>Tìm kiếm theo từ khóa, tên tác giả, thể loại và trạng thái truyện.</p>
+  </div>
+
+  <!-- Search Panel -->
+  <div class="search-panel bg-glass">
+    <form (ngSubmit)="onSearchSubmit()" class="search-bar-wrapper">
+      <input type="text" [(ngModel)]="query" name="q" placeholder="Nhập từ khóa tìm kiếm..." class="search-input" />
+      <button type="submit" class="btn btn-primary"><i class="fa-solid fa-search"></i> Tìm kiếm</button>
+    </form>
+
+    <div class="filter-row">
+      <div class="field">
+        <label>Thể loại:</label>
+        <select [(ngModel)]="selectedCategory" (change)="onSearchSubmit()">
+          <option value="">Tất cả</option>
+          <option *ngFor="let cat of categories" [value]="cat.slug">{{ cat.name }}</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Trạng thái:</label>
+        <select [(ngModel)]="selectedStatus" (change)="onSearchSubmit()">
+          <option value="All">Tất cả</option>
+          <option value="Ongoing">Đang tiến hành</option>
+          <option value="Completed">Hoàn thành</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Sắp xếp:</label>
+        <select [(ngModel)]="selectedSort" (change)="onSearchSubmit()">
+          <option value="latest">Mới cập nhật</option>
+          <option value="views">Lượt xem</option>
+          <option value="rating">Đánh giá</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Results Grid -->
+  <div class="results-header" *ngIf="!isLoading">
+    <h3>Kết quả tìm kiếm: <span class="text-primary">{{ results.length }}</span> truyện</h3>
+  </div>
+
+  <div class="comic-grid" *ngIf="!isLoading && results.length > 0">
+    <div class="comic-card card-hover" *ngFor="let comic of results">
+      <div class="card-cover">
+        <img [src]="comic.coverImage" [alt]="comic.title" />
+      </div>
+      <div class="card-info">
+        <h3 class="comic-title"><a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a></h3>
+        <p class="author">{{ comic.author }}</p>
+        <div class="card-footer">
+          <span class="rating"><i class="fa-solid fa-star"></i> {{ comic.rating }}</span>
+          <span class="views"><i class="fa-solid fa-eye"></i> {{ comic.views | number }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="empty-state" *ngIf="!isLoading && results.length === 0">
+    <i class="fa-solid fa-magnifying-glass-minus empty-icon"></i>
+    <p>Không tìm thấy kết quả phù hợp với từ khóa "{{ query }}".</p>
+  </div>
+</div>
