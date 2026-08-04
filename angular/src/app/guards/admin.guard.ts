@@ -11,7 +11,9 @@ export const adminGuard: CanActivateFn = (route, state) => {
   }
 
   if (authService.isLoggedIn) {
-    alert('Bạn không có quyền truy cập vào trang Quản trị!');
+    if (typeof window !== 'undefined' && typeof window.alert === 'function') {
+      alert('Bạn không có quyền truy cập vào trang Quản trị!');
+    }
     return router.createUrlTree(['/']);
   }
 

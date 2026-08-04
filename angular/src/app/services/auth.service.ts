@@ -34,7 +34,7 @@ export class AuthService {
   }
 
   public get isAdmin(): boolean {
-    return this.currentUserValue?.role === 'Admin';
+    return this.currentUserValue?.role?.toLowerCase() === 'admin';
   }
 
   login(credentials: { usernameOrEmail: string; password: string }): Observable<User> {

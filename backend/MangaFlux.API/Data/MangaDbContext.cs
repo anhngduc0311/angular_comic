@@ -49,11 +49,18 @@ namespace MangaFlux.API.Data
                 .HasIndex(cl => new { cl.UserId, cl.CommentId })
                 .IsUnique();
 
-            // Indexes for Search & Routing Performance
+            // Unique Indexes for Search & Routing Performance
             modelBuilder.Entity<Comic>().HasIndex(c => c.Slug).IsUnique();
             modelBuilder.Entity<Category>().HasIndex(c => c.Slug).IsUnique();
             modelBuilder.Entity<User>().HasIndex(u => u.Username).IsUnique();
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
+
+            // High-Volume Query Non-Clustered Indexes
+            modelBuilder.Entity<ReadingHistory>().HasIndex(rh => new { rh.UserId, rh.LastReadAt });
+            modelBuilder.Entity<Comment>().HasIndex(c => new { c.ComicId, c.CreatedAt });
+            modelBuilder.Entity<Chapter>().HasIndex(ch => new { ch.ComicId, ch.ChapterNumber });
+            modelBuilder.Entity<Notification>().HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+            modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.IsFeatured, c.UpdatedAt });
         }
     }
 }

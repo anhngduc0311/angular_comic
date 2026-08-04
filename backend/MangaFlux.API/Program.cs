@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MangaFlux.API.Data;
+using MangaFlux.API.Middleware;
 using MangaFlux.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,8 +13,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<MangaDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Register Application Services & Caching
+// 2. Register Application Services, Caching & Exception Handling
 builder.Services.AddMemoryCache();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IComicService, ComicService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -90,6 +94,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Global Exception Handling Middleware
+app.UseExceptionHandler();
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -99,131 +106,17 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAngularApp");
 
-// Auto-add new columns to Comics table if missing
+// Auto EF Core Database Migration / Schema sync
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<MangaDbContext>();
     try
     {
-        db.Database.ExecuteSqlRaw(@"
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'IsPublic')
-            BEGIN
-                ALTER TABLE Comics ADD IsPublic BIT NOT NULL DEFAULT 1;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'OtherNames')
-            BEGIN
-                ALTER TABLE Comics ADD OtherNames NVARCHAR(MAX) NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'Artist')
-            BEGIN
-                ALTER TABLE Comics ADD Artist NVARCHAR(MAX) NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'Country')
-            BEGIN
-                ALTER TABLE Comics ADD Country NVARCHAR(MAX) NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comics]') AND name = 'ReleaseYear')
-            BEGIN
-                ALTER TABLE Comics ADD ReleaseYear INT NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Chapters]') AND name = 'IsPublic')
-            BEGIN
-                ALTER TABLE Chapters ADD IsPublic BIT NOT NULL DEFAULT 1;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Chapters]') AND name = 'PublishedAt')
-            BEGIN
-                ALTER TABLE Chapters ADD PublishedAt DATETIME2 NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Categories]') AND name = 'ImageUrl')
-            BEGIN
-                ALTER TABLE Categories ADD ImageUrl NVARCHAR(MAX) NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'IsLocked')
-            BEGIN
-                ALTER TABLE Users ADD IsLocked BIT NOT NULL DEFAULT 0;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'ChapterId')
-            BEGIN
-                ALTER TABLE Comments ADD ChapterId INT NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'ParentCommentId')
-            BEGIN
-                ALTER TABLE Comments ADD ParentCommentId INT NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'IsHidden')
-            BEGIN
-                ALTER TABLE Comments ADD IsHidden BIT NOT NULL DEFAULT 0;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'ReportCount')
-            BEGIN
-                ALTER TABLE Comments ADD ReportCount INT NOT NULL DEFAULT 0;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Comments]') AND name = 'ReportReason')
-            BEGIN
-                ALTER TABLE Comments ADD ReportReason NVARCHAR(MAX) NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = N'CommentLikes')
-            BEGIN
-                CREATE TABLE [dbo].[CommentLikes] (
-                    [Id] INT IDENTITY(1,1) NOT NULL,
-                    [UserId] INT NOT NULL,
-                    [CommentId] INT NOT NULL,
-                    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                    CONSTRAINT [PK_CommentLikes] PRIMARY KEY CLUSTERED ([Id] ASC)
-                );
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = N'Notifications')
-            BEGIN
-                CREATE TABLE [dbo].[Notifications] (
-                    [Id] INT IDENTITY(1,1) NOT NULL,
-                    [UserId] INT NOT NULL,
-                    [Type] NVARCHAR(MAX) NOT NULL DEFAULT 'AdminSystem',
-                    [Title] NVARCHAR(MAX) NOT NULL DEFAULT '',
-                    [Message] NVARCHAR(MAX) NOT NULL DEFAULT '',
-                    [Link] NVARCHAR(MAX) NULL,
-                    [IsRead] BIT NOT NULL DEFAULT 0,
-                    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                    CONSTRAINT [PK_Notifications] PRIMARY KEY CLUSTERED ([Id] ASC)
-                );
-            END;
-
-            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = N'Reports')
-            BEGIN
-                CREATE TABLE [dbo].[Reports] (
-                    [Id] INT IDENTITY(1,1) NOT NULL,
-                    [ComicId] INT NOT NULL,
-                    [ChapterId] INT NULL,
-                    [UserId] INT NULL,
-                    [ReporterName] NVARCHAR(MAX) NOT NULL DEFAULT '',
-                    [ErrorType] NVARCHAR(MAX) NOT NULL DEFAULT '',
-                    [Description] NVARCHAR(MAX) NULL,
-                    [Status] NVARCHAR(MAX) NOT NULL DEFAULT 'Pending',
-                    [AdminNotes] NVARCHAR(MAX) NULL,
-                    [CreatedAt] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                    [ResolvedAt] DATETIME2 NULL,
-                    CONSTRAINT [PK_Reports] PRIMARY KEY CLUSTERED ([Id] ASC)
-                );
-            END;
-        ");
+        db.Database.Migrate();
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"DB Auto-column update notice: {ex.Message}");
+        Console.WriteLine($"DB Migration notice: {ex.Message}");
     }
 }
 

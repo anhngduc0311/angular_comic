@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
-  private readonly baseUrl = 'http://localhost:5000/api'; // .NET API URL
+  private readonly baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
