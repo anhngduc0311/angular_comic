@@ -55,9 +55,10 @@ namespace MangaFlux.Tests
 
             // Assert
             Assert.NotNull(result);
-            Assert.Equal("testuser", result!.Username);
-            Assert.Equal("User", result.Role);
-            Assert.False(string.IsNullOrEmpty(result.Token));
+            Assert.Equal("testuser", result!.Response.Username);
+            Assert.Equal("User", result.Response.Role);
+            Assert.False(string.IsNullOrEmpty(result.Response.Token));
+            Assert.False(string.IsNullOrEmpty(result.RefreshToken));
         }
 
         [Fact]
@@ -89,5 +90,32 @@ namespace MangaFlux.Tests
             // Assert
             Assert.Null(result);
         }
+
+        [Fact]
+        public async Task RefreshTokenAsync_ShouldRotateToken_WhenValid()
+        {
+            // Arrange
+            var db = GetInMemoryDbContext();
+            var config = GetMockConfiguration();
+            var service = new AuthService(db, config);
+
+            var regResult = await service.RegisterAsync(new RegisterDto
+            {
+                Username = "refreshtest",
+                Email = "refreshtest@example.com",
+                Password = "Password123!"
+            });
+
+            var oldRefreshToken = regResult!.RefreshToken;
+
+            // Act
+            var refreshResult = await service.RefreshTokenAsync(oldRefreshToken);
+
+            // Assert
+            Assert.NotNull(refreshResult);
+            Assert.NotEqual(oldRefreshToken, refreshResult!.RefreshToken);
+            Assert.False(string.IsNullOrEmpty(refreshResult.Response.Token));
+        }
     }
 }
+

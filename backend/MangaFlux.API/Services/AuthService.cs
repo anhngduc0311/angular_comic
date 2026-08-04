@@ -1,6 +1,7 @@
 using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,18 @@ using MangaFlux.API.Models;
 
 namespace MangaFlux.API.Services
 {
+    public class AuthResult
+    {
+        public AuthResponseDto Response { get; set; } = null!;
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+
     public interface IAuthService
     {
-        Task<AuthResponseDto?> RegisterAsync(RegisterDto dto);
-        Task<AuthResponseDto?> LoginAsync(LoginDto dto);
+        Task<AuthResult?> RegisterAsync(RegisterDto dto);
+        Task<AuthResult?> LoginAsync(LoginDto dto);
+        Task<AuthResult?> RefreshTokenAsync(string refreshToken);
+        Task<bool> RevokeRefreshTokenAsync(string refreshToken);
     }
 
     public class AuthService : IAuthService
@@ -29,7 +38,7 @@ namespace MangaFlux.API.Services
             _config = config;
         }
 
-        public async Task<AuthResponseDto?> RegisterAsync(RegisterDto dto)
+        public async Task<AuthResult?> RegisterAsync(RegisterDto dto)
         {
             if (await _context.Users.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email))
             {
@@ -37,6 +46,7 @@ namespace MangaFlux.API.Services
             }
 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
+            var refreshToken = GenerateRefreshToken();
             var user = new User
             {
                 Username = dto.Username,
@@ -44,26 +54,32 @@ namespace MangaFlux.API.Services
                 PasswordHash = passwordHash,
                 FullName = dto.FullName ?? dto.Username,
                 Role = "User",
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                RefreshToken = refreshToken,
+                RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7)
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
             var token = GenerateJwtToken(user);
-            return new AuthResponseDto
+            return new AuthResult
             {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                FullName = user.FullName,
-                Avatar = user.Avatar,
-                Role = user.Role,
-                Token = token
+                Response = new AuthResponseDto
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    Avatar = user.Avatar,
+                    Role = user.Role,
+                    Token = token
+                },
+                RefreshToken = refreshToken
             };
         }
 
-        public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
+        public async Task<AuthResult?> LoginAsync(LoginDto dto)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u =>
                 u.Username == dto.UsernameOrEmail || u.Email == dto.UsernameOrEmail);
@@ -80,12 +96,12 @@ namespace MangaFlux.API.Services
                 }
                 else
                 {
-                    isPasswordValid = (user.PasswordHash == dto.Password || dto.Password == "123456");
+                    isPasswordValid = (user.PasswordHash == dto.Password);
                 }
             }
             catch
             {
-                isPasswordValid = (dto.Password == "123456");
+                isPasswordValid = false;
             }
 
             if (!isPasswordValid)
@@ -93,17 +109,72 @@ namespace MangaFlux.API.Services
                 return null; // Invalid credentials
             }
 
+            var newRefreshToken = GenerateRefreshToken();
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            await _context.SaveChangesAsync();
+
             var token = GenerateJwtToken(user);
-            return new AuthResponseDto
+            return new AuthResult
             {
-                Id = user.Id,
-                Username = user.Username,
-                Email = user.Email,
-                FullName = user.FullName,
-                Avatar = user.Avatar,
-                Role = user.Role,
-                Token = token
+                Response = new AuthResponseDto
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    Avatar = user.Avatar,
+                    Role = user.Role,
+                    Token = token
+                },
+                RefreshToken = newRefreshToken
             };
+        }
+
+        public async Task<AuthResult?> RefreshTokenAsync(string refreshToken)
+        {
+            if (string.IsNullOrEmpty(refreshToken)) return null;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            if (user == null || user.RefreshTokenExpiryTime <= DateTime.UtcNow || user.IsLocked)
+            {
+                return null;
+            }
+
+            // Refresh Token Rotation: issue a new refresh token and extend expiration
+            var newRefreshToken = GenerateRefreshToken();
+            user.RefreshToken = newRefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            await _context.SaveChangesAsync();
+
+            var newJwtToken = GenerateJwtToken(user);
+            return new AuthResult
+            {
+                Response = new AuthResponseDto
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Email = user.Email,
+                    FullName = user.FullName,
+                    Avatar = user.Avatar,
+                    Role = user.Role,
+                    Token = newJwtToken
+                },
+                RefreshToken = newRefreshToken
+            };
+        }
+
+        public async Task<bool> RevokeRefreshTokenAsync(string refreshToken)
+        {
+            if (string.IsNullOrEmpty(refreshToken)) return false;
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken);
+            if (user == null) return false;
+
+            user.RefreshToken = null;
+            user.RefreshTokenExpiryTime = null;
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         private string GenerateJwtToken(User user)
@@ -125,7 +196,7 @@ namespace MangaFlux.API.Services
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddMinutes(30),
                 Issuer = jwtSettings["Issuer"] ?? "MangaFluxAPI",
                 Audience = jwtSettings["Audience"] ?? "MangaFluxClient",
                 SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature)
@@ -135,5 +206,14 @@ namespace MangaFlux.API.Services
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
+
+        private static string GenerateRefreshToken()
+        {
+            var randomNumber = new byte[64];
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(randomNumber);
+            return Convert.ToBase64String(randomNumber);
+        }
     }
 }
+

@@ -70,7 +70,23 @@ export class AuthService {
     }
   }
 
+  refreshToken(): Observable<User> {
+    return this.api.post<User>('auth/refresh-token', {}).pipe(
+      tap((user) => {
+        if (user && user.token) {
+          localStorage.setItem('mangaflux_token', user.token);
+          localStorage.setItem('mangaflux_user', JSON.stringify(user));
+          this.currentUserSubject.next(user);
+        }
+      })
+    );
+  }
+
   logout(): void {
+    this.api.post('auth/logout', {}).subscribe({
+      next: () => {},
+      error: () => {}
+    });
     localStorage.removeItem('mangaflux_token');
     localStorage.removeItem('mangaflux_user');
     this.currentUserSubject.next(null);

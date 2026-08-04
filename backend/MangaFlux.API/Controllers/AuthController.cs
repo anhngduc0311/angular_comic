@@ -1,11 +1,15 @@
+using System;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MangaFlux.API.DTOs;
 using MangaFlux.API.Services;
 
 namespace MangaFlux.API.Controllers
 {
     [ApiController]
+    [EnableRateLimiting("auth-limiter")]
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
@@ -24,7 +28,9 @@ namespace MangaFlux.API.Controllers
             {
                 return BadRequest(new { message = "Tên đăng nhập hoặc email đã tồn tại." });
             }
-            return Ok(result);
+
+            SetRefreshTokenCookie(result.RefreshToken);
+            return Ok(result.Response);
         }
 
         [HttpPost("login")]
@@ -35,7 +41,65 @@ namespace MangaFlux.API.Controllers
             {
                 return Unauthorized(new { message = "Tài khoản hoặc mật khẩu không chính xác." });
             }
-            return Ok(result);
+
+            SetRefreshTokenCookie(result.RefreshToken);
+            return Ok(result.Response);
+        }
+
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["mangaflux_refresh_token"];
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return Unauthorized(new { message = "Không tìm thấy Refresh Token." });
+            }
+
+            var result = await _authService.RefreshTokenAsync(refreshToken);
+            if (result == null)
+            {
+                ClearRefreshTokenCookie();
+                return Unauthorized(new { message = "Refresh Token không hợp lệ hoặc đã hết hạn." });
+            }
+
+            SetRefreshTokenCookie(result.RefreshToken);
+            return Ok(result.Response);
+        }
+
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            var refreshToken = Request.Cookies["mangaflux_refresh_token"];
+            if (!string.IsNullOrEmpty(refreshToken))
+            {
+                await _authService.RevokeRefreshTokenAsync(refreshToken);
+            }
+
+            ClearRefreshTokenCookie();
+            return Ok(new { message = "Đăng xuất thành công." });
+        }
+
+        private void SetRefreshTokenCookie(string refreshToken)
+        {
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Expires = DateTime.UtcNow.AddDays(7),
+                SameSite = SameSiteMode.Lax,
+                Secure = false // Trong môi trường production HTTPS nên đặt = true
+            };
+            Response.Cookies.Append("mangaflux_refresh_token", refreshToken, cookieOptions);
+        }
+
+        private void ClearRefreshTokenCookie()
+        {
+            Response.Cookies.Delete("mangaflux_refresh_token", new CookieOptions
+            {
+                HttpOnly = true,
+                SameSite = SameSiteMode.Lax,
+                Secure = false
+            });
         }
     }
 }
+

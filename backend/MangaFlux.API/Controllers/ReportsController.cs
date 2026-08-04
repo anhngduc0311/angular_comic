@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MangaFlux.API.DTOs;
 using MangaFlux.API.Services;
 
@@ -31,6 +32,7 @@ namespace MangaFlux.API.Controllers
 
         // Public / Auth user submit report
         [HttpPost]
+        [EnableRateLimiting("report-limiter")]
         public async Task<IActionResult> CreateReport([FromBody] CreateReportDto dto)
         {
             if (dto.ComicId <= 0)

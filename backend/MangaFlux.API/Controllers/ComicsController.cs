@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MangaFlux.API.DTOs;
 using MangaFlux.API.Services;
 
@@ -48,6 +49,7 @@ namespace MangaFlux.API.Controllers
         }
 
         [Authorize]
+        [EnableRateLimiting("comment-limiter")]
         [HttpPost("comments")]
         public async Task<IActionResult> AddComment([FromBody] CreateCommentDto dto)
         {
@@ -62,6 +64,7 @@ namespace MangaFlux.API.Controllers
         }
 
         [Authorize]
+        [EnableRateLimiting("comment-limiter")]
         [HttpPost("comments/{id}/like")]
         public async Task<IActionResult> LikeComment(int id)
         {

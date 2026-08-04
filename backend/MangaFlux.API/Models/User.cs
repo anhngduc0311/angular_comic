@@ -15,6 +15,9 @@ namespace MangaFlux.API.Models
         public bool IsLocked { get; set; } = false;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiryTime { get; set; }
+
         // Navigation Properties
         public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
         public ICollection<ReadingHistory> ReadingHistories { get; set; } = new List<ReadingHistory>();
