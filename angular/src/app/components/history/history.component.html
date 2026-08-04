@@ -6,10 +6,10 @@
 
   <div class="history-list" *ngIf="!isLoading && historyItems.length > 0">
     <div class="history-card bg-glass card-hover" *ngFor="let item of historyItems">
-      <div class="thumb-wrapper">
+      <a [routerLink]="['/comic', item.comic.slug]" class="thumb-wrapper">
         <img [src]="item.comic.coverImage" [alt]="item.comic.title" class="thumb" />
         <span class="chap-tag">Chap {{ item.chapter.chapterNumber }}</span>
-      </div>
+      </a>
       <div class="info">
         <h3 class="title">
           <a [routerLink]="['/comic', item.comic.slug]" [title]="item.comic.title">{{ item.comic.title }}</a>

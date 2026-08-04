@@ -37,16 +37,16 @@
   <!-- Comic Cards Grid -->
   <div class="comic-grid" *ngIf="!isLoading && comics.length > 0">
     <div class="comic-card card-hover" *ngFor="let comic of comics">
-      <div class="card-cover">
+      <a [routerLink]="['/comic', comic.slug]" class="card-cover">
         <img [src]="comic.coverImage" [alt]="comic.title" />
         <span class="chapter-badge" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
-      </div>
+      </a>
       <div class="card-info">
         <h3 class="comic-title" [title]="comic.title">
           <a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
         </h3>
         <div class="tags">
-          <span class="tag" *ngFor="let cat of comic.categories.slice(0, 2)">{{ cat.name }}</span>
+          <a *ngFor="let cat of comic.categories.slice(0, 2)" [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }" class="tag">{{ cat.name }}</a>
         </div>
         <div class="card-footer">
           <span class="rating"><i class="fa-solid fa-star"></i> {{ comic.rating }}</span>

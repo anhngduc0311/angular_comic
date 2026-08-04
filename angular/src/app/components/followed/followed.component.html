@@ -6,12 +6,12 @@
 
   <div class="comic-grid" *ngIf="!isLoading && bookmarks.length > 0">
     <div class="comic-card card-hover" *ngFor="let b of bookmarks">
-      <div class="card-cover">
+      <a [routerLink]="['/comic', b.comic.slug]" class="card-cover">
         <img [src]="b.comic.coverImage" [alt]="b.comic.title" />
         <button class="btn-remove" (click)="removeBookmark(b.comicId, $event)" title="Bỏ theo dõi">
           <i class="fa-solid fa-xmark"></i>
         </button>
-      </div>
+      </a>
       <div class="card-info">
         <h3 class="comic-title"><a [routerLink]="['/comic', b.comic.slug]">{{ b.comic.title }}</a></h3>
         <span class="status badge badge-success">{{ b.comic.status }}</span>

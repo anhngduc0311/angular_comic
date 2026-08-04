@@ -45,9 +45,9 @@
 
   <div class="comic-grid" *ngIf="!isLoading && results.length > 0">
     <div class="comic-card card-hover" *ngFor="let comic of results">
-      <div class="card-cover">
+      <a [routerLink]="['/comic', comic.slug]" class="card-cover">
         <img [src]="comic.coverImage" [alt]="comic.title" />
-      </div>
+      </a>
       <div class="card-info">
         <h3 class="comic-title"><a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a></h3>
         <p class="author">{{ comic.author }}</p>
