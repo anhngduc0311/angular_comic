@@ -29,15 +29,6 @@
     <a routerLink="/admin/reports" class="tab-link-btn" title="Trang chuyên Quản lý báo lỗi">
       <i class="fa-solid fa-triangle-exclamation text-warning"></i> Quản Lý Báo Lỗi
     </a>
-    <button [class.active]="activeTab === 'comics'" (click)="activeTab = 'comics'">
-      <i class="fa-solid fa-table-list"></i> Quick Table ({{ comics.length }})
-    </button>
-    <button [class.active]="activeTab === 'add-comic'" (click)="resetComicForm(); activeTab = 'add-comic'">
-      <i class="fa-solid fa-plus"></i> {{ comicForm.id > 0 ? 'Chỉnh Sửa Truyện' : 'Thêm Truyện Mới' }}
-    </button>
-    <button [class.active]="activeTab === 'add-chapter'" (click)="activeTab = 'add-chapter'">
-      <i class="fa-solid fa-file-circle-plus"></i> Thêm Chapter Mới
-    </button>
     <button [class.active]="activeTab === 'broadcast'" (click)="activeTab = 'broadcast'">
       <i class="fa-solid fa-bullhorn"></i> Gửi Thông Báo Hệ Thống
     </button>
@@ -251,138 +242,7 @@
     </ng-container>
   </div>
 
-  <!-- TAB 1: COMICS LIST TABLE -->
-  <div class="tab-content bg-glass" *ngIf="activeTab === 'comics'">
-    <table class="admin-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Ảnh Bìa</th>
-          <th>Tên Truyện</th>
-          <th>Tác Giả</th>
-          <th>Trạng Thái</th>
-          <th>Nổi Bật</th>
-          <th>Lượt Xem</th>
-          <th>Hành Động</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let comic of comics">
-          <td>#{{ comic.id }}</td>
-          <td><img [src]="comic.coverImage" [alt]="comic.title" class="table-thumb" /></td>
-          <td><strong>{{ comic.title }}</strong></td>
-          <td>{{ comic.author || 'N/A' }}</td>
-          <td><span class="badge badge-success">{{ comic.status }}</span></td>
-          <td><i class="fa-solid fa-check text-primary" *ngIf="comic.isFeatured"></i></td>
-          <td>{{ comic.views | number }}</td>
-          <td>
-            <div class="actions">
-              <button (click)="editComic(comic)" class="btn btn-secondary btn-sm" title="Sửa"><i class="fa-solid fa-pen"></i></button>
-              <button (click)="deleteComic(comic.id)" class="btn btn-danger btn-sm" title="Xóa"><i class="fa-solid fa-trash"></i></button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- TAB 2: ADD / EDIT COMIC FORM -->
-  <div class="tab-content bg-glass" *ngIf="activeTab === 'add-comic'">
-    <form (ngSubmit)="saveComic()" class="admin-form">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Tên truyện *</label>
-          <input type="text" [(ngModel)]="comicForm.title" name="title" required placeholder="Nhập tên truyện..." />
-        </div>
-
-        <div class="form-group">
-          <label>Tác giả</label>
-          <input type="text" [(ngModel)]="comicForm.author" name="author" placeholder="Nhập tên tác giả..." />
-        </div>
-
-        <div class="form-group full-width">
-          <label>Mô tả nội dung</label>
-          <textarea [(ngModel)]="comicForm.description" name="description" rows="4" placeholder="Nhập tóm tắt nội dung..."></textarea>
-        </div>
-
-        <div class="form-group">
-          <label>URL Ảnh Bìa (Cover Image)</label>
-          <input type="text" [(ngModel)]="comicForm.coverImage" name="coverImage" placeholder="https://..." />
-        </div>
-
-        <div class="form-group">
-          <label>URL Ảnh Banner Hero</label>
-          <input type="text" [(ngModel)]="comicForm.bannerImage" name="bannerImage" placeholder="https://..." />
-        </div>
-
-        <div class="form-group">
-          <label>Trạng thái</label>
-          <select [(ngModel)]="comicForm.status" name="status">
-            <option value="Ongoing">Đang tiến hành</option>
-            <option value="Completed">Hoàn thành</option>
-          </select>
-        </div>
-
-        <div class="form-group checkbox-group">
-          <label>
-            <input type="checkbox" [(ngModel)]="comicForm.isFeatured" name="isFeatured" /> Truyện Nổi Bật (Hero Slide)
-          </label>
-        </div>
-
-        <div class="form-group full-width">
-          <label>Thể loại</label>
-          <div class="categories-checkboxes">
-            <label *ngFor="let cat of categories" class="cat-checkbox">
-              <input type="checkbox" 
-                     [checked]="comicForm.selectedCategoryIds.includes(cat.id)" 
-                     (change)="toggleCategorySelection(cat.id)" />
-              {{ cat.name }}
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i> Lưu Bộ Truyện</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- TAB 3: ADD CHAPTER FORM -->
-  <div class="tab-content bg-glass" *ngIf="activeTab === 'add-chapter'">
-    <form (ngSubmit)="saveChapter()" class="admin-form">
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Chọn Truyện Tranh *</label>
-          <select [(ngModel)]="chapterForm.comicId" name="comicId" required>
-            <option [value]="0">-- Chọn bộ truyện --</option>
-            <option *ngFor="let c of comics" [value]="c.id">{{ c.title }}</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Số Chapter *</label>
-          <input type="number" [(ngModel)]="chapterForm.chapterNumber" name="chapterNumber" step="0.5" required />
-        </div>
-
-        <div class="form-group full-width">
-          <label>Tiêu đề Chapter *</label>
-          <input type="text" [(ngModel)]="chapterForm.title" name="title" required placeholder="Ví dụ: Chapter 1: Hắc thư bí ẩn..." />
-        </div>
-
-        <div class="form-group full-width">
-          <label>Danh sách URL ảnh từng trang (Mỗi trang 1 dòng URL):</label>
-          <textarea [(ngModel)]="chapterForm.imageUrlsText" name="imageUrlsText" rows="6" placeholder="https://image-page-1.jpg&#10;https://image-page-2.jpg"></textarea>
-        </div>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-upload"></i> Đăng Chapter Mới</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- TAB 4: BROADCAST NOTIFICATION FORM -->
+  <!-- TAB BROADCAST NOTIFICATION FORM -->
   <div class="tab-content bg-glass" *ngIf="activeTab === 'broadcast'">
     <form (ngSubmit)="sendBroadcast()" class="admin-form">
       <div class="form-grid">
@@ -407,4 +267,5 @@
       </div>
     </form>
   </div>
+
 </div>

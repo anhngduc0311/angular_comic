@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, ElementRef, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -15,11 +15,13 @@ import { NotificationService } from '../../services/notification.service';
 export class NavbarComponent {
   searchQuery: string = '';
   isMobileMenuOpen: boolean = false;
+  isUserDropdownOpen: boolean = false;
 
   constructor(
     public authService: AuthService, 
     public notificationService: NotificationService,
-    private router: Router
+    private router: Router,
+    private elementRef: ElementRef
   ) {
     this.authService.currentUser$.subscribe((user) => {
       if (user) {
@@ -30,10 +32,32 @@ export class NavbarComponent {
 
   toggleMobileMenu(): void {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
+    if (this.isMobileMenuOpen) {
+      this.isUserDropdownOpen = false;
+    }
   }
 
   closeMobileMenu(): void {
     this.isMobileMenuOpen = false;
+    this.isUserDropdownOpen = false;
+  }
+
+  toggleUserDropdown(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.isUserDropdownOpen = !this.isUserDropdownOpen;
+  }
+
+  closeUserDropdown(): void {
+    this.isUserDropdownOpen = false;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (!this.elementRef.nativeElement.contains(event.target)) {
+      this.isUserDropdownOpen = false;
+    }
   }
 
   onSearch(): void {
@@ -46,6 +70,8 @@ export class NavbarComponent {
   logout(): void {
     this.authService.logout();
     this.closeMobileMenu();
+    this.isUserDropdownOpen = false;
     this.router.navigate(['/']);
   }
 }
+

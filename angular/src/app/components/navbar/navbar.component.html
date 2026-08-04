@@ -14,20 +14,36 @@
     <!-- Navigation Links & Search Wrapper -->
     <div class="nav-content" [class.open]="isMobileMenuOpen">
       <nav class="nav-links">
-        <a routerLink="/" (click)="closeMobileMenu()" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Trang chủ</a>
-        <a routerLink="/comics" (click)="closeMobileMenu()" routerLinkActive="active">Danh sách truyện</a>
-        <a routerLink="/categories" (click)="closeMobileMenu()" routerLinkActive="active">Thể loại</a>
-        <a routerLink="/followed" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Theo dõi</a>
-        <a routerLink="/history" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Lịch sử</a>
-        <a routerLink="/profile" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Trang cá nhân</a>
-        <a routerLink="/settings" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">Cài đặt</a>
-        <a routerLink="/admin" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isAdmin" class="admin-badge">Admin</a>
+        <a routerLink="/" (click)="closeMobileMenu()" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+          <i class="fa-solid fa-house nav-icon"></i>
+          <span>Trang chủ</span>
+        </a>
+        <a routerLink="/comics" (click)="closeMobileMenu()" routerLinkActive="active">
+          <i class="fa-solid fa-book-open nav-icon"></i>
+          <span>Danh sách truyện</span>
+        </a>
+        <a routerLink="/categories" (click)="closeMobileMenu()" routerLinkActive="active">
+          <i class="fa-solid fa-layer-group nav-icon"></i>
+          <span>Thể loại</span>
+        </a>
+        <a routerLink="/followed" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">
+          <i class="fa-solid fa-bookmark nav-icon"></i>
+          <span>Theo dõi</span>
+        </a>
+        <a routerLink="/history" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isLoggedIn">
+          <i class="fa-solid fa-clock-rotate-left nav-icon"></i>
+          <span>Lịch sử</span>
+        </a>
+        <a routerLink="/admin" (click)="closeMobileMenu()" routerLinkActive="active" *ngIf="authService.isAdmin" class="admin-badge">
+          <i class="fa-solid fa-user-shield nav-icon"></i>
+          <span>Admin</span>
+        </a>
       </nav>
 
       <!-- Search Form -->
       <form (ngSubmit)="onSearch()" class="search-box">
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" [(ngModel)]="searchQuery" name="search" placeholder="Tìm kiếm..." />
+        <input type="text" [(ngModel)]="searchQuery" name="search" placeholder="Tìm kiếm truyện..." />
       </form>
 
       <!-- User Auth Actions -->
@@ -39,6 +55,7 @@
         </ng-container>
 
         <ng-container *ngIf="authService.isLoggedIn">
+          <!-- Notifications -->
           <a routerLink="/notifications" (click)="closeMobileMenu()" class="nav-icon-btn" title="Thông báo">
             <i class="fa-solid fa-bell"></i>
             <ng-container *ngIf="(notificationService.unreadCount$ | async) as count">
@@ -48,17 +65,43 @@
             </ng-container>
           </a>
 
-          <div class="user-profile">
-            <a routerLink="/profile" (click)="closeMobileMenu()" class="profile-link" title="Trang cá nhân">
+          <!-- User Profile Dropdown -->
+          <div class="user-dropdown-container">
+            <button (click)="toggleUserDropdown($event)" class="profile-trigger" title="Tài khoản">
               <img [src]="authService.currentUserValue?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar" />
               <span class="username">{{ authService.currentUserValue?.fullName || authService.currentUserValue?.username }}</span>
-            </a>
-            <button (click)="logout()" class="btn-logout" title="Đăng xuất">
-              <i class="fa-solid fa-power-off"></i>
+              <i class="fa-solid fa-chevron-down dropdown-arrow" [class.rotated]="isUserDropdownOpen"></i>
             </button>
+
+            <!-- Dropdown Menu Box -->
+            <div class="user-dropdown-menu" *ngIf="isUserDropdownOpen">
+              <div class="dropdown-header">
+                <p class="dropdown-user-name">{{ authService.currentUserValue?.fullName || authService.currentUserValue?.username }}</p>
+                <p class="dropdown-user-role" *ngIf="authService.isAdmin">Quản trị viên</p>
+              </div>
+              <div class="dropdown-divider"></div>
+              <a routerLink="/profile" (click)="closeMobileMenu(); closeUserDropdown()" class="dropdown-item">
+                <i class="fa-solid fa-user"></i>
+                <span>Trang cá nhân</span>
+              </a>
+              <a routerLink="/settings" (click)="closeMobileMenu(); closeUserDropdown()" class="dropdown-item">
+                <i class="fa-solid fa-gear"></i>
+                <span>Cài đặt</span>
+              </a>
+              <a routerLink="/admin" (click)="closeMobileMenu(); closeUserDropdown()" class="dropdown-item" *ngIf="authService.isAdmin">
+                <i class="fa-solid fa-user-shield"></i>
+                <span>Trang Admin</span>
+              </a>
+              <div class="dropdown-divider"></div>
+              <button (click)="logout()" class="dropdown-item logout-item">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Đăng xuất</span>
+              </button>
+            </div>
           </div>
         </ng-container>
       </div>
     </div>
   </div>
 </header>
+
