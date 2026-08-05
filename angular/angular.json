@@ -26,14 +26,40 @@
             "assets": ["src/favicon.ico", "src/assets"],
             "styles": ["src/styles.scss"],
             "scripts": []
-          }
+          },
+          "configurations": {
+            "production": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            }
+          },
+          "defaultConfiguration": "production"
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
             "buildTarget": "mangaflux:build",
             "allowedHosts": ["all"]
-          }
+          },
+          "configurations": {
+            "production": {
+              "buildTarget": "mangaflux:build:production"
+            },
+            "development": {
+              "buildTarget": "mangaflux:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
         }
       }
     }

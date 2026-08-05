@@ -3,13 +3,15 @@
   <div class="reader-header bg-glass">
     <div class="container header-container">
       <div class="comic-info">
-        <a [routerLink]="['/comic', chapter.comicSlug]" class="back-link"><i class="fa-solid fa-arrow-left"></i> Quay lại</a>
+        <a [routerLink]="['/comic', chapter.comicSlug]" class="back-link"><i class="fa-solid fa-arrow-left"></i> Quay
+          lại</a>
         <h2>{{ chapter.comicTitle }}</h2>
         <span class="chapter-number">Chapter {{ chapter.chapterNumber }}</span>
       </div>
 
       <div class="chapter-controls">
-        <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null" class="btn btn-secondary btn-sm">
+        <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null"
+          class="btn btn-secondary btn-sm">
           <i class="fa-solid fa-chevron-left"></i> Chap Trước
         </button>
 
@@ -19,7 +21,8 @@
           </option>
         </select>
 
-        <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null" class="btn btn-secondary btn-sm">
+        <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null"
+          class="btn btn-secondary btn-sm">
           Chap Sau <i class="fa-solid fa-chevron-right"></i>
         </button>
 
@@ -32,7 +35,8 @@
 
   <!-- Keyboard Shortcuts Hint Bar -->
   <div class="container shortcut-hint">
-    <span><i class="fa-regular fa-keyboard text-primary"></i> Mẹo: Dùng phím <kbd>←</kbd> và <kbd>→</kbd> trên bàn phím để chuyển chương nhanh.</span>
+    <span><i class="fa-regular fa-keyboard text-primary"></i> Mẹo: Dùng phím <kbd>←</kbd> và <kbd>→</kbd> trên bàn phím
+      để chuyển chương nhanh.</span>
   </div>
 
   <!-- Vertical Manga Reader Gallery -->
@@ -44,13 +48,15 @@
 
   <!-- Bottom Navigation -->
   <div class="container bottom-nav">
-    <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null" class="btn btn-secondary">
+    <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null"
+      class="btn btn-secondary">
       <i class="fa-solid fa-chevron-left"></i> Chap Trước
     </button>
     <button (click)="openReportModal()" class="btn btn-warning">
       <i class="fa-solid fa-flag"></i> Báo Lỗi
     </button>
-    <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null" class="btn btn-primary">
+    <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null"
+      class="btn btn-primary">
       Chap Sau <i class="fa-solid fa-chevron-right"></i>
     </button>
   </div>
@@ -58,7 +64,7 @@
   <!-- Restored Position Toast Notification -->
   <div class="restore-toast bg-glass animate-slide-up" *ngIf="restoredPosition">
     <i class="fa-solid fa-clock-rotate-left text-primary"></i>
-    <!-- <span>Đã tự động khôi phục vị trí đọc dở!</span> -->
+    <span>Đã tự động khôi phục vị trí đọc dở!</span>
     <button (click)="scrollToTop()" class="btn-top-shortcut">Về đầu trang</button>
   </div>
 
@@ -77,7 +83,8 @@
 
       <div class="modal-body">
         <div class="comic-chapter-target">
-          <strong>{{ chapter.comicTitle }}</strong> - <span>Chapter {{ chapter.chapterNumber }}: {{ chapter.title }}</span>
+          <strong>{{ chapter.comicTitle }}</strong> - <span>Chapter {{ chapter.chapterNumber }}: {{ chapter.title
+            }}</span>
         </div>
 
         <div class="alert alert-success" *ngIf="reportSuccessMessage">
@@ -92,18 +99,10 @@
           <div class="form-group">
             <label>Chọn Loại Sự Cố / Lỗi Gặp Phải:</label>
             <div class="error-options-grid">
-              <label 
-                *ngFor="let opt of errorTypeOptions" 
-                class="error-option-card"
-                [class.selected]="selectedReportErrorType === opt.value"
-              >
-                <input 
-                  type="radio" 
-                  name="errorType" 
-                  [value]="opt.value" 
-                  [(ngModel)]="selectedReportErrorType"
-                  class="sr-only" 
-                />
+              <label *ngFor="let opt of errorTypeOptions" class="error-option-card"
+                [class.selected]="selectedReportErrorType === opt.value">
+                <input type="radio" name="errorType" [value]="opt.value" [(ngModel)]="selectedReportErrorType"
+                  class="sr-only" />
                 <i class="fa-solid" [ngClass]="opt.icon"></i>
                 <span>{{ opt.label }}</span>
               </label>
@@ -112,26 +111,15 @@
 
           <div class="form-group" *ngIf="!authService.isLoggedIn">
             <label for="repName">Tên của bạn (Tùy chọn):</label>
-            <input 
-              type="text" 
-              id="repName" 
-              [(ngModel)]="reporterName" 
-              name="reporterName" 
-              class="form-control" 
-              placeholder="Nhập tên hoặc biệt danh..." 
-            />
+            <input type="text" id="repName" [(ngModel)]="reporterName" name="reporterName" class="form-control"
+              placeholder="Nhập tên hoặc biệt danh..." />
           </div>
 
           <div class="form-group">
             <label for="repDesc">Chi Tiết Sự Cố (Tùy chọn):</label>
-            <textarea 
-              id="repDesc" 
-              [(ngModel)]="reportDescription" 
-              name="reportDescription" 
-              rows="3" 
-              class="form-control" 
-              placeholder="Ví dụ: Trang 3 ảnh bị lỗi không load được, trang 5 và 6 bị đảo vị trí cho nhau..."
-            ></textarea>
+            <textarea id="repDesc" [(ngModel)]="reportDescription" name="reportDescription" rows="3"
+              class="form-control"
+              placeholder="Ví dụ: Trang 3 ảnh bị lỗi không load được, trang 5 và 6 bị đảo vị trí cho nhau..."></textarea>
           </div>
 
           <div class="modal-actions">

@@ -1,4 +1,5 @@
 export const environment = {
   production: false,
-  apiUrl: 'https://hypermmo.site/api'
+  apiUrl: 'http://localhost:5000/api'
 };
+
