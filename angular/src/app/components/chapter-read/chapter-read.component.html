@@ -41,6 +41,18 @@
           </button>
         </div>
 
+        <!-- Auto-Scroll Controls Bar -->
+        <div class="autoscroll-controls">
+          <button (click)="toggleAutoScroll()" class="btn btn-sm" [class.btn-success]="isAutoScrolling" [class.btn-secondary]="!isAutoScrolling" title="Tự động cuộn trang (Phím S hoặc Space)">
+            <i class="fa-solid" [class.fa-pause]="isAutoScrolling" [class.fa-play]="!isAutoScrolling"></i>
+            <span>{{ isAutoScrolling ? 'Đang Cuộn' : 'Tự Cuộn' }}</span>
+          </button>
+
+          <select [ngModel]="autoScrollSpeed" (ngModelChange)="setAutoScrollSpeed(+$event)" class="autoscroll-select" title="Tốc độ tự cuộn">
+            <option *ngFor="let s of autoScrollSpeeds" [value]="s.speed">{{ s.label }}</option>
+          </select>
+        </div>
+
         <button (click)="openReportModal()" class="btn btn-warning btn-sm btn-report" title="Báo lỗi chapter này">
           <i class="fa-solid fa-flag"></i> Báo Lỗi
         </button>
@@ -54,6 +66,7 @@
       <i class="fa-regular fa-keyboard text-primary"></i> Phím tắt:
       <kbd>←</kbd> <kbd>→</kbd> Đổi chương |
       <kbd>+</kbd> <kbd>-</kbd> Phóng to / Thu nhỏ |
+      <kbd>Space</kbd> / <kbd>S</kbd> Tự cuộn |
       <kbd>0</kbd> Đặt lại 100%
     </span>
   </div>
@@ -87,10 +100,16 @@
     <button (click)="scrollToTop()" class="btn-top-shortcut">Về đầu trang</button>
   </div>
 
-  <!-- Floating Scroll To Top Button -->
-  <button class="btn-float-top" *ngIf="showScrollTop" (click)="scrollToTop()" title="Về đầu trang">
-    <i class="fa-solid fa-arrow-up"></i>
-  </button>
+  <!-- Floating Reader Tools Widget (Auto-Scroll & Scroll-To-Top) -->
+  <div class="floating-reader-tools">
+    <button (click)="toggleAutoScroll()" class="btn-float-tool" [class.active]="isAutoScrolling" [title]="isAutoScrolling ? 'Dừng cuộn (Space / S)' : 'Bắt đầu tự cuộn (Space / S)'">
+      <i class="fa-solid" [class.fa-pause]="isAutoScrolling" [class.fa-angles-down]="!isAutoScrolling"></i>
+    </button>
+
+    <button *ngIf="showScrollTop" (click)="scrollToTop()" class="btn-float-tool btn-float-top" title="Về đầu trang">
+      <i class="fa-solid fa-arrow-up"></i>
+    </button>
+  </div>
 
   <!-- READER REPORT ISSUE MODAL -->
   <div class="modal-backdrop" *ngIf="showReportModal" (click)="closeReportModal()">

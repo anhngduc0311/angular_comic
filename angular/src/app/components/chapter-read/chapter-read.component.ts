@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -16,7 +16,7 @@ import { ERROR_TYPE_OPTIONS } from '../../models/report.model';
   templateUrl: './chapter-read.component.html',
   styleUrls: ['./chapter-read.component.scss']
 })
-export class ChapterReadComponent implements OnInit {
+export class ChapterReadComponent implements OnInit, OnDestroy {
   chapter: ChapterDetail | null = null;
   selectedChapterId: number = 0;
   prevChapterId: number | null = null;
@@ -42,6 +42,18 @@ export class ChapterReadComponent implements OnInit {
     { label: 'Tràn màn', width: 0 }
   ];
 
+  // Auto-Scroll State
+  isAutoScrolling: boolean = false;
+  autoScrollSpeed: number = 2; // Default 2x speed
+  autoScrollSpeeds = [
+    { label: '1x (Chậm)', speed: 1 },
+    { label: '2x (Vừa)', speed: 2 },
+    { label: '3x (Nhanh)', speed: 3 },
+    { label: '4x (Rất nhanh)', speed: 4 }
+  ];
+  private autoScrollAnimFrame: number | null = null;
+  private lastFrameTime: number = 0;
+
   // Report Modal States
   showReportModal: boolean = false;
   selectedReportErrorType: string = 'IMAGE_FAILED';
@@ -63,11 +75,14 @@ export class ChapterReadComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadSavedZoom();
+    this.loadSavedAutoScrollSpeed();
 
     this.route.params.subscribe(params => {
       const slug = params['slug'];
       const chapterNumber = params['chapterNumber'];
       const id = +params['id'];
+
+      this.stopAutoScroll();
 
       if (slug && chapterNumber) {
         this.fetchChapterBySlugAndNumber(slug, +chapterNumber);
@@ -75,6 +90,68 @@ export class ChapterReadComponent implements OnInit {
         this.fetchChapter(id);
       }
     });
+  }
+
+  ngOnDestroy(): void {
+    this.stopAutoScroll();
+  }
+
+  loadSavedAutoScrollSpeed(): void {
+    const savedSpeed = localStorage.getItem('mangaflux_autoscroll_speed');
+    if (savedSpeed !== null) {
+      const parsed = parseInt(savedSpeed, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 4) {
+        this.autoScrollSpeed = parsed;
+      }
+    }
+  }
+
+  toggleAutoScroll(): void {
+    if (this.isAutoScrolling) {
+      this.stopAutoScroll();
+    } else {
+      this.startAutoScroll();
+    }
+  }
+
+  startAutoScroll(): void {
+    if (this.isAutoScrolling) return;
+    this.isAutoScrolling = true;
+    this.lastFrameTime = performance.now();
+
+    const scrollStep = (currentTime: number) => {
+      if (!this.isAutoScrolling) return;
+
+      const delta = (currentTime - this.lastFrameTime) / 1000;
+      this.lastFrameTime = currentTime;
+
+      // Smooth frame-based scrolling (28px per sec * multiplier)
+      const pxToScroll = 28 * this.autoScrollSpeed * delta;
+      window.scrollBy(0, pxToScroll);
+
+      // Stop if reached bottom of page
+      if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 15)) {
+        this.stopAutoScroll();
+        return;
+      }
+
+      this.autoScrollAnimFrame = requestAnimationFrame(scrollStep);
+    };
+
+    this.autoScrollAnimFrame = requestAnimationFrame(scrollStep);
+  }
+
+  stopAutoScroll(): void {
+    this.isAutoScrolling = false;
+    if (this.autoScrollAnimFrame !== null) {
+      cancelAnimationFrame(this.autoScrollAnimFrame);
+      this.autoScrollAnimFrame = null;
+    }
+  }
+
+  setAutoScrollSpeed(speed: number): void {
+    this.autoScrollSpeed = speed;
+    localStorage.setItem('mangaflux_autoscroll_speed', speed.toString());
   }
 
   loadSavedZoom(): void {
@@ -159,6 +236,9 @@ export class ChapterReadComponent implements OnInit {
       this.zoomOut();
     } else if (event.key === '0') {
       this.resetZoom();
+    } else if (event.key === ' ' || event.key === 's' || event.key === 'S') {
+      event.preventDefault();
+      this.toggleAutoScroll();
     }
   }
 
