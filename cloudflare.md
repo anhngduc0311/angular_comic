@@ -84,4 +84,67 @@ Nếu bạn sử dụng Cloudflare R2 gói miễn phí **10 GB dung lượng**:
    - Khi có người đọc, Cloudflare chỉ lấy ảnh từ MinIO của bạn **1 lần**, 99.9% người đọc sau đó sẽ tải ảnh trực tiếp từ **Cloudflare Edge Cache** (Không mất tiền băng thông + Không bị giới hạn 10 GB của R2!).
 
 ---
+
+## 🗄️ 7. Tận Dụng Multi-Bucket Free Storage (Cloudflare R2 + Backblaze B2)
+
+Để nhân đôi hoặc nhân ba dung lượng lưu trữ miễn phí mà vẫn được **0đ Băng Thông (Zero Egress Fee)**:
+
+1. **Backblaze B2 S3 API (Miễn phí 10 GB Storage):**
+   - Backblaze là thành viên chính thức của **Cloudflare Bandwidth Alliance**.
+   - Mọi lượt tải ảnh từ Backblaze B2 truyền qua Cloudflare CDN đều **MIỄN PHÍ 100% BĂNG THÔNG**.
+2. **Cơ Chế Multi-Bucket & Failover Tự Động Trong C# (`MinioStorageService.cs`):**
+   - **Primary Storage:** Cloudflare R2 / MinIO (`10 GB miễn phí`).
+   - **Secondary Storage:** Backblaze B2 (`10 GB miễn phí` tiếp theo).
+   - Khi Primary Storage gặp sự cố hoặc đầy, `MinioStorageService` tự động chuyển sang upload lên Backblaze B2 mà không làm gián đoạn hệ thống.
+3. **Cấu Hình `appsettings.json`:**
+   ```json
+   "Minio": {
+     "Endpoint": "https://7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com",
+     "AccessKey": "b55550a4f61f223173b5c5b742867416",
+     "SecretKey": "2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3",
+     "BucketName": "comics",
+     "CdnBaseUrl": "https://img.hypermmo.site",
+     "Secondary": {
+       "Endpoint": "s3.us-east-005.backblazeb2.com",
+       "AccessKey": "0050dfbf3919d500000000001",
+       "SecretKey": "K005wTMv67F283/4QcZoy1JXYSBAGuM",
+       "BucketName": "mangaflux-b2",
+       "CdnBaseUrl": "https://cdn.mangaflux.com/mangaflux-b2"
+     }
+   }
+---
+
+## 🔑 8. Hướng Dẫn Từng Bước Lấy Thông Số Credentials (R2 & Backblaze B2)
+
+### A. Hướng Dẫn Lấy Thông Số Cloudflare R2:
+1. **Tạo Bucket:** Đăng nhập [Cloudflare Dashboard](https://dash.cloudflare.com/) -> Chọn **R2 Object Storage** -> **Create bucket** -> Nhập tên `comics` -> Chọn **Create**.
+2. **Lấy Account ID & Endpoint:** 
+   - Tại trang **R2 Overview**, nhìn mục **Account Details** góc phải -> Copy mã **Account ID** (Ví dụ: `a1b2c3d4e5f678901234...`).
+   - `Endpoint` R2 của bạn sẽ là: `<account_id>.r2.cloudflarestorage.com`.
+3. **Lấy Access Key & Secret Key:**
+   - Chọn **Manage R2 API Tokens** -> **Create API Token**.
+   - Chọn quyền **Admin Read & Write** -> Nhấp **Create API Token**.
+   - Copy **Access Key ID** (điền vào `AccessKey`) và **Secret Access Key** (điền vào `SecretKey`).
+4. **Lấy CdnBaseUrl (Custom Domain):**
+   - Vào lại Bucket `comics` -> chọn tab **Settings** -> mục **Custom Domains** -> chọn **Connect Domain**.
+   - Nhập domain/subdomain của bạn (ví dụ: `cdn.mangaflux.com`) -> Chọn **Connect Domain**.
+
+### B. Hướng Dẫn Lấy Thông Số Backblaze B2:
+1. **Tạo Bucket:** Đăng ký [Backblaze B2](https://www.backblaze.com/b2/cloud-storage.html) (10 GB miễn phí) -> Chọn **B2 Cloud Storage** -> **Buckets** -> **Create a Bucket**.
+   - Nhập tên: `mangaflux-b2` -> Chọn **Public** -> **Create**.
+2. **Lấy Endpoint:** Xem trong chi tiết bucket vừa tạo, ví dụ: `s3.us-west-004.backblazeb2.com`.
+3. **Lấy Key ID & Application Key:**
+   - Chọn menu **Application Keys** -> **Add a New Application Key**.
+   - Chọn bucket `mangaflux-b2`, quyền **Read and Write** -> bấm **Create**.
+   - Copy **keyID** (`<b2_key_id>`) và **applicationKey** (`<b2_application_key>`).
+
+---
 *Tài liệu tích hợp Cloudflare CDN - MangaFlux 2026.*
+
+https://7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com
+Access Key ID
+b55550a4f61f223173b5c5b742867416
+Secret Access Key
+2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3
+
+img.hypermmo.site
