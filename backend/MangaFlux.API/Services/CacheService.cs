@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 
 namespace MangaFlux.API.Services
 {
@@ -12,17 +15,21 @@ namespace MangaFlux.API.Services
         Task SetAsync<T>(string key, T value, TimeSpan? absoluteExpireTime = null);
         Task RemoveAsync(string key);
         Task<long> IncrementAsync(string key, long value = 1);
+        Task<List<string>> GetKeysAsync(string pattern);
+        Task<long> GetAndResetCountAsync(string key);
     }
 
     public class CacheService : ICacheService
     {
         private readonly IDistributedCache _cache;
+        private readonly IConnectionMultiplexer? _redisConnection;
         private readonly ILogger<CacheService> _logger;
 
-        public CacheService(IDistributedCache cache, ILogger<CacheService> logger)
+        public CacheService(IDistributedCache cache, ILogger<CacheService> logger, IConnectionMultiplexer? redisConnection = null)
         {
             _cache = cache;
             _logger = logger;
+            _redisConnection = redisConnection;
         }
 
         public async Task<T?> GetAsync<T>(string key)
@@ -78,6 +85,12 @@ namespace MangaFlux.API.Services
         {
             try
             {
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    var db = _redisConnection.GetDatabase();
+                    return await db.StringIncrementAsync(key, value);
+                }
+
                 var current = await GetAsync<long?>(key) ?? 0;
                 var updated = current + value;
                 await SetAsync(key, updated, TimeSpan.FromDays(30));
@@ -89,5 +102,62 @@ namespace MangaFlux.API.Services
                 return 0;
             }
         }
+
+        public async Task<List<string>> GetKeysAsync(string pattern)
+        {
+            var keys = new List<string>();
+            try
+            {
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    var endpoints = _redisConnection.GetEndPoints();
+                    foreach (var endpoint in endpoints)
+                    {
+                        var server = _redisConnection.GetServer(endpoint);
+                        if (server.IsConnected)
+                        {
+                            var redisKeys = server.Keys(pattern: pattern).Select(k => k.ToString());
+                            keys.AddRange(redisKeys);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Cache GetKeysAsync notice for pattern '{pattern}': {ex.Message}");
+            }
+            return await Task.FromResult(keys.Distinct().ToList());
+        }
+
+        public async Task<long> GetAndResetCountAsync(string key)
+        {
+            try
+            {
+                if (_redisConnection != null && _redisConnection.IsConnected)
+                {
+                    var db = _redisConnection.GetDatabase();
+                    var currentVal = await db.StringGetSetAsync(key, 0);
+                    if (currentVal.HasValue && long.TryParse(currentVal.ToString(), out long count) && count > 0)
+                    {
+                        await db.KeyDeleteAsync(key);
+                        return count;
+                    }
+                    return 0;
+                }
+
+                var val = await GetAsync<long?>(key) ?? 0;
+                if (val > 0)
+                {
+                    await RemoveAsync(key);
+                }
+                return val;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Cache GetAndResetCountAsync notice for key '{key}': {ex.Message}");
+                return 0;
+            }
+        }
     }
 }
+

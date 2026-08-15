@@ -26,6 +26,16 @@ if (!string.IsNullOrEmpty(redisConnectionString))
         options.Configuration = redisConnectionString;
         options.InstanceName = "MangaFlux_";
     });
+
+    try
+    {
+        var muxer = StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString);
+        builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(muxer);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Redis connection notice: {ex.Message}");
+    }
 }
 else
 {
@@ -33,6 +43,7 @@ else
 }
 
 builder.Services.AddScoped<ICacheService, CacheService>();
+builder.Services.AddHostedService<ViewSyncWorker>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
@@ -161,6 +172,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors("AllowAngularApp");
 app.UseRateLimiter();
+app.UseMiddleware<ImageCacheMiddleware>();
 
 // Auto EF Core Database Migration / Schema sync
 using (var scope = app.Services.CreateScope())

@@ -21,6 +21,7 @@ namespace MangaFlux.API.Services
         private readonly IMinioClient _minioClient;
         private readonly string _bucketName;
         private readonly string _endpoint;
+        private readonly string _cdnBaseUrl;
         private readonly ILogger<MinioStorageService> _logger;
 
         public MinioStorageService(IConfiguration config, ILogger<MinioStorageService> logger)
@@ -30,6 +31,7 @@ namespace MangaFlux.API.Services
             var accessKey = config["Minio:AccessKey"] ?? "mangaflux_admin";
             var secretKey = config["Minio:SecretKey"] ?? "MangaFluxSecretPassword2026!";
             _bucketName = config["Minio:BucketName"] ?? "comics";
+            _cdnBaseUrl = config["Minio:CdnBaseUrl"] ?? "https://hypermmo.site";
             var secure = bool.TryParse(config["Minio:Secure"], out var s) && s;
 
             _minioClient = new MinioClient()
@@ -93,7 +95,8 @@ namespace MangaFlux.API.Services
 
             await _minioClient.PutObjectAsync(putObjectArgs);
 
-            return $"https://hypermmo.site/{_bucketName}/{fileName}";
+            var baseUrl = _cdnBaseUrl.TrimEnd('/');
+            return $"{baseUrl}/{_bucketName}/{fileName}";
         }
 
         public async Task<List<string>> UploadFilesAsync(List<IFormFile> files, string? folder = "chapters")
