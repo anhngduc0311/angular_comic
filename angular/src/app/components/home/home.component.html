@@ -53,7 +53,7 @@
       <div class="comic-grid" *ngIf="!isLoading">
         <div class="comic-card card-hover" *ngFor="let comic of latestComics">
           <a [routerLink]="['/comic', comic.slug]" class="card-cover">
-            <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" />
+            <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" decoding="async" (error)="onImgError($event)" />
             <span class="chapter-badge" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
             <span class="time-badge" *ngIf="comic.latestChapter">{{ formatTimeAgo(comic.latestChapter.createdAt) }}</span>
             <div class="card-overlay">

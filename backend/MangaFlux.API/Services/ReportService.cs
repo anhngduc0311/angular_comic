@@ -81,6 +81,7 @@ namespace MangaFlux.API.Services
         public async Task<List<ReportResponseDto>> GetReportsAsync(string? status = null, string? errorType = null, string? search = null)
         {
             var query = _db.Reports
+                .AsNoTracking()
                 .Include(r => r.Comic)
                 .Include(r => r.Chapter)
                 .Include(r => r.User)
@@ -116,11 +117,11 @@ namespace MangaFlux.API.Services
 
         public async Task<ReportStatsDto> GetReportStatsAsync()
         {
-            var total = await _db.Reports.CountAsync();
-            var pending = await _db.Reports.CountAsync(r => r.Status == "Pending");
-            var processing = await _db.Reports.CountAsync(r => r.Status == "Processing");
-            var resolved = await _db.Reports.CountAsync(r => r.Status == "Resolved");
-            var dismissed = await _db.Reports.CountAsync(r => r.Status == "Dismissed");
+            var total = await _db.Reports.AsNoTracking().CountAsync();
+            var pending = await _db.Reports.AsNoTracking().CountAsync(r => r.Status == "Pending");
+            var processing = await _db.Reports.AsNoTracking().CountAsync(r => r.Status == "Processing");
+            var resolved = await _db.Reports.AsNoTracking().CountAsync(r => r.Status == "Resolved");
+            var dismissed = await _db.Reports.AsNoTracking().CountAsync(r => r.Status == "Dismissed");
 
             return new ReportStatsDto
             {
@@ -165,6 +166,7 @@ namespace MangaFlux.API.Services
         private async Task<ReportResponseDto> GetReportDtoByIdAsync(int id)
         {
             var r = await _db.Reports
+                .AsNoTracking()
                 .Include(r => r.Comic)
                 .Include(r => r.Chapter)
                 .Include(r => r.User)

@@ -79,6 +79,36 @@
       }
     }
 
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 0.15rem 0.35rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+
+      .zoom-select {
+        background: transparent;
+        border: none;
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 0.8rem;
+        outline: none;
+        cursor: pointer;
+        padding: 0.2rem 0.1rem;
+      }
+
+      .btn-icon {
+        padding: 0.25rem 0.4rem;
+        font-size: 0.75rem;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        &:hover { color: var(--primary); }
+      }
+    }
+
     .btn-sm {
       padding: 0.4rem 0.7rem;
       font-size: 0.8rem;
@@ -115,11 +145,12 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 1.5rem 0 2rem;
+  margin: 1.5rem auto 2rem;
+  width: 100%;
+  transition: max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 
   .page-item {
     position: relative;
-    max-width: 900px;
     width: 100%;
 
     img {
@@ -127,8 +158,6 @@
       height: auto;
       display: block;
     }
-
-
   }
 }
 

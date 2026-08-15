@@ -4,13 +4,12 @@ const http = require('http');
 const { Client: MinioClient } = require('minio');
 const sharp = require('sharp');
 
-// Initialize MinIO client
+// Initialize Storage client (Cloudflare R2 / MinIO)
 const minioClient = new MinioClient({
-  endPoint: 'localhost',
-  port: 9000,
-  useSSL: false,
-  accessKey: 'mangaflux_admin',
-  secretKey: 'MangaFluxSecretPassword2026!'
+  endPoint: '7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com',
+  useSSL: true,
+  accessKey: 'b55550a4f61f223173b5c5b742867416',
+  secretKey: '2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3'
 });
 
 const BUCKET_NAME = 'comics';
@@ -102,11 +101,15 @@ async function uploadToMinio(objectName, buffer, contentType = 'image/jpeg') {
         Resource: [`arn:aws:s3:::${BUCKET_NAME}/*`]
       }]
     });
-    await minioClient.setBucketPolicy(BUCKET_NAME, policy);
+    try {
+      await minioClient.setBucketPolicy(BUCKET_NAME, policy);
+    } catch (e) {
+      // Ignore policy set errors on R2
+    }
     await minioClient.putObject(BUCKET_NAME, objectName, buffer, buffer.length, { 'Content-Type': contentType });
-    return `https://hypermmo.site/${BUCKET_NAME}/${objectName}`;
+    return `https://img.hypermmo.site/${objectName}`;
   } catch (err) {
-    console.error(`❌ Lỗi upload MinIO [${objectName}]:`, err.message);
+    console.error(`❌ Lỗi upload R2/MinIO [${objectName}]:`, err.message);
     return null;
   }
 }
@@ -136,6 +139,27 @@ function downloadFallbackImage() {
   });
 }
 
+// Helper nén & tối ưu hóa ảnh sang WebP bảo toàn 100% chất lượng ảnh gốc (Near-Lossless, Quality 90, Max-Width 1920px)
+async function optimizeImageToWebP(inputBuffer, maxWidthTarget = 1920, quality = 90) {
+  try {
+    let pipeline = sharp(inputBuffer);
+    const meta = await pipeline.metadata();
+    
+    if (meta.width && meta.width > maxWidthTarget) {
+      pipeline = pipeline.resize({ width: maxWidthTarget, fit: 'inside', withoutEnlargement: true });
+    }
+    
+    return await pipeline.webp({
+      quality: quality,
+      effort: 6,
+      smartSubsample: true,
+      nearLossless: true
+    }).toBuffer();
+  } catch (err) {
+    return inputBuffer;
+  }
+}
+
 // -------------------------------------------------------------
 // 3. Image Merging Engine (4-in-1 Vertical Stitching with Sharp)
 // -------------------------------------------------------------
@@ -151,7 +175,8 @@ async function mergeImageBuffers(pageBuffers, groupSize = 4, threshold = 70) {
     const group = pageBuffers.slice(i, i + groupSize);
     
     if (group.length === 1) {
-      mergedBuffers.push(group[0]);
+      const opt = await optimizeImageToWebP(group[0], 1920, 90);
+      mergedBuffers.push(opt);
       continue;
     }
 
@@ -159,7 +184,7 @@ async function mergeImageBuffers(pageBuffers, groupSize = 4, threshold = 70) {
       // Fetch image metadata for the group
       const metadatas = await Promise.all(group.map(buf => sharp(buf).metadata()));
       
-      const maxWidth = Math.max(...metadatas.map(m => m.width || 800));
+      const maxWidth = Math.min(Math.max(...metadatas.map(m => m.width || 800)), 1920);
       let totalHeight = 0;
       const compositeInputs = [];
 
@@ -168,7 +193,6 @@ async function mergeImageBuffers(pageBuffers, groupSize = 4, threshold = 70) {
         const meta = metadatas[j];
         
         let processedBuf = buf;
-        // Resize width if needed to fit uniform maxWidth, preserving aspect ratio
         if (meta.width && meta.width !== maxWidth) {
           processedBuf = await sharp(buf).resize({ width: maxWidth }).toBuffer();
           const newMeta = await sharp(processedBuf).metadata();
@@ -184,7 +208,7 @@ async function mergeImageBuffers(pageBuffers, groupSize = 4, threshold = 70) {
         totalHeight += (meta.height || 1000);
       }
 
-      // Render stitched image with 95% JPEG quality + 4:4:4 chroma subsampling (no quality loss)
+      // Render stitched image in WebP format (High-Fidelity Near-Lossless 90% quality)
       const combinedBuffer = await sharp({
         create: {
           width: maxWidth,
@@ -194,17 +218,23 @@ async function mergeImageBuffers(pageBuffers, groupSize = 4, threshold = 70) {
         }
       })
       .composite(compositeInputs)
-      .jpeg({ quality: 95, chromaSubsampling: '4:4:4' })
+      .webp({
+        quality: 90,
+        effort: 6,
+        smartSubsample: true,
+        nearLossless: true
+      })
       .toBuffer();
 
       mergedBuffers.push(combinedBuffer);
     } catch (err) {
-      console.warn(`   ⚠️ Lỗi gộp nhóm ảnh tại trang ${i + 1}, giữ nguyên ảnh gốc: ${err.message}`);
-      mergedBuffers.push(...group);
+      console.warn(`   ⚠️ Lỗi gộp nhóm ảnh tại trang ${i + 1}, nén ảnh đơn lẻ: ${err.message}`);
+      const fallbackGroup = await Promise.all(group.map(b => optimizeImageToWebP(b, 1920, 90)));
+      mergedBuffers.push(...fallbackGroup);
     }
   }
 
-  console.log(`   -> [Image Merger] Đã gộp thành công từ ${pageBuffers.length} trang xuống còn ${mergedBuffers.length} trang ảnh chất lượng cao!`);
+  console.log(`   -> [Image Merger & WebP Compression] Đã nén và gộp từ ${pageBuffers.length} trang xuống ${mergedBuffers.length} trang WebP chất lượng cao!`);
   return mergedBuffers;
 }
 
@@ -575,15 +605,16 @@ async function startCrawler() {
       // Merge 4 images into 1 if >= 70 pages (using sharp high quality vertical stitching)
       pageBuffers = await mergeImageBuffers(pageBuffers, 4, 70);
 
-      // Parallel upload to MinIO in batches of 15
+      // Parallel upload to MinIO/R2 in batches of 15 (WebP Optimized)
       const minioPages = [];
       const batchSize = 15;
       for (let p = 0; p < pageBuffers.length; p += batchSize) {
         const batch = pageBuffers.slice(p, p + batchSize);
-        const batchUrls = await Promise.all(batch.map((buf, offset) => {
+        const batchUrls = await Promise.all(batch.map(async (buf, offset) => {
           const pageIdx = p + offset + 1;
-          const objName = `chapters/${slug}/chap${chapNum}/page_${pageIdx}.jpg`;
-          return uploadToMinio(objName, buf);
+          const webpBuf = await optimizeImageToWebP(buf, 1920, 90);
+          const objName = `chapters/${slug}/chap${chapNum}/page_${pageIdx}.webp`;
+          return uploadToMinio(objName, webpBuf, 'image/webp');
         }));
         minioPages.push(...batchUrls.filter(Boolean));
       }

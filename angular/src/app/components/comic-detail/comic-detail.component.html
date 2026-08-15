@@ -69,8 +69,8 @@
 
       <!-- Comment List -->
       <div class="comment-list">
-        <div class="comment-item" *ngFor="let cm of comic.comments">
-          <img [src]="cm.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar" />
+        <div class="comment-item" *ngFor="let cm of visibleComments">
+          <img [src]="cm.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar" loading="lazy" decoding="async" />
           <div class="comment-body">
             <div class="cm-header">
               <span class="username">{{ cm.username }}</span>
@@ -79,6 +79,12 @@
             <p class="content">{{ cm.content }}</p>
           </div>
         </div>
+      </div>
+
+      <div class="text-center mt-3" *ngIf="comic.comments.length > visibleCommentsCount">
+        <button (click)="loadMoreComments()" class="btn btn-secondary btn-sm" style="margin-top: 1rem;">
+          <i class="fa-solid fa-angles-down"></i> Xem thêm bình luận (còn {{ comic.comments.length - visibleCommentsCount }} bình luận)
+        </button>
       </div>
     </div>
   </div>

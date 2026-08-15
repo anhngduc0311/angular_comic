@@ -19,6 +19,16 @@ export class ComicDetailComponent implements OnInit {
   isBookmarked: boolean = false;
   commentContent: string = '';
   isLoading: boolean = true;
+  visibleCommentsCount: number = 10;
+
+  get visibleComments(): any[] {
+    if (!this.comic || !this.comic.comments) return [];
+    return this.comic.comments.slice(0, this.visibleCommentsCount);
+  }
+
+  loadMoreComments(): void {
+    this.visibleCommentsCount += 10;
+  }
 
   constructor(
     private route: ActivatedRoute,

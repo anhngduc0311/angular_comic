@@ -33,6 +33,7 @@ namespace MangaFlux.API.Services
             try
             {
                 var notifications = await _context.Notifications
+                    .AsNoTracking()
                     .Where(n => n.UserId == userId)
                     .OrderByDescending(n => n.CreatedAt)
                     .Take(50)
@@ -61,6 +62,7 @@ namespace MangaFlux.API.Services
             try
             {
                 return await _context.Notifications
+                    .AsNoTracking()
                     .CountAsync(n => n.UserId == userId && !n.IsRead);
             }
             catch
@@ -114,7 +116,7 @@ namespace MangaFlux.API.Services
 
         public async Task BroadcastNotificationAsync(BroadcastNotificationDto dto)
         {
-            var userIds = await _context.Users.Select(u => u.Id).ToListAsync();
+            var userIds = await _context.Users.AsNoTracking().Select(u => u.Id).ToListAsync();
 
             var notifications = userIds.Select(uId => new Notification
             {

@@ -14,6 +14,8 @@ namespace MangaFlux.API.Services
         Task<T?> GetAsync<T>(string key);
         Task SetAsync<T>(string key, T value, TimeSpan? absoluteExpireTime = null);
         Task RemoveAsync(string key);
+        Task<T?> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallback, TimeSpan? absoluteExpireTime = null);
+        Task RemoveByPatternAsync(string pattern);
         Task<long> IncrementAsync(string key, long value = 1);
         Task<List<string>> GetKeysAsync(string pattern);
         Task<long> GetAndResetCountAsync(string key);
@@ -66,6 +68,56 @@ namespace MangaFlux.API.Services
             catch (Exception ex)
             {
                 _logger.LogWarning($"Cache SetAsync notice for key '{key}': {ex.Message}");
+            }
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.SemaphoreSlim> _locks = new();
+
+        public async Task<T?> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallback, TimeSpan? absoluteExpireTime = null)
+        {
+            var cached = await GetAsync<T>(key);
+            if (cached != null)
+            {
+                return cached;
+            }
+
+            var semaphore = _locks.GetOrAdd(key, _ => new System.Threading.SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync();
+            try
+            {
+                // Double-check cache after acquiring lock
+                cached = await GetAsync<T>(key);
+                if (cached != null)
+                {
+                    return cached;
+                }
+
+                var item = await getItemCallback();
+                if (item != null)
+                {
+                    await SetAsync(key, item, absoluteExpireTime);
+                }
+                return item;
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
+        public async Task RemoveByPatternAsync(string pattern)
+        {
+            try
+            {
+                var keys = await GetKeysAsync(pattern);
+                foreach (var key in keys)
+                {
+                    await RemoveAsync(key);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Cache RemoveByPatternAsync notice for pattern '{pattern}': {ex.Message}");
             }
         }
 
@@ -136,6 +188,16 @@ namespace MangaFlux.API.Services
                 if (_redisConnection != null && _redisConnection.IsConnected)
                 {
                     var db = _redisConnection.GetDatabase();
+                    var keyType = await db.KeyTypeAsync(key);
+                    if (keyType != RedisType.String)
+                    {
+                        if (keyType != RedisType.None)
+                        {
+                            await db.KeyDeleteAsync(key);
+                        }
+                        return 0;
+                    }
+
                     var currentVal = await db.StringGetSetAsync(key, 0);
                     if (currentVal.HasValue && long.TryParse(currentVal.ToString(), out long count) && count > 0)
                     {

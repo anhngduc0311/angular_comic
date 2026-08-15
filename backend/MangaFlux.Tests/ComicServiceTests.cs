@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using MangaFlux.API.Data;
+using MangaFlux.API.DTOs;
 using MangaFlux.API.Models;
 using MangaFlux.API.Services;
 using Moq;
@@ -31,6 +32,8 @@ namespace MangaFlux.Tests
 
             var mockNotificationService = new Mock<INotificationService>();
             var mockCache = new Mock<ICacheService>();
+            mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<System.Collections.Generic.List<CategoryDto>>>>(), It.IsAny<TimeSpan?>()))
+                .Returns<string, Func<Task<System.Collections.Generic.List<CategoryDto>>>, TimeSpan?>((key, cb, ttl) => cb());
             var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object);
 
             // Act

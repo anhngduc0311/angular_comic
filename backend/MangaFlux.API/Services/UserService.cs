@@ -41,6 +41,7 @@ namespace MangaFlux.API.Services
         public async Task<List<BookmarkDto>> GetUserBookmarksAsync(int userId)
         {
             var bookmarks = await _context.Bookmarks
+                .AsNoTracking()
                 .Where(b => b.UserId == userId)
                 .Include(b => b.Comic).ThenInclude(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                 .Include(b => b.Comic).ThenInclude(c => c.Chapters)
@@ -102,6 +103,7 @@ namespace MangaFlux.API.Services
         public async Task<List<ReadingHistoryDto>> GetUserHistoryAsync(int userId)
         {
             var history = await _context.ReadingHistories
+                .AsNoTracking()
                 .Where(h => h.UserId == userId)
                 .Include(h => h.Comic)
                 .Include(h => h.Chapter)
@@ -161,11 +163,11 @@ namespace MangaFlux.API.Services
 
         public async Task<UserProfileDto?> GetUserProfileAsync(int userId)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null) return null;
 
-            var followedCount = await _context.Bookmarks.CountAsync(b => b.UserId == userId);
-            var commentsCount = await _context.Comments.CountAsync(c => c.UserId == userId);
+            var followedCount = await _context.Bookmarks.AsNoTracking().CountAsync(b => b.UserId == userId);
+            var commentsCount = await _context.Comments.AsNoTracking().CountAsync(c => c.UserId == userId);
 
             return new UserProfileDto
             {
@@ -185,6 +187,7 @@ namespace MangaFlux.API.Services
         public async Task<List<UserCommentDto>> GetUserCommentsAsync(int userId)
         {
             var comments = await _context.Comments
+                .AsNoTracking()
                 .Where(c => c.UserId == userId)
                 .Include(c => c.Comic)
                 .Include(c => c.Chapter)
@@ -296,14 +299,15 @@ namespace MangaFlux.API.Services
         public async Task<List<UserProfileDto>> GetAllUsersForAdminAsync()
         {
             var users = await _context.Users
+                .AsNoTracking()
                 .OrderByDescending(u => u.CreatedAt)
                 .ToListAsync();
 
             var result = new List<UserProfileDto>();
             foreach (var u in users)
             {
-                var followedCount = await _context.Bookmarks.CountAsync(b => b.UserId == u.Id);
-                var commentsCount = await _context.Comments.CountAsync(c => c.UserId == u.Id);
+                var followedCount = await _context.Bookmarks.AsNoTracking().CountAsync(b => b.UserId == u.Id);
+                var commentsCount = await _context.Comments.AsNoTracking().CountAsync(c => c.UserId == u.Id);
 
                 result.Add(new UserProfileDto
                 {

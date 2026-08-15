@@ -30,6 +30,18 @@ export class ChapterReadComponent implements OnInit {
   private preloadedImages: HTMLImageElement[] = [];
   private saveScrollTimeout: any = null;
 
+  // Zoom Controls state
+  zoomWidth: number = 900; // 900px default (100%)
+  zoomLevels = [
+    { label: '50%', width: 500 },
+    { label: '75%', width: 700 },
+    { label: '100%', width: 900 },
+    { label: '125%', width: 1150 },
+    { label: '150%', width: 1400 },
+    { label: '200%', width: 1800 },
+    { label: 'Tràn màn', width: 0 }
+  ];
+
   // Report Modal States
   showReportModal: boolean = false;
   selectedReportErrorType: string = 'IMAGE_FAILED';
@@ -50,6 +62,8 @@ export class ChapterReadComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    this.loadSavedZoom();
+
     this.route.params.subscribe(params => {
       const slug = params['slug'];
       const chapterNumber = params['chapterNumber'];
@@ -61,6 +75,50 @@ export class ChapterReadComponent implements OnInit {
         this.fetchChapter(id);
       }
     });
+  }
+
+  loadSavedZoom(): void {
+    const savedZoom = localStorage.getItem('mangaflux_reader_zoom');
+    if (savedZoom !== null) {
+      const parsed = parseInt(savedZoom, 10);
+      if (!isNaN(parsed)) {
+        this.zoomWidth = parsed;
+      }
+    }
+  }
+
+  setZoomWidth(width: number): void {
+    this.zoomWidth = width;
+    localStorage.setItem('mangaflux_reader_zoom', width.toString());
+  }
+
+  zoomIn(): void {
+    const widths = [500, 700, 900, 1150, 1400, 1800, 0];
+    const currentIndex = widths.indexOf(this.zoomWidth);
+    if (currentIndex >= 0 && currentIndex < widths.length - 1) {
+      this.setZoomWidth(widths[currentIndex + 1]);
+    } else if (currentIndex === -1) {
+      this.setZoomWidth(1150);
+    }
+  }
+
+  zoomOut(): void {
+    const widths = [500, 700, 900, 1150, 1400, 1800, 0];
+    const currentIndex = widths.indexOf(this.zoomWidth);
+    if (currentIndex > 0) {
+      this.setZoomWidth(widths[currentIndex - 1]);
+    } else if (currentIndex === -1) {
+      this.setZoomWidth(900);
+    }
+  }
+
+  resetZoom(): void {
+    this.setZoomWidth(900);
+  }
+
+  getZoomLabel(): string {
+    const found = this.zoomLevels.find(l => l.width === this.zoomWidth);
+    return found ? found.label : `${this.zoomWidth}px`;
   }
 
   @HostListener('window:scroll', [])
@@ -76,14 +134,31 @@ export class ChapterReadComponent implements OnInit {
         }
       }, 300);
     }
+
+    // Auto prefetch next chapter images when scrolling near the end (70%+ down page)
+    const scrollPercent = (window.scrollY + window.innerHeight) / (document.documentElement.scrollHeight || 1);
+    if (scrollPercent > 0.7 && this.nextChapterId) {
+      this.preloadNextChapter();
+    }
   }
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent): void {
+    const targetTag = (event.target as HTMLElement)?.tagName?.toLowerCase();
+    if (targetTag === 'input' || targetTag === 'textarea' || targetTag === 'select') {
+      return;
+    }
+
     if (event.key === 'ArrowLeft' && this.prevChapterId) {
       this.navigateToChapter(this.prevChapterId);
     } else if (event.key === 'ArrowRight' && this.nextChapterId) {
       this.navigateToChapter(this.nextChapterId);
+    } else if (event.key === '+' || event.key === '=') {
+      this.zoomIn();
+    } else if (event.key === '-' || event.key === '_') {
+      this.zoomOut();
+    } else if (event.key === '0') {
+      this.resetZoom();
     }
   }
 
@@ -103,6 +178,7 @@ export class ChapterReadComponent implements OnInit {
         this.calculateNavChapters();
         this.trackHistory();
         this.restoreReadingPosition(id);
+        this.prefetchCurrentChapterPages();
         this.preloadNextChapter();
       },
       error: () => {
@@ -128,6 +204,7 @@ export class ChapterReadComponent implements OnInit {
         this.calculateNavChapters();
         this.trackHistory();
         this.restoreReadingPosition(detail.id);
+        this.prefetchCurrentChapterPages();
         this.preloadNextChapter();
       },
       error: () => {
@@ -169,6 +246,16 @@ export class ChapterReadComponent implements OnInit {
     }
   }
 
+  prefetchCurrentChapterPages(): void {
+    if (!this.chapter || !this.chapter.pages) return;
+    // Eagerly prefetch initial pages into browser cache
+    const initialPages = this.chapter.pages.slice(0, 5);
+    initialPages.forEach(page => {
+      const img = new Image();
+      img.src = page.imageUrl;
+    });
+  }
+
   preloadNextChapter(): void {
     if (!this.nextChapterId || this.preloadedChapterId === this.nextChapterId) return;
 
@@ -176,7 +263,7 @@ export class ChapterReadComponent implements OnInit {
     this.comicService.getChapterById(this.nextChapterId).subscribe({
       next: (nextChapter) => {
         if (nextChapter && nextChapter.pages) {
-          this.preloadedImages = nextChapter.pages.map(page => {
+          this.preloadedImages = nextChapter.pages.slice(0, 5).map(page => {
             const img = new Image();
             img.src = page.imageUrl;
             return img;

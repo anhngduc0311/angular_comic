@@ -39,6 +39,32 @@ namespace MangaFlux.Tests
             Assert.Null(afterResetCount);
         }
 
+        [Fact]
+        public async Task CacheService_GetOrSetAsync_ExecutesCallbackAndCachesValue()
+        {
+            // Arrange
+            var opts = Options.Create(new MemoryDistributedCacheOptions());
+            IDistributedCache distributedCache = new MemoryDistributedCache(opts);
+            var mockLogger = new Mock<ILogger<CacheService>>();
+            var cacheService = new CacheService(distributedCache, mockLogger.Object, null);
+
+            int executionCount = 0;
+            Func<Task<string>> callback = () =>
+            {
+                executionCount++;
+                return Task.FromResult("Cached Result");
+            };
+
+            // Act
+            var result1 = await cacheService.GetOrSetAsync("test_key", callback, TimeSpan.FromMinutes(5));
+            var result2 = await cacheService.GetOrSetAsync("test_key", callback, TimeSpan.FromMinutes(5));
+
+            // Assert
+            Assert.Equal("Cached Result", result1);
+            Assert.Equal("Cached Result", result2);
+            Assert.Equal(1, executionCount);
+        }
+
         [Theory]
         [InlineData("/images/comic1.webp", true)]
         [InlineData("/uploads/chapter1/page1.jpg", true)]
