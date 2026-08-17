@@ -1,0 +1,38 @@
+groups:
+  - name: MangaFluxAlerts
+    rules:
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[1m])) by (le)) > 0.100
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API Latency P95 is higher than 100ms"
+          description: "MangaFlux API P95 latency is {{ $value }}s on average for 1 minute."
+
+      - alert: HighHttp5xxErrorRate
+        expr: (sum(rate(http_requests_received_total{code=~"5.."}[1m])) / sum(rate(http_requests_received_total[1m]))) * 100 > 1
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP 5xx Error Rate (> 1%)"
+          description: "MangaFlux API has an error rate of {{ $value }}% 5xx responses."
+
+      - alert: RedisDisconnected
+        expr: mangaflux_redis_connected == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis Cache Server Disconnected"
+          description: "MangaFlux API has lost connection to Redis Server for over 30 seconds."
+
+      - alert: LowCacheHitRatio
+        expr: (sum(rate(mangaflux_cache_hits_total[5m])) / (sum(rate(mangaflux_cache_hits_total[5m])) + sum(rate(mangaflux_cache_misses_total[5m])))) * 100 < 70
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cache Hit Ratio Dropped Below 70%"
+          description: "Redis Cache Hit Ratio is currently {{ $value }}%."

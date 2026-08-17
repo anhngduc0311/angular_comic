@@ -46,14 +46,40 @@ Thay vì MinIO trên Server tự host (ngốn băng thông mạng), chuyển san
 
 ---
 
-## 🔒 4. Cloudflare WAF & Anti-Scraper (Chống Bot Cào Truyện)
+## 🔒 4. Cloudflare WAF & Anti-Scraper (Chống Bot Cào Truyện Toàn Diện)
 
-Để tránh bot cào ngốn tài nguyên hệ thống khi có 1M users:
-1. **Cloudflare Bot Management:** Bật `Bot Fight Mode` để tự động chặn bot xấu.
-2. **Rate Limiting Rule:**
-   - URL: `api.mangaflux.com/api/*`
-   - Limit: 60 requests / minute per IP.
-   - Action: Block 1 hour hoặc captcha challenge.
+Để bảo vệ hệ thống khi đạt quy mô **1 triệu người dùng**, ngăn chặn triệt để các crawler bot độc hại gây quá tải cơ sở dữ liệu và ngốn băng thông:
+
+### 🛡️ 4.1. Cloudflare Bot Management & Super Bot Fight Mode
+- Vào **Security** -> **Bots**:
+  - Bật **Bot Fight Mode** (Miễn phí) hoặc **Super Bot Fight Mode**.
+  - Cấu hình:
+    - **Definitely automated bots:** `Block`
+    - **Likely automated bots:** `Managed Challenge` (Hiển thị xác thực Turnstile thân thiện không phiền người dùng thật).
+
+### ⏱️ 4.2. Edge Rate Limiting Rules (Phân Tầng Theo Endpoint)
+Vào **Security** -> **WAF** -> **Rate limiting rules** -> Tạo các quy tắc sau:
+
+1. **Rule 1: Bảo Vệ Chapter Reader API (Anti-Scraper)**
+   - **If incoming requests match:** `(http.request.uri.path contains "/api/chapters")`
+   - **Rate limit:** Tối đa **15 requests** trong vòng **10 giây** trên mỗi IP.
+   - **Action:** `Managed Challenge` (hoặc `Block` 10 phút nếu vượt ngưỡng liên tục).
+
+2. **Rule 2: Bảo Vệ Authentication & Comment APIs (Anti-Brute Force / Anti-Spam)**
+   - **If incoming requests match:** `(http.request.uri.path contains "/api/auth/login" or http.request.uri.path contains "/api/auth/register")`
+   - **Rate limit:** Tối đa **5 requests** trong vòng **1 phút** trên mỗi IP.
+   - **Action:** `Block` 1 giờ.
+
+3. **Rule 3: Bảo Vệ CDN Tải Ảnh Chapter**
+   - **If incoming requests match:** `(http.request.uri.path contains "/comics/" or http.request.uri.path contains "/covers/")`
+   - **Rate limit:** Tối đa **120 requests** trong vòng **10 giây** trên mỗi IP.
+   - **Action:** `Managed Challenge`.
+
+### 🚫 4.3. WAF Custom Rules (Chặn Bad User-Agents & Hotlink)
+Vào **Security** -> **WAF** -> **Custom rules**:
+- **Expression:** `(http.user_agent contains "Scrapy" or http.user_agent contains "python-requests" or http.user_agent contains "Bytespider" or http.user_agent contains "sqlmap" or http.user_agent contains "wget" or http.user_agent eq "")`
+- **Action:** `Block` (Chặn đứng 100% các công cụ crawler cào truyện tự động trước khi chạm tới Server Backend).
+- **Hotlink Protection:** Bật **Scrape Shield** -> **Hotlink Protection** để ngăn chặn các website khác nhúng trộm link ảnh truyện từ hệ thống MangaFlux.
 
 ---
 

@@ -34,16 +34,26 @@ namespace MangaFlux.API.Services
             _redisConnection = redisConnection;
         }
 
+        private static string ExtractKeyPrefix(string key)
+        {
+            var colonIndex = key.IndexOf(':');
+            return colonIndex > 0 ? key.Substring(0, colonIndex) : (key.Length > 15 ? key.Substring(0, 15) : key);
+        }
+
         public async Task<T?> GetAsync<T>(string key)
         {
             try
             {
                 var cachedData = await _cache.GetStringAsync(key);
+                var prefix = ExtractKeyPrefix(key);
+
                 if (string.IsNullOrEmpty(cachedData))
                 {
+                    MangaMetrics.CacheMissesTotal.WithLabels(prefix).Inc();
                     return default;
                 }
 
+                MangaMetrics.CacheHitsTotal.WithLabels(prefix).Inc();
                 return JsonSerializer.Deserialize<T>(cachedData);
             }
             catch (Exception ex)
@@ -137,6 +147,8 @@ namespace MangaFlux.API.Services
         {
             try
             {
+                MangaMetrics.ChapterViewsIncrementedTotal.WithLabels(ExtractKeyPrefix(key)).Inc(value);
+
                 if (_redisConnection != null && _redisConnection.IsConnected)
                 {
                     var db = _redisConnection.GetDatabase();

@@ -1,5 +1,6 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using MangaFlux.API.Services;
 
 namespace MangaFlux.API.Controllers
@@ -24,6 +25,7 @@ namespace MangaFlux.API.Controllers
     }
 
     [ApiController]
+    [EnableRateLimiting("chapter-limiter")]
     [Route("api/[controller]")]
     public class ChaptersController : ControllerBase
     {

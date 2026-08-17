@@ -1,0 +1,26 @@
+{
+  "name": "mangaflux-loadtests",
+  "version": "1.0.0",
+  "description": "Load Testing & Performance Benchmarking Suite for MangaFlux (1M Users Optimization)",
+  "main": "autocannon-benchmark.js",
+  "scripts": {
+    "test:benchmark": "node autocannon-benchmark.js",
+    "test:chapter": "node autocannon-benchmark.js --endpoint=chapter",
+    "test:home": "node autocannon-benchmark.js --endpoint=home",
+    "test:k6": "k6 run k6-load-test.js",
+    "test:k6-stress": "k6 run k6-stress-test.js",
+    "test:k6-spike": "k6 run k6-spike-test.js"
+  },
+  "dependencies": {
+    "autocannon": "^7.15.0"
+  },
+  "keywords": [
+    "load-test",
+    "performance",
+    "k6",
+    "autocannon",
+    "mangaflux"
+  ],
+  "author": "MangaFlux Team",
+  "license": "MIT"
+}

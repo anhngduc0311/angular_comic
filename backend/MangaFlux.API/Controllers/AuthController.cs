@@ -86,7 +86,8 @@ namespace MangaFlux.API.Controllers
                 HttpOnly = true,
                 Expires = DateTime.UtcNow.AddDays(7),
                 SameSite = SameSiteMode.Lax,
-                Secure = false // Trong môi trường production HTTPS nên đặt = true
+                Secure = Request.IsHttps,
+                Path = "/api/auth"
             };
             Response.Cookies.Append("mangaflux_refresh_token", refreshToken, cookieOptions);
         }
@@ -97,7 +98,8 @@ namespace MangaFlux.API.Controllers
             {
                 HttpOnly = true,
                 SameSite = SameSiteMode.Lax,
-                Secure = false
+                Secure = Request.IsHttps,
+                Path = "/api/auth"
             });
         }
     }

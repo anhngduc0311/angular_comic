@@ -1,6 +1,8 @@
 using System.Text;
+using System.Text.Json;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +12,8 @@ using MangaFlux.API.Data;
 using MangaFlux.API.Middleware;
 using MangaFlux.API.Models;
 using MangaFlux.API.Services;
+using MangaFlux.API.Services.HealthChecks;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +50,12 @@ builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddHostedService<ViewSyncWorker>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
+
+// 2a. Register Health Checks
+builder.Services.AddHealthChecks()
+    .AddCheck<SqlServerHealthCheck>("database", tags: new[] { "ready", "db" })
+    .AddCheck<RedisHealthCheck>("redis", tags: new[] { "ready", "cache" })
+    .AddCheck<StorageHealthCheck>("storage", tags: new[] { "ready", "storage" });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IComicService, ComicService>();
@@ -86,6 +96,15 @@ builder.Services.AddRateLimiter(options =>
     {
         opt.PermitLimit = 5;
         opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+
+    // Policy 4: Chapter Reader (Anti-Scraper) - 60 requests / min (Sliding Window)
+    options.AddSlidingWindowLimiter("chapter-limiter", opt =>
+    {
+        opt.PermitLimit = 60;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.SegmentsPerWindow = 6;
         opt.QueueLimit = 0;
     });
 });
@@ -171,6 +190,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowAngularApp");
+app.UseMiddleware<AntiScraperMiddleware>();
 app.UseRateLimiter();
 app.UseMiddleware<ImageCacheMiddleware>();
 
@@ -246,6 +266,44 @@ using (var scope = app.Services.CreateScope())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 5. Prometheus HTTP Request Metrics & Endpoint
+app.UseHttpMetrics();
+app.MapMetrics("/metrics");
+
+// 6. ASP.NET Core Health Check Endpoints
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var response = new
+        {
+            status = report.Status.ToString(),
+            totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds, 2),
+            timestamp = DateTime.UtcNow,
+            entries = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                durationMs = Math.Round(e.Value.Duration.TotalMilliseconds, 2),
+                exception = e.Value.Exception?.Message
+            })
+        };
+        await context.Response.WriteAsync(JsonSerializer.Serialize(response, new JsonSerializerOptions { WriteIndented = true }));
+    }
+});
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
 
 app.MapControllers();
 

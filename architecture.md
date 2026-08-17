@@ -33,6 +33,11 @@ graph TD
         G[Node.js Crawler Engine + Sharp]
     end
 
+    subgraph Observability & APM Layer
+        H[Prometheus Server :9090]
+        I[Grafana Dashboards :3000]
+    end
+
     A <-->|HTTP / REST API + JWT| B
     B <--> C
     C --> C3
@@ -43,6 +48,8 @@ graph TD
     C2 <-->|MinIO SDK / S3 API| F
     G -->|Extract & Optimize Images| F
     G -->|Push Metadata via REST API| C
+    H -->|Scrape /metrics| C
+    I -->|Query Data| H
 ```
 
 ---
@@ -58,6 +65,7 @@ graph TD
 ### **Backend (.NET 10 Web API)**
 * **Framework:** ASP.NET Core Web API (.NET 10 / C# 13).
 * **ORM:** Entity Framework Core 9 (SQL Server Provider, Auto Migration & Schema Sync).
+* **Observability & Metrics:** `prometheus-net.AspNetCore` (`/metrics`), ASP.NET Core Health Checks (`/health`, `/health/ready`, `/health/live`).
 * **Security & Authentication:**
   * JWT Bearer Authentication (Access Token & Refresh Token support).
   * BCrypt.Net-Next (Mã hóa mật khẩu).
@@ -66,12 +74,14 @@ graph TD
 * **Object Storage Client:** MinIO C# SDK (S3-compatible).
 * **API Documentation:** Swagger / OpenAPI UI.
 
-### **Database & Infrastructure**
+### **Database, APM & Infrastructure**
 * **Primary Database:** Microsoft SQL Server.
 * **Caching Server:** Redis Server v7 (Chạy trên Container `mangaflux-redis`).
 * **Storage Server:** MinIO Object Storage (Chạy trên Container `mangaflux-minio`).
+* **APM & Monitoring:** Prometheus v2.54.1 & Grafana v11.2.0 (`docker-compose.yml`).
 * **Containerization:** Docker & Docker Compose (`docker-compose.yml`).
 * **Edge Proxy:** Cloudflare Tunnel (`cloudflared`).
+* **Load Testing Suite:** k6 (10k VUs) & Node.js Autocannon.
 
 ### **Data Crawler Engine**
 * **Runtime:** Node.js.

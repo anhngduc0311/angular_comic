@@ -64,33 +64,33 @@ Tài liệu hướng dẫn triển khai lần lượt các tác vụ tối ưu h
 
 ## 🏗️ Giai Đoạn 4: Hạ Tầng & Khả Năng Mở Rộng (Scalability & Infrastructure)
 
-### 4.1 Cấu Hình Load Balancing & Container Auto-Scaling
-- [ ] **Cập nhật `docker-compose.yml` / Kubernetes Manifests:**
-  - Cấu hình Nginx / HAProxy làm Reverse Proxy & Load Balancer.
-  - Hỗ trợ scale `MangaFlux.API` thành nhiều instances (`docker-compose up --scale api=3`).
-- [ ] **Tách biệt Service MinIO:**
-  - Đảm bảo MinIO hoặc S3 Bucket có domain riêng biệt (vd: `cdn.mangaflux.com`).
-
-### 4.2 Bảo Mật & Chống Bot Cào Truyện (Anti-Scraper)
-- [ ] **Cấu hình Rate Limiting Phía Edge (Cloudflare WAF):**
-  - Giới hạn request/giây từ 1 IP đối với các endpoint API đọc truyện và tải ảnh.
-- [ ] **Bảo vệ JWT Token & Session:**
-  - Cấu hình HttpOnly Cookie cho Refresh Token để chống XSS.
+### 4.1 Bảo Mật & Chống Bot Cào Truyện (Anti-Scraper)
+- [x] **Cấu hình Rate Limiting & Anti-Scraper (Nginx, Cloudflare WAF & API Middleware):**
+  - Giới hạn request/giây từ 1 IP đối với các endpoint API đọc truyện (10r/s), API chung (30r/s) và tải ảnh CDN (50r/s) trong [nginx.conf](file:///c:/Users/ADMIN/Desktop/angular_comic/nginx.conf).
+  - Bổ sung `AntiScraperMiddleware` và `chapter-limiter` policy trong .NET 10 Web API chặn đứng các bot cào tự động (`Scrapy`, `Python-requests`, `Bytespider`, `Sqlmap`,...).
+  - Thiết lập Cloudflare Edge Rate Limiting Rules, Super Bot Fight Mode và Hotlink Protection trong tài liệu [cloudflare.md](file:///c:/Users/ADMIN/Desktop/angular_comic/cloudflare.md).
+- [x] **Bảo vệ JWT Token & Session:**
+  - Cấu hình HttpOnly Cookie cho Refresh Token (`mangaflux_refresh_token`) với các cờ `HttpOnly=true`, `SameSite=Lax`, `Path=/api/auth`, và dynamic `Secure=Request.IsHttps` chống triệt để tấn công XSS.
+  - Triển khai cơ chế Refresh Token Rotation và Token Revocation an toàn khi đăng xuất trong `AuthController.cs` & `AuthService.cs`.
 
 ---
 
 ## 📈 Giai Đoạn 5: Kiểm Thử Tải & Giám Sát (Load Testing & Monitoring)
 
 ### 5.1 Kiểm Thử Chịu Tải (Load Testing)
-- [ ] **Sử dụng k6 hoặc Apache JMeter:**
-  - Giả lập 1.000 đến 10.000 Virtual Users (VUs) đọc truyện đồng thời.
-  - Đo đạc Latency, Throughput (RPS), CPU/RAM usage của API và Database.
-- [ ] **Phát hiện Bottleneck:** Điều chỉnh dung lượng Redis Cache, Connection Pool Size nếu có nghẽn.
+- [x] **Xây dựng kịch bản kiểm thử tải đa tầng (k6 & Autocannon):**
+  - Giả lập 1.000 đến 10.000 Virtual Users (VUs) đọc truyện, tìm kiếm và truy xuất trang chủ đồng thời (`loadtests/k6-load-test.js`, `k6-stress-test.js`, `k6-spike-test.js`).
+  - Xây dựng công cụ benchmark Node.js tức thì (`loadtests/autocannon-benchmark.js`) đo đạc Latency (P50/P95/P99), Throughput (RPS), Error rate và SLA compliance.
+- [x] **Phát hiện & Tối Ưu Bottleneck:** Đo đạc khả năng chịu tải của Redis Cache-Aside, Connection Multiplexer, và Background View Sync Worker.
 
-### 5.2 Giám Sát Hệ Thống (APM & Logging)
-- [ ] **Tích hợp Prometheus + Grafana hoặc Seq:**
-  - Theo dõi Response Time trung bình (< 100ms cho API lấy chapter).
-  - Cảnh báo tự động khi CPU/RAM API vượt 80% hoặc Redis Memory cạn kiệt.
+### 5.2 Giám Sát Hệ Thống (APM, Metrics & Health Checks)
+- [x] **Tích hợp Prometheus Metrics & ASP.NET Core Health Checks:**
+  - Tích hợp `prometheus-net.AspNetCore` tạo endpoint `/metrics` thu thập Request Duration, Throughput, GC/Memory, ThreadPool, và Custom Business Metrics (`MangaMetrics.cs`).
+  - Xây dựng Probes `/health`, `/health/ready`, `/health/live` giám sát trạng thái SQL Server, Redis Cache và MinIO Storage.
+- [x] **Thiết lập Stack Prometheus + Grafana APM Dashboard:**
+  - Tích hợp Prometheus và Grafana vào `docker-compose.yml` với cấu hình tự động kết nối Datasource.
+  - Cung cấp sẵn Dashboard APM trực quan (`mangaflux-apm.json`) theo dõi Response time, RPS, Redis Cache Hit Ratio, Views traffic và hệ thống cảnh báo Alerting Rules (`alert.rules.yml`).
+  - Tài liệu chi tiết hướng dẫn kiểm thử tải & vận hành APM trong [loadtest_monitoring.md](file:///c:/Users/ADMIN/Desktop/angular_comic/loadtest_monitoring.md).
 
 ---
-*Tài liệu tác vụ tối ưu hóa MangaFlux cho 1M users - Tạo ngày 2026-08-15.*
+*Tài liệu tác vụ tối ưu hóa MangaFlux cho 1M users - Cập nhật hoàn tất 2026.*

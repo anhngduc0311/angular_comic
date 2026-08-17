@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MangaFlux.API.Data;
+using Prometheus;
 
 namespace MangaFlux.API.Services
 {
@@ -49,6 +50,7 @@ namespace MangaFlux.API.Services
 
         private async Task SyncViewsToDatabaseAsync(CancellationToken cancellationToken)
         {
+            using var timer = MangaMetrics.DbSyncDurationSeconds.NewTimer();
             using var scope = _serviceProvider.CreateScope();
             var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
             var dbContext = scope.ServiceProvider.GetRequiredService<MangaDbContext>();
@@ -56,6 +58,7 @@ namespace MangaFlux.API.Services
             // Sync Comic Views
             var comicKeys = await cacheService.GetKeysAsync("*comic_views_count_*");
             int comicSyncCount = 0;
+            long totalViewsSynced = 0;
 
             foreach (var key in comicKeys)
             {
@@ -69,6 +72,7 @@ namespace MangaFlux.API.Services
                             .Where(c => c.Id == comicId)
                             .ExecuteUpdateAsync(s => s.SetProperty(c => c.Views, c => c.Views + (int)delta), cancellationToken);
                         comicSyncCount++;
+                        totalViewsSynced += delta;
                     }
                 }
             }
@@ -89,13 +93,19 @@ namespace MangaFlux.API.Services
                             .Where(ch => ch.Id == chapterId)
                             .ExecuteUpdateAsync(s => s.SetProperty(ch => ch.Views, ch => ch.Views + (int)delta), cancellationToken);
                         chapterSyncCount++;
+                        totalViewsSynced += delta;
                     }
                 }
             }
 
+            if (totalViewsSynced > 0)
+            {
+                MangaMetrics.ChapterViewsSyncedTotal.Inc(totalViewsSynced);
+            }
+
             if (comicSyncCount > 0 || chapterSyncCount > 0)
             {
-                _logger.LogInformation("[ViewSyncWorker] Batch synced {ComicCount} comics and {ChapterCount} chapters views to SQL Server.", comicSyncCount, chapterSyncCount);
+                _logger.LogInformation("[ViewSyncWorker] Batch synced {ComicCount} comics and {ChapterCount} chapters ({TotalViews} views) to SQL Server.", comicSyncCount, chapterSyncCount, totalViewsSynced);
             }
         }
     }
