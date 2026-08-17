@@ -9,7 +9,6 @@ using MangaFlux.API.Services;
 namespace MangaFlux.API.Controllers
 {
     [ApiController]
-    [EnableRateLimiting("auth-limiter")]
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
@@ -21,6 +20,7 @@ namespace MangaFlux.API.Controllers
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting("auth-limiter")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var result = await _authService.RegisterAsync(dto);
@@ -34,12 +34,31 @@ namespace MangaFlux.API.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("auth-limiter")]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var result = await _authService.LoginAsync(dto);
             if (result == null)
             {
                 return Unauthorized(new { message = "Tài khoản hoặc mật khẩu không chính xác." });
+            }
+
+            SetRefreshTokenCookie(result.RefreshToken);
+            return Ok(result.Response);
+        }
+
+        [HttpPost("google-login")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.IdToken))
+            {
+                return BadRequest(new { message = "Google ID Token không hợp lệ." });
+            }
+
+            var result = await _authService.GoogleLoginAsync(dto.IdToken);
+            if (result == null)
+            {
+                return Unauthorized(new { message = "Xác thực tài khoản Google thất bại hoặc tài khoản đã bị khóa." });
             }
 
             SetRefreshTokenCookie(result.RefreshToken);

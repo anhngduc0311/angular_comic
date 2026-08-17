@@ -49,6 +49,18 @@ export class AuthService {
     );
   }
 
+  googleLogin(idToken: string): Observable<User> {
+    return this.api.post<User>('auth/google-login', { idToken }).pipe(
+      tap((user) => {
+        if (user && user.token) {
+          localStorage.setItem('mangaflux_token', user.token);
+          localStorage.setItem('mangaflux_user', JSON.stringify(user));
+          this.currentUserSubject.next(user);
+        }
+      })
+    );
+  }
+
   register(data: { username: string; email: string; password: string; fullName?: string }): Observable<User> {
     return this.api.post<User>('auth/register', data).pipe(
       tap((user) => {

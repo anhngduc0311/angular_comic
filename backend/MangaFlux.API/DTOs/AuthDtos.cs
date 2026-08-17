@@ -14,6 +14,11 @@ namespace MangaFlux.API.DTOs
         public string Password { get; set; } = string.Empty;
     }
 
+    public class GoogleLoginDto
+    {
+        public string IdToken { get; set; } = string.Empty;
+    }
+
     public class AuthResponseDto
     {
         public int Id { get; set; }

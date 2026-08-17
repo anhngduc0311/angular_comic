@@ -86,7 +86,7 @@ Tài liệu kế hoạch chi tiết triển khai các tính năng người dùng
 ## 🔐 Giai Đoạn 9: Mở Rộng Xác Thực, Cộng Đồng & Bảo Mật
 
 ### 9.1 Đăng Nhập Mạng Xã Hội 1-Click (Social Login OAuth2)
-- [ ] **Tích hợp Google OAuth2 Login:**
+- [x] **Tích hợp Google OAuth2 Login:**
   - Sử dụng `@abacritt/angularx-social-login` hoặc Google Identity Services phía Angular.
   - Endpoint `.NET 10` xác thực Google ID Token với `Google.Apis.Auth`, tự động tạo tài khoản hoặc liên kết tài khoản hiện có.
 - [ ] **Tùy chọn đăng nhập qua Discord / Facebook:**

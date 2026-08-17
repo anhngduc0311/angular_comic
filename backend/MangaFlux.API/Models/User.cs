@@ -18,6 +18,9 @@ namespace MangaFlux.API.Models
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
 
+        public string? GoogleId { get; set; }
+        public string AuthProvider { get; set; } = "Local";
+
         // Navigation Properties
         public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
         public ICollection<ReadingHistory> ReadingHistories { get; set; } = new List<ReadingHistory>();

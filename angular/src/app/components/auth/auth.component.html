@@ -82,5 +82,21 @@
         {{ isLoading ? 'Đang xử lý...' : 'Đăng Ký Tài Khoản' }}
       </button>
     </form>
+
+    <!-- Social Login Section -->
+    <div class="social-divider">
+      <span>HOẶC TIẾP TỤC VỚI</span>
+    </div>
+
+    <div class="social-auth-box">
+      <!-- Google Official One Tap / Button Container -->
+      <div id="googleSignInBtn" class="google-btn-wrapper" [class.d-none]="isGoogleLoading"></div>
+
+      <!-- Google Loading State -->
+      <div class="google-loading-state" *ngIf="isGoogleLoading">
+        <i class="fa-solid fa-circle-notch fa-spin text-primary"></i>
+        <span>Đang kết nối tài khoản Google...</span>
+      </div>
+    </div>
   </div>
 </div>

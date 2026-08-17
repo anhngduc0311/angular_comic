@@ -76,10 +76,10 @@ builder.Services.AddRateLimiter(options =>
             "{\"message\":\"Bạn đã gửi quá nhiều yêu cầu trong thời gian ngắn. Vui lòng thử lại sau 1 phút.\"}", token);
     };
 
-    // Policy 1: Auth (Login/Register/Refresh) - 5 requests / min
+    // Policy 1: Auth (Login/Register) - 60 requests / min
     options.AddFixedWindowLimiter("auth-limiter", opt =>
     {
-        opt.PermitLimit = 5;
+        opt.PermitLimit = 60;
         opt.Window = TimeSpan.FromMinutes(1);
         opt.QueueLimit = 0;
     });
@@ -219,6 +219,16 @@ using (var scope = app.Services.CreateScope())
             IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'RefreshTokenExpiryTime')
             BEGIN
                 ALTER TABLE [Users] ADD [RefreshTokenExpiryTime] DATETIME2 NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'GoogleId')
+            BEGIN
+                ALTER TABLE [Users] ADD [GoogleId] NVARCHAR(255) NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'AuthProvider')
+            BEGIN
+                ALTER TABLE [Users] ADD [AuthProvider] NVARCHAR(50) NOT NULL CONSTRAINT DF_Users_AuthProvider DEFAULT 'Local';
             END;
 
             DELETE FROM ChapterPages WHERE ChapterId IN (
