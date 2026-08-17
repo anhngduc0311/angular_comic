@@ -31,12 +31,13 @@ namespace MangaFlux.API.Services
             _logger = logger;
 
             // Primary Provider (Cloudflare R2 or MinIO)
-            var endpoint = config["Minio:Endpoint"] ?? "localhost:9000";
-            var accessKey = config["Minio:AccessKey"] ?? "mangaflux_admin";
-            var secretKey = config["Minio:SecretKey"] ?? "MangaFluxSecretPassword2026!";
-            _primaryBucket = config["Minio:BucketName"] ?? "comics";
-            _primaryCdnUrl = config["Minio:CdnBaseUrl"] ?? "https://hypermmo.site";
-            var secure = bool.TryParse(config["Minio:Secure"], out var s) && s;
+            var endpoint = Environment.GetEnvironmentVariable("R2_ENDPOINT") ?? config["Minio:Endpoint"] ?? "localhost:9000";
+            var accessKey = Environment.GetEnvironmentVariable("R2_ACCESS_KEY") ?? config["Minio:AccessKey"] ?? "mangaflux_admin";
+            var secretKey = Environment.GetEnvironmentVariable("R2_SECRET_KEY") ?? config["Minio:SecretKey"] ?? "MangaFluxSecretPassword2026!";
+            _primaryBucket = Environment.GetEnvironmentVariable("R2_BUCKET_NAME") ?? config["Minio:BucketName"] ?? "comics";
+            _primaryCdnUrl = Environment.GetEnvironmentVariable("R2_CDN_BASE_URL") ?? config["Minio:CdnBaseUrl"] ?? "https://hypermmo.site";
+            var secureStr = Environment.GetEnvironmentVariable("R2_SECURE") ?? config["Minio:Secure"];
+            var secure = bool.TryParse(secureStr, out var s) && s;
 
             _primaryClient = new MinioClient()
                 .WithEndpoint(endpoint)
@@ -44,15 +45,16 @@ namespace MangaFlux.API.Services
                 .WithSSL(secure)
                 .Build();
 
-            // Secondary Provider (Backblaze B2 S3 Compatible - Free 10GB + Cloudflare Bandwidth Alliance)
-            var secEndpoint = config["Minio:Secondary:Endpoint"];
+            // Secondary Provider (Backblaze B2 S3 Compatible)
+            var secEndpoint = Environment.GetEnvironmentVariable("B2_ENDPOINT") ?? config["Minio:Secondary:Endpoint"];
             if (!string.IsNullOrEmpty(secEndpoint))
             {
-                var secAccessKey = config["Minio:Secondary:AccessKey"] ?? "";
-                var secSecretKey = config["Minio:Secondary:SecretKey"] ?? "";
-                _secondaryBucket = config["Minio:Secondary:BucketName"] ?? "comics-b2";
-                _secondaryCdnUrl = config["Minio:Secondary:CdnBaseUrl"] ?? ("https://cdn.mangaflux.com/" + _secondaryBucket);
-                var secSecure = !bool.TryParse(config["Minio:Secondary:Secure"], out var ss) || ss;
+                var secAccessKey = Environment.GetEnvironmentVariable("B2_ACCESS_KEY") ?? config["Minio:Secondary:AccessKey"] ?? "";
+                var secSecretKey = Environment.GetEnvironmentVariable("B2_SECRET_KEY") ?? config["Minio:Secondary:SecretKey"] ?? "";
+                _secondaryBucket = Environment.GetEnvironmentVariable("B2_BUCKET_NAME") ?? config["Minio:Secondary:BucketName"] ?? "mangaflux-b2";
+                _secondaryCdnUrl = Environment.GetEnvironmentVariable("B2_CDN_BASE_URL") ?? config["Minio:Secondary:CdnBaseUrl"] ?? ("https://f005.backblazeb2.com/file/" + _secondaryBucket);
+                var secSecureStr = Environment.GetEnvironmentVariable("B2_SECURE") ?? config["Minio:Secondary:Secure"];
+                var secSecure = !bool.TryParse(secSecureStr, out var ss) || ss;
 
                 _secondaryClient = new MinioClient()
                     .WithEndpoint(secEndpoint)

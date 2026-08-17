@@ -44,6 +44,12 @@ bld/
 # .NET Core appsettings secrets / local overrides
 appsettings.Local.json
 
+# Environment Variables
+.env
+.env.local
+.env.*.local
+!.env.example
+
 # ==========================================
 # IDEs & Editors
 # ==========================================

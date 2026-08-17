@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 declare const google: any;
 
@@ -21,8 +22,8 @@ export class AuthComponent implements AfterViewInit {
   isLoading: boolean = false;
   isGoogleLoading: boolean = false;
 
-  // Google Client ID (configured in Google Cloud Console)
-  googleClientId = '510177815251-88f3mqoiatfct4jj0bhnuhmol985ae0s.apps.googleusercontent.com';
+  // Google Client ID from environment
+  googleClientId = environment.googleClientId;
 
   // Login Form Fields
   loginData = {

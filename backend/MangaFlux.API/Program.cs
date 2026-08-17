@@ -1,3 +1,4 @@
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using System.Threading.RateLimiting;
@@ -15,14 +16,51 @@ using MangaFlux.API.Services;
 using MangaFlux.API.Services.HealthChecks;
 using Prometheus;
 
+// 0. Auto-load .env file if present in current or parent directories
+var currentDir = Directory.GetCurrentDirectory();
+var envCandidates = new[]
+{
+    Path.Combine(currentDir, ".env"),
+    Path.Combine(currentDir, "..", ".env"),
+    Path.Combine(currentDir, "..", "..", ".env")
+};
+
+foreach (var envPath in envCandidates)
+{
+    if (File.Exists(envPath))
+    {
+        foreach (var line in File.ReadAllLines(envPath))
+        {
+            var trimmed = line.Trim();
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#")) continue;
+            var parts = trimmed.Split('=', 2);
+            if (parts.Length == 2)
+            {
+                var key = parts[0].Trim();
+                var val = parts[1].Trim().Trim('"', '\'');
+                if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable(key)))
+                {
+                    Environment.SetEnvironmentVariable(key, val);
+                }
+            }
+        }
+        break;
+    }
+}
+
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddEnvironmentVariables();
 
 // 1. Add DbContext with SQL Server
+var defaultConn = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") 
+                  ?? builder.Configuration.GetConnectionString("DefaultConnection");
+
 builder.Services.AddDbContext<MangaDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(defaultConn));
 
 // 2. Register Application Services, Distributed Caching & Exception Handling
-var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+var redisConnectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING") 
+                            ?? builder.Configuration.GetConnectionString("Redis");
 if (!string.IsNullOrEmpty(redisConnectionString))
 {
     builder.Services.AddStackExchangeRedisCache(options =>
