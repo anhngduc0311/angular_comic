@@ -103,3 +103,36 @@ export interface DashboardStats {
   readingStats: DailyViewStat[];
 }
 
+export interface SearchAutocompleteItem {
+  id: number;
+  title: string;
+  slug: string;
+  coverImage?: string;
+  author?: string;
+  latestChapter?: string;
+  rating: number;
+  views: number;
+  status: string;
+  categories: string[];
+}
+
+export interface SearchFilter {
+  query?: string;
+  includeCategories?: string[];
+  excludeCategories?: string[];
+  status?: string;
+  country?: string;
+  minChapters?: number;
+  sortBy?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+

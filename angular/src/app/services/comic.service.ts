@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Comic, ComicDetail, Category, ChapterDetail, Comment, DashboardStats } from '../models/comic.model';
+import { Comic, ComicDetail, Category, ChapterDetail, Comment, DashboardStats, SearchAutocompleteItem, SearchFilter, PagedResult } from '../models/comic.model';
 
 @Injectable({
   providedIn: 'root'
@@ -17,6 +17,13 @@ export class ComicService {
     return this.api.get<Comic[]>(`comics/latest?count=${count}`);
   }
 
+  autocomplete(query: string, limit = 6): Observable<SearchAutocompleteItem[]> {
+    if (!query || !query.trim()) {
+      return new Observable(obs => obs.next([]));
+    }
+    return this.api.get<SearchAutocompleteItem[]>(`comics/autocomplete?q=${encodeURIComponent(query.trim())}&limit=${limit}`);
+  }
+
   searchComics(query?: string, category?: string, status?: string, sortBy?: string): Observable<Comic[]> {
     let params = [];
     if (query) params.push(`q=${encodeURIComponent(query)}`);
@@ -26,6 +33,38 @@ export class ComicService {
     
     const queryString = params.length ? `?${params.join('&')}` : '';
     return this.api.get<Comic[]>(`comics/search${queryString}`);
+  }
+
+  advancedSearch(filter: SearchFilter): Observable<PagedResult<Comic>> {
+    let params = [];
+    if (filter.query) params.push(`q=${encodeURIComponent(filter.query)}`);
+    if (filter.includeCategories && filter.includeCategories.length > 0) {
+      params.push(`includeCategories=${encodeURIComponent(filter.includeCategories.join(','))}`);
+    }
+    if (filter.excludeCategories && filter.excludeCategories.length > 0) {
+      params.push(`excludeCategories=${encodeURIComponent(filter.excludeCategories.join(','))}`);
+    }
+    if (filter.status && filter.status !== 'All') {
+      params.push(`status=${encodeURIComponent(filter.status)}`);
+    }
+    if (filter.country && filter.country !== 'All') {
+      params.push(`country=${encodeURIComponent(filter.country)}`);
+    }
+    if (filter.minChapters && filter.minChapters > 0) {
+      params.push(`minChapters=${filter.minChapters}`);
+    }
+    if (filter.sortBy) {
+      params.push(`sortBy=${encodeURIComponent(filter.sortBy)}`);
+    }
+    if (filter.page) {
+      params.push(`page=${filter.page}`);
+    }
+    if (filter.pageSize) {
+      params.push(`pageSize=${filter.pageSize}`);
+    }
+
+    const queryString = params.length ? `?${params.join('&')}` : '';
+    return this.api.get<PagedResult<Comic>>(`comics/advanced-search${queryString}`);
   }
 
   getComicBySlug(slug: string): Observable<ComicDetail> {

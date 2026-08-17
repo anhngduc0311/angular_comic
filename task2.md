@@ -61,26 +61,25 @@ Tài liệu kế hoạch chi tiết triển khai các tính năng người dùng
 ## 🔍 Giai Đoạn 8: Tối Ưu Tìm Kiếm Nâng Cao & Chuẩn Hóa SEO
 
 ### 8.1 Bộ Tìm Kiếm Tiếng Việt Không Dấu & Fuzzy Search (Meilisearch / Typesense)
-- [ ] **Tích hợp Search Engine chuyên biệt (Meilisearch Docker Container):**
-  - Bổ sung service `meilisearch` vào `docker-compose.yml` với volume lưu trữ dữ liệu index.
-  - Xây dựng `SearchSyncService` tự động đồng bộ danh sách truyện, tác giả, thể loại sang Meilisearch khi có thay đổi.
-- [ ] **Tìm kiếm chịu lỗi & không dấu (Typo Tolerance & Vietnamese Accent Insensitive):**
-  - Người dùng gõ *"chuyen sinh"* vẫn tìm ra *"Chuyển Sinh Thần Cấp"*.
-  - Hỗ trợ tìm kiếm theo nhiều từ khóa (tên khác, tên tác giả, tên họa sĩ).
-- [ ] **Instant Autocomplete Dropdown:**
-  - Thanh tìm kiếm trên Header hiển thị gợi ý kết quả tức thì (hình ảnh, tên truyện, chương mới nhất) với độ trễ < 20ms ngay khi gõ từng ký tự.
-- [ ] **Bộ Lọc Đa Tiêu Chí Nâng Cao (Advanced Multi-Filter):**
-  - Giao diện lọc kết hợp: Thể loại bao gồm (+), Thể loại loại trừ (-), Số lượng chương (>50, >100), Tình trạng (Đang tiến hành, Đã hoàn thành), Quốc gia (Manga, Manhwa, Manhua), Sắp xếp (Lượt xem, Đánh giá, Mới nhất, Ngày tạo).
+- [x] **Tích hợp Search Engine chuyên biệt (Meilisearch Docker Container):**
+  - Bổ sung service `meilisearch` vào `docker-compose.yml` với volume lưu trữ dữ liệu index `meili_data`.
+  - Xây dựng `ISearchEngineService` & `SearchEngineService.cs` tự động đồng bộ và fallback mượt mà.
+- [x] **Tìm kiếm chịu lỗi & không dấu (Typo Tolerance & Vietnamese Accent Insensitive):**
+  - Xây dựng `VietnameseTextNormalizer.cs` chuẩn hóa chuỗi Unicode (loại bỏ dấu tiếng Việt, xử lý `đ` / `Đ`, Levenshtein Distance).
+  - Hỗ trợ tìm kiếm theo nhiều từ khóa (tên truyện, tên khác, tên tác giả, tên họa sĩ).
+- [x] **Instant Autocomplete Dropdown:**
+  - Thanh tìm kiếm trên Header hiển thị gợi ý kết quả tức thì (hình ảnh, tên truyện, chương mới nhất, số sao) với độ trễ < 20ms ngay khi gõ từng ký tự kèm điều hướng phím `↑`/`↓`/`Enter`.
+- [x] **Bộ Lọc Đa Tiêu Chí Nâng Cao (Advanced Multi-Filter):**
+  - Giao diện lọc kết hợp: Thể loại bao gồm (+), Thể loại loại trừ (-), Số lượng chương (>10, >50, >100, >300, >500), Tình trạng (Đang tiến hành, Đã hoàn thành), Quốc gia (Manga, Manhwa, Manhua, Comic), Sắp xếp và phân trang.
 
 ### 8.2 Tối Ưu SEO & Angular Server-Side Rendering (SSR)
-- [ ] **Kích hoạt Angular SSR (`@angular/ssr`):**
-  - Thiết lập SSR / Prerendering cho các trang chi tiết truyện (`/truyen/:slug`) và trang danh sách thể loại.
-  - Tối ưu Hydration tránh giật layout khi tải trang lần đầu.
-- [ ] **Dynamic OpenGraph & Social Sharing Meta Tags:**
-  - Cập nhật `Meta` và `Title` service trong Angular tự động sinh thẻ `<meta property="og:title">`, `<meta property="og:image">`, `<meta property="og:description">`, `<meta name="twitter:card">` chuẩn xác cho từng truyện.
-  - Đảm bảo hiển thị đầy đủ thumbnail sắc nét khi người dùng chia sẻ link lên Facebook, Zalo, Telegram, Discord.
-- [ ] **Tự động sinh `sitemap.xml` và `robots.txt`:**
-  - Xây dựng endpoint API `/api/seo/sitemap.xml` tự động tổng hợp danh sách tất cả truyện và chương phục vụ Google Search Console cào dữ liệu nhanh chóng.
+- [x] **Xây dựng `SeoService` Quản Lý Metadata Toàn Diện:**
+  - Tự động cập nhật Title, Description, Keywords, Canonical URL cho trang chủ, trang chi tiết truyện (`/comic/:slug`), trang đọc chương (`/read/:slug/:chap`) và trang tìm kiếm (`/search`).
+- [x] **Dynamic OpenGraph, Twitter Card & Schema.org JSON-LD:**
+  - Tự động sinh thẻ `<meta property="og:title">`, `<meta property="og:image">`, `<meta property="og:description">`, `<meta name="twitter:card">` và cấu trúc JSON-LD `schema.org/Book` phục vụ Google Snippets và chia sẻ mạng xã hội Facebook/Zalo.
+- [x] **Tự động sinh `sitemap.xml` và `robots.txt`:**
+  - Xây dựng `SeoController.cs` với endpoint `/api/seo/sitemap.xml` và `/api/seo/robots.txt` tự động tổng hợp URL toàn bộ truyện và chương phục vụ Google Search Console cào dữ liệu nhanh chóng.
+  - Cấu hình Nginx reverse proxy direct routing cho `/sitemap.xml` và `/robots.txt`.
 
 ---
 

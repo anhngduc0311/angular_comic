@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ComicService } from '../../services/comic.service';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
+import { SeoService } from '../../services/seo.service';
 import { ComicDetail } from '../../models/comic.model';
 
 @Component({
@@ -35,6 +36,7 @@ export class ComicDetailComponent implements OnInit {
     private comicService: ComicService,
     private userService: UserService,
     public authService: AuthService,
+    private seoService: SeoService,
     private router: Router
   ) {}
 
@@ -55,6 +57,7 @@ export class ComicDetailComponent implements OnInit {
         }
         this.comic = detail;
         this.isLoading = false;
+        this.seoService.setComicDetailSeo(detail);
         this.checkBookmarkStatus();
       },
       error: () => {

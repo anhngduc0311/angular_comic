@@ -63,6 +63,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IStorageService, MinioStorageService>();
+builder.Services.AddScoped<ISearchEngineService, SearchEngineService>();
 
 // 2b. Add Rate Limiting Policies for Anti-Spam & Anti-BruteForce
 builder.Services.AddRateLimiter(options =>

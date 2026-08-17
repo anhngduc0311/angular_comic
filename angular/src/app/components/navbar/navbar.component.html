@@ -40,11 +40,58 @@
         </a>
       </nav>
 
-      <!-- Search Form -->
-      <form (ngSubmit)="onSearch()" class="search-box">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input type="text" [(ngModel)]="searchQuery" name="search" placeholder="Tìm kiếm truyện..." />
-      </form>
+      <!-- Search Form & Instant Autocomplete Dropdown -->
+      <div class="search-box">
+        <form (ngSubmit)="onSearch()" class="search-form-inner">
+          <i class="fa-solid fa-magnifying-glass search-icon" *ngIf="!isLoadingAutocomplete"></i>
+          <i class="fa-solid fa-circle-notch fa-spin search-icon text-primary" *ngIf="isLoadingAutocomplete"></i>
+          <input 
+            type="text" 
+            [(ngModel)]="searchQuery" 
+            (input)="onSearchInput()" 
+            (keydown)="onKeyDown($event)"
+            name="search" 
+            placeholder="Tìm kiếm truyện tranh..." 
+            autocomplete="off" 
+          />
+        </form>
+
+        <!-- Autocomplete Floating Dropdown -->
+        <div class="autocomplete-dropdown" *ngIf="isAutocompleteOpen && autocompleteResults.length > 0">
+          <div class="dropdown-title">
+            <span><i class="fa-solid fa-bolt text-primary"></i> Gợi ý nhanh</span>
+            <span class="tip">Dùng phím ↑ ↓ để chọn</span>
+          </div>
+          <div class="autocomplete-list">
+            <div 
+              *ngFor="let item of autocompleteResults; let i = index" 
+              class="autocomplete-item"
+              [class.selected]="i === selectedIndex"
+              (click)="selectComic(item.slug)"
+            >
+              <img [src]="item.coverImage" [alt]="item.title" (error)="onImgError($event)" class="item-thumb" />
+              <div class="item-info">
+                <h4 class="item-title">{{ item.title }}</h4>
+                <div class="item-meta">
+                  <span class="latest-chap" *ngIf="item.latestChapter">
+                    <i class="fa-solid fa-book-bookmark"></i> {{ item.latestChapter }}
+                  </span>
+                  <span class="rating" *ngIf="item.rating">
+                    <i class="fa-solid fa-star"></i> {{ item.rating }}
+                  </span>
+                </div>
+                <div class="item-categories" *ngIf="item.categories && item.categories.length > 0">
+                  <span class="category-pill" *ngFor="let cat of item.categories.slice(0, 2)">{{ cat }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="dropdown-footer" (click)="onSearch()">
+            <span>Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>"</span>
+            <i class="fa-solid fa-arrow-right"></i>
+          </div>
+        </div>
+      </div>
 
       <!-- User Auth Actions -->
       <div class="user-actions">

@@ -13,10 +13,12 @@ namespace MangaFlux.API.Controllers
     public class ComicsController : ControllerBase
     {
         private readonly IComicService _comicService;
+        private readonly ISearchEngineService _searchEngineService;
 
-        public ComicsController(IComicService comicService)
+        public ComicsController(IComicService comicService, ISearchEngineService searchEngineService)
         {
             _comicService = comicService;
+            _searchEngineService = searchEngineService;
         }
 
         [HttpGet("featured")]
@@ -33,11 +35,59 @@ namespace MangaFlux.API.Controllers
             return Ok(comics);
         }
 
+        [HttpGet("autocomplete")]
+        public async Task<IActionResult> Autocomplete([FromQuery] string? q, [FromQuery] int limit = 6)
+        {
+            if (string.IsNullOrWhiteSpace(q)) return Ok(new List<SearchAutocompleteDto>());
+            var results = await _searchEngineService.QuickSearchAsync(q, limit);
+            return Ok(results);
+        }
+
         [HttpGet("search")]
         public async Task<IActionResult> Search([FromQuery] string? q, [FromQuery] string? category, [FromQuery] string? status, [FromQuery] string? sortBy)
         {
             var comics = await _comicService.SearchComicsAsync(q, category, status, sortBy);
             return Ok(comics);
+        }
+
+        [HttpPost("advanced-search")]
+        public async Task<IActionResult> AdvancedSearch([FromBody] SearchFilterDto filter)
+        {
+            var results = await _searchEngineService.AdvancedSearchAsync(filter);
+            return Ok(results);
+        }
+
+        [HttpGet("advanced-search")]
+        public async Task<IActionResult> AdvancedSearchGet(
+            [FromQuery] string? q,
+            [FromQuery] string? includeCategories,
+            [FromQuery] string? excludeCategories,
+            [FromQuery] string? status,
+            [FromQuery] string? country,
+            [FromQuery] int? minChapters,
+            [FromQuery] string? sortBy,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 24)
+        {
+            var filter = new SearchFilterDto
+            {
+                Query = q,
+                IncludeCategories = string.IsNullOrWhiteSpace(includeCategories) 
+                    ? null 
+                    : includeCategories.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).ToList(),
+                ExcludeCategories = string.IsNullOrWhiteSpace(excludeCategories) 
+                    ? null 
+                    : excludeCategories.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries).ToList(),
+                Status = status,
+                Country = country,
+                MinChapters = minChapters,
+                SortBy = sortBy ?? "latest",
+                Page = page,
+                PageSize = pageSize
+            };
+
+            var results = await _searchEngineService.AdvancedSearchAsync(filter);
+            return Ok(results);
         }
 
         [HttpGet("{slug}")]

@@ -6,6 +6,7 @@ import { ComicService } from '../../services/comic.service';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
 import { ReportService } from '../../services/report.service';
+import { SeoService } from '../../services/seo.service';
 import { ChapterDetail } from '../../models/comic.model';
 import { ERROR_TYPE_OPTIONS } from '../../models/report.model';
 
@@ -70,7 +71,8 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     private comicService: ComicService,
     private userService: UserService,
     public authService: AuthService,
-    private reportService: ReportService
+    private reportService: ReportService,
+    private seoService: SeoService
   ) {}
 
   ngOnInit(): void {
@@ -255,6 +257,13 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
         this.chapter = detail;
         this.selectedChapterId = detail.id;
         this.isLoading = false;
+        this.seoService.setChapterReadSeo(
+          detail.comicTitle, 
+          detail.comicSlug, 
+          detail.title, 
+          detail.chapterNumber, 
+          detail.pages && detail.pages.length > 0 ? detail.pages[0].imageUrl : undefined
+        );
         this.calculateNavChapters();
         this.trackHistory();
         this.restoreReadingPosition(id);
@@ -281,6 +290,13 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
         this.chapter = detail;
         this.selectedChapterId = detail.id;
         this.isLoading = false;
+        this.seoService.setChapterReadSeo(
+          detail.comicTitle, 
+          detail.comicSlug, 
+          detail.title, 
+          detail.chapterNumber, 
+          detail.pages && detail.pages.length > 0 ? detail.pages[0].imageUrl : undefined
+        );
         this.calculateNavChapters();
         this.trackHistory();
         this.restoreReadingPosition(detail.id);
