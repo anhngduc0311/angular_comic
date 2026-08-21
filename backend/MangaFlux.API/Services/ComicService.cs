@@ -423,15 +423,27 @@ namespace MangaFlux.API.Services
         private async Task InvalidateComicCacheAsync(string? slug = null, int? chapterId = null)
         {
             await _cache.RemoveAsync("featured_comics_cache");
-            await _cache.RemoveByPatternAsync("latest_comics_cache_*");
+            await _cache.RemoveAsync("latest_comics_cache_12");
+            await _cache.RemoveAsync("latest_comics_cache_6");
+            await _cache.RemoveAsync("latest_comics_cache_24");
+            await _cache.RemoveAsync("latest_comics_cache_48");
+            await _cache.RemoveAsync("latest_comics_cache_100");
+            await _cache.RemoveAsync("all_categories_cache");
+            await _cache.RemoveByPatternAsync("*latest_comics_cache*");
+            await _cache.RemoveByPatternAsync("*featured_comics*");
+            await _cache.RemoveByPatternAsync("*comics_cache*");
+            await _cache.RemoveByPatternAsync("*categories*");
+
             if (!string.IsNullOrEmpty(slug))
             {
                 await _cache.RemoveAsync($"comic_detail_slug_{slug}");
+                await _cache.RemoveByPatternAsync($"*comic_detail_slug_{slug}*");
             }
             if (chapterId.HasValue)
             {
                 await _cache.RemoveAsync($"chapter_detail_id_{chapterId.Value}");
                 await _cache.RemoveAsync($"chapter:pages:{chapterId.Value}");
+                await _cache.RemoveByPatternAsync($"*{chapterId.Value}*");
             }
         }
 
@@ -531,9 +543,55 @@ namespace MangaFlux.API.Services
             var comic = await _context.Comics.FindAsync(id);
             if (comic == null) return false;
 
+            var comicSlug = comic.Slug;
+
+            // 1. Delete associated CommentLikes for all comments of this comic
+            var commentIds = await _context.Comments.Where(c => c.ComicId == id).Select(c => c.Id).ToListAsync();
+            if (commentIds.Any())
+            {
+                var likes = await _context.CommentLikes.Where(cl => commentIds.Contains(cl.CommentId)).ToListAsync();
+                if (likes.Any()) _context.CommentLikes.RemoveRange(likes);
+            }
+
+            // 2. Delete all Comments of this comic
+            var comments = await _context.Comments.Where(c => c.ComicId == id).ToListAsync();
+            if (comments.Any()) _context.Comments.RemoveRange(comments);
+
+            // 3. Delete ReadingHistories of this comic
+            var histories = await _context.ReadingHistories.Where(rh => rh.ComicId == id).ToListAsync();
+            if (histories.Any()) _context.ReadingHistories.RemoveRange(histories);
+
+            // 4. Delete Bookmarks of this comic
+            var bookmarks = await _context.Bookmarks.Where(b => b.ComicId == id).ToListAsync();
+            if (bookmarks.Any()) _context.Bookmarks.RemoveRange(bookmarks);
+
+            // 5. Delete Reports of this comic
+            var reports = await _context.Reports.Where(r => r.ComicId == id).ToListAsync();
+            if (reports.Any()) _context.Reports.RemoveRange(reports);
+
+            // 6. Delete ComicCategories
+            var comicCategories = await _context.ComicCategories.Where(cc => cc.ComicId == id).ToListAsync();
+            if (comicCategories.Any()) _context.ComicCategories.RemoveRange(comicCategories);
+
+            // 7. Delete ChapterPages and Chapters
+            var chapters = await _context.Chapters.Include(ch => ch.Pages).Where(ch => ch.ComicId == id).ToListAsync();
+            foreach (var ch in chapters)
+            {
+                if (ch.Pages != null && ch.Pages.Any())
+                {
+                    _context.ChapterPages.RemoveRange(ch.Pages);
+                }
+            }
+            if (chapters.Any()) _context.Chapters.RemoveRange(chapters);
+
+            // 8. Delete the Comic
             _context.Comics.Remove(comic);
+
             await _context.SaveChangesAsync();
-            await InvalidateComicCacheAsync(comic.Slug);
+
+            // 9. Invalidate Cache
+            await InvalidateComicCacheAsync(comicSlug);
+
             return true;
         }
 
@@ -707,12 +765,39 @@ namespace MangaFlux.API.Services
 
         public async Task<bool> DeleteChapterAsync(int chapterId)
         {
-            var chapter = await _context.Chapters.FindAsync(chapterId);
+            var chapter = await _context.Chapters.Include(ch => ch.Pages).FirstOrDefaultAsync(ch => ch.Id == chapterId);
             if (chapter == null) return false;
 
             var comicId = chapter.ComicId;
+
+            // 1. Delete ReadingHistories referencing this chapter
+            var histories = await _context.ReadingHistories.Where(rh => rh.ChapterId == chapterId).ToListAsync();
+            if (histories.Any()) _context.ReadingHistories.RemoveRange(histories);
+
+            // 2. Delete Comments referencing this chapter (and their likes)
+            var comments = await _context.Comments.Where(c => c.ChapterId == chapterId).ToListAsync();
+            var commentIds = comments.Select(c => c.Id).ToList();
+            if (commentIds.Any())
+            {
+                var likes = await _context.CommentLikes.Where(cl => commentIds.Contains(cl.CommentId)).ToListAsync();
+                if (likes.Any()) _context.CommentLikes.RemoveRange(likes);
+            }
+            if (comments.Any()) _context.Comments.RemoveRange(comments);
+
+            // 3. Delete Reports referencing this chapter
+            var reports = await _context.Reports.Where(r => r.ChapterId == chapterId).ToListAsync();
+            if (reports.Any()) _context.Reports.RemoveRange(reports);
+
+            // 4. Delete Pages
+            if (chapter.Pages != null && chapter.Pages.Any())
+            {
+                _context.ChapterPages.RemoveRange(chapter.Pages);
+            }
+
+            // 5. Remove Chapter
             _context.Chapters.Remove(chapter);
             await _context.SaveChangesAsync();
+
             var comic = await _context.Comics.FindAsync(comicId);
             await InvalidateComicCacheAsync(comic?.Slug, chapterId);
             return true;

@@ -295,7 +295,7 @@ using (var scope = app.Services.CreateScope())
             );
         ");
 
-        var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin");
+        var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin" || u.Email == "admin@mangaflux.com");
         if (adminUser == null)
         {
             db.Users.Add(new User
@@ -305,15 +305,21 @@ using (var scope = app.Services.CreateScope())
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
                 FullName = "Quản Trị Viên",
                 Role = "Admin",
+                IsLocked = false,
                 CreatedAt = DateTime.UtcNow
             });
             db.SaveChanges();
+            Console.WriteLine("Admin user 'admin' created with password 'admin123'.");
         }
-        else if (adminUser.Role != "Admin")
+        else
         {
+            adminUser.Username = "admin";
+            adminUser.Email = "admin@mangaflux.com";
             adminUser.Role = "Admin";
             adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
+            adminUser.IsLocked = false;
             db.SaveChanges();
+            Console.WriteLine("Admin user 'admin' password synced to 'admin123'.");
         }
     }
     catch (Exception ex)

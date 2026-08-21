@@ -119,10 +119,29 @@ namespace MangaFlux.API.Services
         {
             try
             {
-                var keys = await GetKeysAsync(pattern);
-                foreach (var key in keys)
+                if (_redisConnection != null && _redisConnection.IsConnected)
                 {
-                    await RemoveAsync(key);
+                    var endpoints = _redisConnection.GetEndPoints();
+                    var db = _redisConnection.GetDatabase();
+                    var searchPattern = pattern.Contains("*") ? pattern : $"*{pattern}*";
+                    if (!searchPattern.StartsWith("*")) searchPattern = $"*{searchPattern}";
+
+                    foreach (var endpoint in endpoints)
+                    {
+                        var server = _redisConnection.GetServer(endpoint);
+                        if (server.IsConnected)
+                        {
+                            var redisKeys = server.Keys(pattern: searchPattern).ToArray();
+                            if (redisKeys.Length > 0)
+                            {
+                                await db.KeyDeleteAsync(redisKeys);
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    await _cache.RemoveAsync(pattern.Trim('*'));
                 }
             }
             catch (Exception ex)
