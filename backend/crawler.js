@@ -4,13 +4,51 @@ const http = require('http');
 const { Client: MinioClient } = require('minio');
 const sharp = require('sharp');
 
-// Initialize Storage client (Cloudflare R2 / MinIO)
-const minioClient = new MinioClient({
-  endPoint: '7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com',
-  useSSL: true,
-  accessKey: 'b55550a4f61f223173b5c5b742867416',
-  secretKey: '2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3'
-});
+// Helper synchronize system clock with Cloudflare R2 / AWS S3 time
+function getServerTimeOffset() {
+  return new Promise((resolve) => {
+    https.get('https://cloudflare.com', (res) => {
+      if (res.headers.date) {
+        const serverTime = new Date(res.headers.date).getTime();
+        const localTime = Date.now();
+        const offset = serverTime - localTime;
+        return resolve(offset);
+      }
+      resolve(0);
+    }).on('error', () => resolve(0));
+  });
+}
+
+let minioClient = null;
+
+async function initStorageClient() {
+  const timeOffset = await getServerTimeOffset();
+  if (Math.abs(timeOffset) > 30000) {
+    const RealDate = Date;
+    class PatchedDate extends RealDate {
+      constructor(...args) {
+        if (args.length === 0) {
+          super(RealDate.now() + timeOffset);
+        } else {
+          super(...args);
+        }
+      }
+      static now() {
+        return RealDate.now() + timeOffset;
+      }
+    }
+    global.Date = PatchedDate;
+    console.log(`⏱️ [Time Sync] Đã đồng bộ lệch múi giờ với Cloudflare R2 (${(timeOffset / 1000).toFixed(1)}s)...`);
+  }
+
+  minioClient = new MinioClient({
+    endPoint: '7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com',
+    useSSL: true,
+    accessKey: 'b55550a4f61f223173b5c5b742867416',
+    secretKey: '2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3'
+  });
+}
+
 
 const BUCKET_NAME = 'comics';
 const API_BASE_URL = 'http://localhost:5000/api';
@@ -37,7 +75,14 @@ function delay(ms) {
 function httpRequest(url, options = {}, postData = null) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
-    const req = client.request(url, options, (res) => {
+    const reqOptions = {
+      ...options,
+      headers: {
+        'User-Agent': getRandomUserAgent(),
+        ...(options.headers || {})
+      }
+    };
+    const req = client.request(url, reqOptions, (res) => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
@@ -56,15 +101,24 @@ function httpRequest(url, options = {}, postData = null) {
   });
 }
 
-function fetchHtml(url) {
+
+function fetchHtml(url, customReferer = null) {
   return new Promise((resolve, reject) => {
     const client = url.startsWith('https') ? https : http;
+    let referer = customReferer;
+    if (!referer) {
+      try {
+        referer = new URL(url).origin + '/';
+      } catch (e) {
+        referer = 'https://google.com/';
+      }
+    }
     const headers = {
       'User-Agent': getRandomUserAgent(),
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
       'Accept-Language': 'vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7',
       'Accept-Encoding': 'identity',
-      'Referer': 'https://truyencanh3.org/'
+      'Referer': referer
     };
     const req = client.get(url, { headers }, res => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
@@ -72,16 +126,17 @@ function fetchHtml(url) {
         if (!redirectUrl.startsWith('http')) {
           redirectUrl = new URL(redirectUrl, url).toString();
         }
-        return fetchHtml(redirectUrl).then(resolve).catch(reject);
+        return fetchHtml(redirectUrl, referer).then(resolve).catch(reject);
       }
       let html = '';
       res.on('data', chunk => html += chunk);
       res.on('end', () => resolve(html));
     });
     req.on('error', reject);
-    req.setTimeout(10000, () => { req.destroy(); reject(new Error('HTML Fetch Timeout')); });
+    req.setTimeout(12000, () => { req.destroy(); reject(new Error('HTML Fetch Timeout')); });
   });
 }
+
 
 // -------------------------------------------------------------
 // 2. MinIO Storage Upload Helper
@@ -438,17 +493,9 @@ async function scrapeComicInfo(comicUrl) {
   // Title
   let title = 'Truyện Tranh';
   const titleMatch = html.match(/<h1[^>]*>(?:Truyện tranh\s+)?(.*?)<\/h1>/i) ||
-                     html.match(/<meta\s+property="og:title"\s+content="(?:Full Truyện\s+)?(.*?)(?:\s+-\s+truyencanh3)?"/i);
+                     html.match(/<meta\s+property="og:title"\s+content="(?:Full Truyện\s+)?(.*?)(?:\s+-\s+truyencanh3|\s+-\s+ZetTruyen)?"/i);
   if (titleMatch && titleMatch[1]) {
-    title = titleMatch[1].replace(/^Truyện tranh\s+/i, '').trim();
-  }
-
-  // Cover Image URL
-  let coverUrl = '';
-  const coverMatch = html.match(/<meta\s+property="og:image"\s+content="(.*?)"/i) ||
-                     html.match(/<div\s+class="book_avatar"[^>]*>\s*<img[^>]+src="(.*?)"/i);
-  if (coverMatch && coverMatch[1]) {
-    coverUrl = coverMatch[1];
+    title = titleMatch[1].replace(/<[^>]+>/g, '').replace(/^Truyện tranh\s+/i, '').trim();
   }
 
   // Slug extraction
@@ -458,17 +505,77 @@ async function scrapeComicInfo(comicUrl) {
   slug = lastPart.replace(/-\d+$/, '');
   if (!slug) slug = 'truyen-tranh';
 
+  // Cover Image URL
+  let coverUrl = '';
+  const coverMatch = html.match(/<meta\s+property="og:image"\s+content="(.*?)"/i) ||
+                     html.match(/<link[^>]+rel="preload"[^>]+href="([^"]*zetimage\.com\/thumb\/[^"]+)"/i) ||
+                     html.match(/<div\s+class="book_avatar"[^>]*>\s*<img[^>]+src="(.*?)"/i);
+  if (coverMatch && coverMatch[1]) {
+    coverUrl = coverMatch[1];
+  }
+  if (!coverUrl && comicUrl.includes('zettruyen')) {
+    coverUrl = `https://cdn1.zetimage.com/thumb/${slug}.jpg`;
+  }
+
   // Chapters extraction
-  const chapterRegex = /href="(https?:\/\/truyencanh3\.org\/[^\/"]+\/chuong-(\d+(?:\.\d+)?))"/gi;
   const chapters = [];
   const seen = new Set();
-  let match;
-  while ((match = chapterRegex.exec(html)) !== null) {
-    const url = match[1];
-    const num = parseFloat(match[2]);
-    if (!seen.has(num)) {
-      seen.add(num);
-      chapters.push({ url, chapterNumber: num, title: `Chương ${num}` });
+
+  if (comicUrl.includes('zettruyen')) {
+    // Try ZetTruyen Chapters API
+    try {
+      const apiUrl = `https://www.zettruyen.work/api/comics/${slug}/chapters?per_page=-1&order=asc`;
+      const apiRes = await httpRequest(apiUrl, {
+        headers: {
+          'User-Agent': getRandomUserAgent(),
+          'Accept': 'application/json, text/plain, */*',
+          'Referer': 'https://www.zettruyen.work/'
+        }
+      });
+      if (apiRes && apiRes.data && apiRes.data.data && Array.isArray(apiRes.data.data.chapters)) {
+        for (const c of apiRes.data.data.chapters) {
+          const num = parseFloat(c.chapter_num || c.num);
+          const cUrl = `https://www.zettruyen.work/truyen-tranh/${slug}/chuong-${num}`;
+          if (!seen.has(num)) {
+            seen.add(num);
+            chapters.push({
+              url: cUrl,
+              chapterNumber: num,
+              title: c.name || c.chapter_name || `Chương ${num}`
+            });
+          }
+        }
+      }
+
+    } catch (e) {
+      console.warn('⚠️ Lỗi gọi API chapters ZetTruyen, sẽ fallback cào từ HTML:', e.message);
+    }
+
+    // If API returned no chapters, parse HTML for ZetTruyen chapter links
+    if (chapters.length === 0) {
+      const zetChapRegex = /href="([^"]*\/truyen-tranh\/[^\/"]+\/(?:chuong|chapter)-(\d+(?:\.\d+)?))"/gi;
+      let m;
+      while ((m = zetChapRegex.exec(html)) !== null) {
+        let u = m[1];
+        if (!u.startsWith('http')) u = 'https://www.zettruyen.work' + (u.startsWith('/') ? '' : '/') + u;
+        const num = parseFloat(m[2]);
+        if (!seen.has(num)) {
+          seen.add(num);
+          chapters.push({ url: u, chapterNumber: num, title: `Chương ${num}` });
+        }
+      }
+    }
+  } else {
+    // truyencanh3.org & general
+    const chapterRegex = /href="(https?:\/\/truyencanh3\.org\/[^\/"]+\/chuong-(\d+(?:\.\d+)?))"/gi;
+    let match;
+    while ((match = chapterRegex.exec(html)) !== null) {
+      const url = match[1];
+      const num = parseFloat(match[2]);
+      if (!seen.has(num)) {
+        seen.add(num);
+        chapters.push({ url, chapterNumber: num, title: `Chương ${num}` });
+      }
     }
   }
 
@@ -487,27 +594,54 @@ async function scrapeChapterImages(engine, chapterUrl) {
   try {
     const html = await fetchHtml(chapterUrl);
     
-    // Direct fast match for imgvip.site URLs
-    const matches = html.match(/https?:\/\/[^"'\s>]*(?:imgvip\.site)[^"'\s>]+/gi) || [];
-    const cleaned = matches.map(u => u.replace(/[\\"\';>].*$/, ''));
-    
-    // Deduplicate by page filename (e.g. page_0.jpg) to avoid duplicate server links
-    const uniqueMap = new Map();
-    for (const u of cleaned) {
-      const filename = u.split('/').pop().split('?')[0];
-      if (!uniqueMap.has(filename)) {
-        uniqueMap.set(filename, u);
+    let imageUrls = [];
+
+    if (chapterUrl.includes('zettruyen')) {
+      const idx = html.indexOf('chapter-images-container');
+      const searchHtml = idx !== -1 ? html.substring(idx) : html;
+      const imgRegex = /<img[^>]+(?:src|data-src)=['"]([^'"]+)['"]/gi;
+      let im;
+      while ((im = imgRegex.exec(searchHtml)) !== null) {
+        const src = im[1];
+        if ((src.includes('zetimage.com') || src.includes('.jpg') || src.includes('.png') || src.includes('.webp')) &&
+            !src.includes('banner') && !src.includes('logo') && !src.includes('thumb-default') && !src.includes('zettruyen-wp') && !src.includes('/thumb/')) {
+          imageUrls.push(src);
+        }
       }
+
+      // Deduplicate
+      imageUrls = [...new Set(imageUrls)];
+
+      // Sort naturally by page number (e.g. 0.jpg, 1.jpg, 10.jpg)
+      imageUrls.sort((a, b) => {
+        const numA = parseInt((a.match(/\/(\d+)\.(?:jpg|png|webp)/i) || [])[1] || '0');
+        const numB = parseInt((b.match(/\/(\d+)\.(?:jpg|png|webp)/i) || [])[1] || '0');
+        return numA - numB;
+      });
+    } else {
+      // Direct fast match for imgvip.site URLs
+      const matches = html.match(/https?:\/\/[^"'\s>]*(?:imgvip\.site)[^"'\s>]+/gi) || [];
+      const cleaned = matches.map(u => u.replace(/[\\"\';>].*$/, ''));
+      
+      // Deduplicate by page filename (e.g. page_0.jpg) to avoid duplicate server links
+      const uniqueMap = new Map();
+      for (const u of cleaned) {
+        const filename = u.split('/').pop().split('?')[0];
+        if (!uniqueMap.has(filename)) {
+          uniqueMap.set(filename, u);
+        }
+      }
+
+      // Sort naturally by page index (e.g. page_0.jpg, page_1.jpg, page_10.jpg)
+      imageUrls = Array.from(uniqueMap.values()).sort((a, b) => {
+        const numA = parseInt((a.match(/page_(\d+)/i) || [])[1] || '0');
+        const numB = parseInt((b.match(/page_(\d+)/i) || [])[1] || '0');
+        return numA - numB;
+      });
     }
 
-    // Sort naturally by page index (e.g. page_0.jpg, page_1.jpg, page_10.jpg)
-    const imageUrls = Array.from(uniqueMap.values()).sort((a, b) => {
-      const numA = parseInt((a.match(/page_(\d+)/i) || [])[1] || '0');
-      const numB = parseInt((b.match(/page_(\d+)/i) || [])[1] || '0');
-      return numA - numB;
-    });
-
     if (imageUrls.length > 0) {
+      console.log(`   📸 Tìm thấy ${imageUrls.length} trang ảnh chất lượng cao. Đang tải song song...`);
       // Download images in parallel batches of 15
       const pageBuffers = [];
       const batchSize = 15;
@@ -524,6 +658,7 @@ async function scrapeChapterImages(engine, chapterUrl) {
 
   return await engine.scrapeWithPuppeteer(chapterUrl);
 }
+
 
 // -------------------------------------------------------------
 // 6. Main Crawler Pipeline
@@ -549,11 +684,15 @@ async function startCrawler() {
   console.log(`🚀 MANGAFLUX ANTI-SCRAPING CRAWLER ENGINE (AUTOMATIC MULTI-CHAPTER)`);
   console.log('========================================================================\n');
 
+  // Initialize Storage with Cloudflare R2 Time-Offset Sync
+  await initStorageClient();
+
   const engine = new AntiScrapingEngine();
 
   // 1. Scrape Comic Information
   const comicInfo = await scrapeComicInfo(comicUrl);
   const { title, slug, coverUrl, chapters } = comicInfo;
+  const cleanTitle = title.replace(/\s*\|\s*ZetTruyen/i, '').replace(/\s*-\s*ZetTruyen/i, '').replace(/\s*-\s*truyencanh3/i, '').trim();
 
   // Filter chapters if requested
   let targetChapters = chapters;
@@ -578,6 +717,7 @@ async function startCrawler() {
     minioCoverUrl = await uploadToMinio(`covers/${slug}.jpg`, coverBuffer);
     console.log(`   -> MinIO Cover URL: ${minioCoverUrl}\n`);
   }
+  const finalCoverUrl = minioCoverUrl || coverUrl || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=800';
 
   // 3. Process each chapter
   console.log(`========================================================================`);
@@ -620,7 +760,7 @@ async function startCrawler() {
       }
 
       // Synchronize with API
-      const importUrl = `${API_BASE_URL}/comics/import-scraped?comicTitle=${encodeURIComponent(title)}&comicSlug=${encodeURIComponent(slug)}&coverImage=${encodeURIComponent(minioCoverUrl || '')}`;
+      const importUrl = `${API_BASE_URL}/comics/import-scraped?comicTitle=${encodeURIComponent(cleanTitle)}&comicSlug=${encodeURIComponent(slug)}&coverImage=${encodeURIComponent(finalCoverUrl)}`;
       const chapterPayload = {
         comicId: 0,
         chapterNumber: chapNum,
@@ -650,7 +790,7 @@ async function startCrawler() {
   }
 
   console.log('\n========================================================================');
-  console.log(`🎉 HOÀN THÀNH TẢI BỘ TRUYỆN: ${title}`);
+  console.log(`🎉 HOÀN THÀNH TẢI BỘ TRUYỆN: ${cleanTitle}`);
   console.log(`✅ Thành công: ${successCount}/${targetChapters.length} chapter`);
   if (failCount > 0) console.log(`⚠️ Thất bại: ${failCount} chapter`);
   console.log(`👉 Xem chi tiết bộ truyện tại: http://localhost:4200/comic/${slug}`);
@@ -658,6 +798,7 @@ async function startCrawler() {
 
   await engine.close();
 }
+
 
 startCrawler().catch(err => {
   console.error('💥 Unhandled Crawler Error:', err);

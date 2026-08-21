@@ -1,3 +1,13 @@
+.hero-section {
+  min-height: 440px;
+  margin-bottom: 2rem;
+  width: 100%;
+
+  @media (max-width: 768px) {
+    min-height: 380px;
+  }
+}
+
 .hero-banner {
   min-height: 440px;
   background-size: cover;
@@ -5,10 +15,28 @@
   position: relative;
   display: flex;
   align-items: center;
-  margin-bottom: 2rem;
 
   @media (max-width: 768px) {
     min-height: 380px;
+  }
+
+  &.skeleton-hero {
+    background: #111520;
+    border-bottom: 1px solid var(--border-color);
+
+    .skeleton-meta-row {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.2rem;
+      flex-wrap: wrap;
+    }
+
+    .skeleton-desc-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
   }
 
   .hero-content {
@@ -98,6 +126,7 @@
   padding: 0.8rem 1.2rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
+  min-height: 54px;
 
   .label { font-weight: 700; white-space: nowrap; }
 
@@ -166,6 +195,21 @@
   overflow: hidden;
   border: 1px solid var(--border-color);
 
+  &.skeleton-card {
+    .card-cover.skeleton {
+      aspect-ratio: 3/4;
+      width: 100%;
+      display: block;
+      border-radius: 0;
+    }
+    .card-footer-skeleton {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 0.6rem;
+    }
+  }
+
   .card-cover {
     display: block;
     position: relative;
@@ -173,7 +217,7 @@
     overflow: hidden;
     cursor: pointer;
 
-    img { width: 100%; height: 100%; object-fit: cover; }
+    img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
     .chapter-badge {
       position: absolute;
@@ -291,6 +335,15 @@
     gap: 0.85rem;
     width: 100%;
     min-width: 0;
+
+    &.skeleton-top-item {
+      .thumb.skeleton {
+        width: 44px;
+        height: 58px;
+        border-radius: var(--radius-sm);
+        display: block;
+      }
+    }
 
     .rank-num {
       font-size: 1.2rem;

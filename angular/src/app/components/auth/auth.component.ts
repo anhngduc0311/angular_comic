@@ -80,7 +80,7 @@ export class AuthComponent implements AfterViewInit {
           size: 'large',
           shape: 'pill',
           text: 'signin_with',
-          width: '100%',
+          width: 320,
           locale: 'vi'
         });
       }

@@ -4,6 +4,10 @@
   padding: 3rem 0 2rem;
   border-bottom: 1px solid var(--border-color);
 
+  &.skeleton-detail-banner {
+    background: #111520;
+  }
+
   .banner-content {
     display: flex;
     gap: 2rem;

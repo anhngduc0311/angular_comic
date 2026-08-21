@@ -19,7 +19,8 @@ export class ComicListComponent implements OnInit {
   selectedCategory: string = '';
   selectedStatus: string = 'All';
   selectedSort: string = 'latest';
-  isLoading: boolean = false;
+  isLoading: boolean = true;
+  skeletonCards: number[] = Array(12).fill(0);
 
   constructor(
     private comicService: ComicService,

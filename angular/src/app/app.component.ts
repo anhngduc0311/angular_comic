@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet } from '@angular/router';
+import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { NavbarComponent } from './components/navbar/navbar.component';
 import { FooterComponent } from './components/footer/footer.component';
 
@@ -11,6 +12,23 @@ import { FooterComponent } from './components/footer/footer.component';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.scss']
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   title = 'mangaflux';
+  isReaderRoute: boolean = false;
+
+  constructor(private router: Router) {}
+
+  ngOnInit(): void {
+    this.checkReaderRoute(this.router.url);
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe((event: any) => {
+      this.checkReaderRoute(event.urlAfterRedirects || event.url || '');
+    });
+  }
+
+  private checkReaderRoute(url: string): void {
+    this.isReaderRoute = /chuong-|\/read\//.test(url);
+  }
 }
+

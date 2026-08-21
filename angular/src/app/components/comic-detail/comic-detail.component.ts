@@ -21,6 +21,7 @@ export class ComicDetailComponent implements OnInit {
   commentContent: string = '';
   isLoading: boolean = true;
   visibleCommentsCount: number = 10;
+  skeletonChapters: number[] = Array(8).fill(0);
 
   get visibleComments(): any[] {
     if (!this.comic || !this.comic.comments) return [];

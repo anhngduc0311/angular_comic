@@ -239,6 +239,15 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<MangaDbContext>();
     try
     {
+        db.Database.EnsureCreated();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"DB EnsureCreated notice: {ex.Message}");
+    }
+
+    try
+    {
         db.Database.Migrate();
     }
     catch (Exception ex)

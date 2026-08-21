@@ -20,6 +20,12 @@ export class HomeComponent implements OnInit {
   activeHeroIndex: number = 0;
   activeRankingTab: 'day' | 'week' | 'month' = 'day';
   isLoading: boolean = true;
+  isLoadingHero: boolean = true;
+  isLoadingCategories: boolean = true;
+
+  skeletonCards: number[] = Array(12).fill(0);
+  skeletonTopItems: number[] = Array(5).fill(0);
+  skeletonCategories: number[] = Array(6).fill(0);
 
   constructor(private comicService: ComicService) {}
 
@@ -29,24 +35,32 @@ export class HomeComponent implements OnInit {
 
   loadData(): void {
     this.isLoading = true;
+    this.isLoadingHero = true;
+    this.isLoadingCategories = true;
 
     this.comicService.getFeaturedComics().subscribe({
       next: (data) => {
         this.featuredComics = data;
-        this.isLoading = false;
+        this.isLoadingHero = false;
       },
-      error: () => (this.isLoading = false)
+      error: () => (this.isLoadingHero = false)
     });
 
     this.comicService.getLatestComics(12).subscribe({
       next: (data) => {
         this.latestComics = data;
+        this.isLoading = false;
         this.updateTopComics();
-      }
+      },
+      error: () => (this.isLoading = false)
     });
 
     this.comicService.getCategories().subscribe({
-      next: (cats) => (this.categories = cats)
+      next: (cats) => {
+        this.categories = cats;
+        this.isLoadingCategories = false;
+      },
+      error: () => (this.isLoadingCategories = false)
     });
   }
 

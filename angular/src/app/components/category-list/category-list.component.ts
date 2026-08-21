@@ -13,10 +13,19 @@ import { Category } from '../../models/comic.model';
 })
 export class CategoryListComponent implements OnInit {
   categories: Category[] = [];
+  isLoading: boolean = true;
+  skeletonCategories: number[] = Array(8).fill(0);
 
   constructor(private comicService: ComicService) {}
 
   ngOnInit(): void {
-    this.comicService.getCategories().subscribe(cats => this.categories = cats);
+    this.isLoading = true;
+    this.comicService.getCategories().subscribe({
+      next: (cats) => {
+        this.categories = cats;
+        this.isLoading = false;
+      },
+      error: () => (this.isLoading = false)
+    });
   }
 }

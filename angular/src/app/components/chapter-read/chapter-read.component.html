@@ -1,115 +1,161 @@
 <div class="reader-page" *ngIf="chapter && !isLoading">
-  <!-- Reader Control Header -->
-  <div class="reader-header bg-glass">
-    <div class="container header-container">
+  <!-- Invisible hover trigger zone at the very top of screen -->
+  <div class="reader-top-trigger" 
+       (mouseenter)="isHeaderHovered = true" 
+       (mouseleave)="isHeaderHovered = false"
+       title="Rê chuột vào đây để hiện thanh điều khiển"></div>
+
+  <!-- Smart Floating Reader Header -->
+  <header class="reader-header bg-glass" 
+          [class.header-hidden]="isHeaderHidden && !isPinned && !isHeaderHovered"
+          (mouseenter)="isHeaderHovered = true" 
+          (mouseleave)="isHeaderHovered = false">
+    <div class="header-container">
+      <!-- Left: Comic info & Back link -->
       <div class="comic-info">
-        <a [routerLink]="['/comic', chapter.comicSlug]" class="back-link"><i class="fa-solid fa-arrow-left"></i> Quay
-          lại</a>
-        <h2>{{ chapter.comicTitle }}</h2>
-        <span class="chapter-number">Chapter {{ chapter.chapterNumber }}</span>
+        <a [routerLink]="['/comic', chapter.comicSlug]" class="back-link" title="Trở về trang thông tin truyện">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span class="d-none-sm">Quay lại</span>
+        </a>
+        <h1 class="comic-title">
+          <a [routerLink]="['/comic', chapter.comicSlug]" [title]="chapter.comicTitle">{{ chapter.comicTitle }}</a>
+        </h1>
+        <span class="chapter-badge">Chương {{ chapter.chapterNumber }}</span>
       </div>
 
-      <div class="chapter-controls">
-        <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null"
-          class="btn btn-secondary btn-sm">
-          <i class="fa-solid fa-chevron-left"></i> Chap Trước
+      <!-- Center: Chapter Navigation Stepper & Select -->
+      <div class="chapter-nav-controls">
+        <button [disabled]="!prevChapterId" (click)="navigateToChapter(prevChapterId)"
+          class="btn-nav-step" title="Chương trước (Phím ←)">
+          <i class="fa-solid fa-chevron-left"></i>
+          <span class="d-none-md">Chap Trước</span>
         </button>
 
-        <select [(ngModel)]="selectedChapterId" (change)="onSelectChapter()" class="chapter-select">
-          <option *ngFor="let ch of chapter.allChapters" [value]="ch.id">
-            Chapter {{ ch.chapterNumber }}: {{ ch.title }}
-          </option>
-        </select>
+        <div class="select-wrapper">
+          <select [(ngModel)]="selectedChapterId" (change)="onSelectChapter()" class="chapter-select" title="Danh sách chương">
+            <option *ngFor="let ch of chapter.allChapters" [value]="ch.id">
+              Chapter {{ ch.chapterNumber }}: {{ ch.title }}
+            </option>
+          </select>
+        </div>
 
-        <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null"
-          class="btn btn-secondary btn-sm">
-          Chap Sau <i class="fa-solid fa-chevron-right"></i>
+        <button [disabled]="!nextChapterId" (click)="navigateToChapter(nextChapterId)"
+          class="btn-nav-step" title="Chương sau (Phím →)">
+          <span class="d-none-md">Chap Sau</span>
+          <i class="fa-solid fa-chevron-right"></i>
         </button>
+      </div>
 
-        <!-- Zoom Controls Bar -->
-        <div class="zoom-controls">
-          <button (click)="zoomOut()" class="btn btn-secondary btn-sm btn-icon" title="Thu nhỏ (-)">
-            <i class="fa-solid fa-magnifying-glass-minus"></i>
+      <!-- Right: Reader Tool Buttons -->
+      <div class="reader-actions">
+        <!-- Zoom Controls -->
+        <div class="tool-group zoom-group">
+          <button (click)="zoomOut()" class="btn-tool-icon" title="Thu nhỏ ảnh (-)">
+            <i class="fa-solid fa-minus"></i>
           </button>
-
-          <select [ngModel]="zoomWidth" (ngModelChange)="setZoomWidth(+$event)" class="zoom-select" title="Kích thước hiển thị ảnh">
+          <select [ngModel]="zoomWidth" (ngModelChange)="setZoomWidth(+$event)" class="tool-select" title="Độ rộng hiển thị">
             <option *ngFor="let lvl of zoomLevels" [value]="lvl.width">{{ lvl.label }}</option>
           </select>
-
-          <button (click)="zoomIn()" class="btn btn-secondary btn-sm btn-icon" title="Phóng to (+)">
-            <i class="fa-solid fa-magnifying-glass-plus"></i>
+          <button (click)="zoomIn()" class="btn-tool-icon" title="Phóng to ảnh (+)">
+            <i class="fa-solid fa-plus"></i>
           </button>
         </div>
 
-        <!-- Auto-Scroll Controls Bar -->
-        <div class="autoscroll-controls">
-          <button (click)="toggleAutoScroll()" class="btn btn-sm" [class.btn-success]="isAutoScrolling" [class.btn-secondary]="!isAutoScrolling" title="Tự động cuộn trang (Phím S hoặc Space)">
+        <!-- Auto-Scroll Controls -->
+        <div class="tool-group autoscroll-group">
+          <button (click)="toggleAutoScroll()" class="btn-autoscroll" [class.active]="isAutoScrolling" title="Tự động cuộn trang (Phím S hoặc Space)">
             <i class="fa-solid" [class.fa-pause]="isAutoScrolling" [class.fa-play]="!isAutoScrolling"></i>
-            <span>{{ isAutoScrolling ? 'Đang Cuộn' : 'Tự Cuộn' }}</span>
+            <span class="d-none-lg">{{ isAutoScrolling ? 'Đang Cuộn' : 'Tự Cuộn' }}</span>
           </button>
-
-          <select [ngModel]="autoScrollSpeed" (ngModelChange)="setAutoScrollSpeed(+$event)" class="autoscroll-select" title="Tốc độ tự cuộn">
+          <select [ngModel]="autoScrollSpeed" (ngModelChange)="setAutoScrollSpeed(+$event)" class="tool-select speed-select" title="Tốc độ tự cuộn">
             <option *ngFor="let s of autoScrollSpeeds" [value]="s.speed">{{ s.label }}</option>
           </select>
         </div>
 
-        <button (click)="openReportModal()" class="btn btn-warning btn-sm btn-report" title="Báo lỗi chapter này">
-          <i class="fa-solid fa-flag"></i> Báo Lỗi
+        <!-- Report Button -->
+        <button (click)="openReportModal()" class="btn-report-action" title="Báo lỗi chapter này">
+          <i class="fa-solid fa-flag text-warning"></i>
+          <span class="d-none-lg">Báo Lỗi</span>
+        </button>
+
+        <!-- Pin / Auto-hide Toggle Button -->
+        <button (click)="togglePin()" class="btn-tool-icon btn-pin" [class.pinned]="isPinned" 
+          [title]="isPinned ? 'Đang GHIM thanh công cụ cố định (Click để bật Tự động ẩn)' : 'Đang TỰ ĐỘNG ẨN khi cuộn (Click để Ghim cố định)'">
+          <i class="fa-solid fa-thumbtack"></i>
+        </button>
+
+        <!-- Fullscreen Toggle Button -->
+        <button (click)="toggleFullscreen()" class="btn-tool-icon btn-fullscreen" 
+          [title]="isFullscreen ? 'Thoát toàn màn hình (Phím F)' : 'Toàn màn hình đọc truyện (Phím F)'">
+          <i class="fa-solid" [class.fa-compress]="isFullscreen" [class.fa-expand]="!isFullscreen"></i>
         </button>
       </div>
     </div>
-  </div>
+  </header>
 
-  <!-- Keyboard Shortcuts Hint Bar -->
-  <div class="container shortcut-hint">
-    <span>
-      <i class="fa-regular fa-keyboard text-primary"></i> Phím tắt:
-      <kbd>←</kbd> <kbd>→</kbd> Đổi chương |
-      <kbd>+</kbd> <kbd>-</kbd> Phóng to / Thu nhỏ |
-      <kbd>Space</kbd> / <kbd>S</kbd> Tự cuộn |
-      <kbd>0</kbd> Đặt lại 100%
-    </span>
-  </div>
-
-  <!-- Vertical Manga Reader Gallery -->
-  <div class="reader-gallery" [style.max-width]="zoomWidth > 0 ? zoomWidth + 'px' : '100%'">
-    <div class="page-item" *ngFor="let page of chapter.pages; let i = index">
-      <img [src]="page.imageUrl" [alt]="'Trang ' + page.pageNumber" [attr.loading]="i < 2 ? 'eager' : 'lazy'" decoding="async" [attr.fetchpriority]="i < 2 ? 'high' : 'auto'" (error)="onImgError($event)" />
+  <!-- Reading Area (Click to toggle controls / Zen mode) -->
+  <main class="reader-main-content" (click)="onReaderClick($event)">
+    <!-- Zen Mode Tip Banner (Dismissible) -->
+    <div class="zen-hint-pill animate-fade-in" *ngIf="showHint">
+      <div class="hint-content">
+        <i class="fa-solid fa-wand-magic-sparkles text-primary"></i>
+        <span>Mẹo: Cuộn xuống hoặc click vào tranh để ẩn thanh công cụ (<kbd>H</kbd> Ẩn/Hiện, <kbd>F</kbd> Toàn màn hình)</span>
+      </div>
+      <button class="btn-close-hint" (click)="dismissHint($event)" title="Đóng thông báo"><i class="fa-solid fa-xmark"></i></button>
     </div>
-  </div>
 
-  <!-- Bottom Navigation -->
-  <div class="container bottom-nav">
-    <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null"
-      class="btn btn-secondary">
-      <i class="fa-solid fa-chevron-left"></i> Chap Trước
-    </button>
-    <button (click)="openReportModal()" class="btn btn-warning">
-      <i class="fa-solid fa-flag"></i> Báo Lỗi
-    </button>
-    <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null"
-      class="btn btn-primary">
-      Chap Sau <i class="fa-solid fa-chevron-right"></i>
-    </button>
-  </div>
+    <!-- Vertical Manga Reader Gallery -->
+    <div class="reader-gallery" [style.max-width]="zoomWidth > 0 ? zoomWidth + 'px' : '100%'">
+      <div class="page-item" *ngFor="let page of chapter.pages; let i = index">
+        <img [src]="page.imageUrl" [alt]="'Trang ' + page.pageNumber" [attr.loading]="i < 2 ? 'eager' : 'lazy'" decoding="async" [attr.fetchpriority]="i < 2 ? 'high' : 'auto'" (error)="onImgError($event)" />
+      </div>
+    </div>
 
-  <!-- Restored Position Toast Notification -->
+    <!-- Chapter End & Bottom Navigation Bar -->
+    <div class="reader-bottom-nav">
+      <button [disabled]="!prevChapterId" [routerLink]="prevChapterId ? getChapterRoute(prevChapterId) : null"
+        class="btn btn-secondary btn-bottom-step">
+        <i class="fa-solid fa-chevron-left"></i> Chap Trước
+      </button>
+      <button (click)="openReportModal()" class="btn btn-warning btn-bottom-report">
+        <i class="fa-solid fa-flag"></i> Báo Lỗi
+      </button>
+      <button [disabled]="!nextChapterId" [routerLink]="nextChapterId ? getChapterRoute(nextChapterId) : null"
+        class="btn btn-primary btn-bottom-step">
+        Chap Sau <i class="fa-solid fa-chevron-right"></i>
+      </button>
+    </div>
+  </main>
+
+  <!-- Restored Reading Position Toast -->
   <div class="restore-toast bg-glass animate-slide-up" *ngIf="restoredPosition">
     <i class="fa-solid fa-clock-rotate-left text-primary"></i>
     <span>Đã tự động khôi phục vị trí đọc dở!</span>
     <button (click)="scrollToTop()" class="btn-top-shortcut">Về đầu trang</button>
   </div>
 
-  <!-- Floating Reader Tools Widget (Auto-Scroll & Scroll-To-Top) -->
-  <div class="floating-reader-tools">
+  <!-- Floating Quick Action Controls (Bottom Right) -->
+  <aside class="floating-reader-tools animate-fade-in" aria-label="Thanh công cụ đọc nổi">
+    <button [disabled]="!prevChapterId" (click)="navigateToChapter(prevChapterId)" class="btn-float-tool" title="Chương trước (Phím ←)">
+      <i class="fa-solid fa-chevron-left"></i>
+    </button>
+
     <button (click)="toggleAutoScroll()" class="btn-float-tool" [class.active]="isAutoScrolling" [title]="isAutoScrolling ? 'Dừng cuộn (Space / S)' : 'Bắt đầu tự cuộn (Space / S)'">
       <i class="fa-solid" [class.fa-pause]="isAutoScrolling" [class.fa-angles-down]="!isAutoScrolling"></i>
+    </button>
+
+    <button [disabled]="!nextChapterId" (click)="navigateToChapter(nextChapterId)" class="btn-float-tool" title="Chương sau (Phím →)">
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+
+    <button (click)="toggleHeader()" class="btn-float-tool btn-toggle-ui" [title]="isHeaderHidden ? 'Hiện thanh công cụ (Phím H)' : 'Ẩn thanh công cụ (Phím H)'">
+      <i class="fa-solid" [class.fa-eye]="isHeaderHidden" [class.fa-eye-slash]="!isHeaderHidden"></i>
     </button>
 
     <button *ngIf="showScrollTop" (click)="scrollToTop()" class="btn-float-tool btn-float-top" title="Về đầu trang">
       <i class="fa-solid fa-arrow-up"></i>
     </button>
-  </div>
+  </aside>
 
   <!-- READER REPORT ISSUE MODAL -->
   <div class="modal-backdrop" *ngIf="showReportModal" (click)="closeReportModal()">
@@ -121,8 +167,7 @@
 
       <div class="modal-body">
         <div class="comic-chapter-target">
-          <strong>{{ chapter.comicTitle }}</strong> - <span>Chapter {{ chapter.chapterNumber }}: {{ chapter.title
-            }}</span>
+          <strong>{{ chapter.comicTitle }}</strong> - <span>Chapter {{ chapter.chapterNumber }}: {{ chapter.title }}</span>
         </div>
 
         <div class="alert alert-success" *ngIf="reportSuccessMessage">
@@ -170,4 +215,4 @@
       </div>
     </div>
   </div>
-</div>
+</div>

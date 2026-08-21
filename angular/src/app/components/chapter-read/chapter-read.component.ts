@@ -26,6 +26,15 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   showScrollTop: boolean = false;
   restoredPosition: boolean = false;
 
+  // Smart Auto-Hide & Zen Mode states
+  isHeaderHidden: boolean = false;
+  isHeaderHovered: boolean = false;
+  isPinned: boolean = false;
+  isFullscreen: boolean = false;
+  showHint: boolean = false;
+  private lastScrollY: number = 0;
+  private scrollThreshold: number = 8;
+
   // Preloading & Reading Position states
   private preloadedChapterId: number | null = null;
   private preloadedImages: HTMLImageElement[] = [];
@@ -65,6 +74,10 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   reportErrorMessage: string = '';
   errorTypeOptions = ERROR_TYPE_OPTIONS;
 
+  private onFullscreenChangeListener = () => {
+    this.isFullscreen = !!document.fullscreenElement;
+  };
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -78,6 +91,10 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.loadSavedZoom();
     this.loadSavedAutoScrollSpeed();
+    this.loadSavedPinState();
+    this.checkHintVisibility();
+
+    document.addEventListener('fullscreenchange', this.onFullscreenChangeListener);
 
     this.route.params.subscribe(params => {
       const slug = params['slug'];
@@ -96,6 +113,61 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.stopAutoScroll();
+    document.removeEventListener('fullscreenchange', this.onFullscreenChangeListener);
+  }
+
+
+  loadSavedPinState(): void {
+    const savedPin = localStorage.getItem('mangaflux_reader_pinned');
+    this.isPinned = savedPin === 'true';
+  }
+
+  togglePin(): void {
+    this.isPinned = !this.isPinned;
+    if (this.isPinned) {
+      this.isHeaderHidden = false;
+    }
+    localStorage.setItem('mangaflux_reader_pinned', this.isPinned.toString());
+  }
+
+  toggleFullscreen(): void {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => console.warn('Fullscreen error:', err));
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(err => console.warn('Exit fullscreen error:', err));
+      }
+    }
+  }
+
+  toggleHeader(): void {
+    this.isHeaderHidden = !this.isHeaderHidden;
+  }
+
+  onReaderClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (target.closest('button, select, input, a, textarea, .report-modal-dialog, .floating-reader-tools, .reader-header, .restore-toast, .zen-hint-pill, .reader-bottom-nav')) {
+      return;
+    }
+    this.toggleHeader();
+  }
+
+  checkHintVisibility(): void {
+    const hasSeenHint = localStorage.getItem('mangaflux_seen_zen_hint');
+    if (!hasSeenHint) {
+      this.showHint = true;
+      setTimeout(() => {
+        this.showHint = false;
+      }, 7000);
+    }
+  }
+
+  dismissHint(event?: MouseEvent): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.showHint = false;
+    localStorage.setItem('mangaflux_seen_zen_hint', 'true');
   }
 
   loadSavedAutoScrollSpeed(): void {
@@ -202,20 +274,37 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
-    this.showScrollTop = window.scrollY > 400;
+    const currentScrollY = window.scrollY;
+    this.showScrollTop = currentScrollY > 400;
+
+    // Smart Auto-hide logic
+    if (!this.isPinned) {
+      if (currentScrollY <= 60) {
+        // At the very top: always show header
+        this.isHeaderHidden = false;
+      } else if (currentScrollY > this.lastScrollY + this.scrollThreshold) {
+        // Scrolling down: smoothly hide header
+        this.isHeaderHidden = true;
+      } else if (currentScrollY < this.lastScrollY - this.scrollThreshold) {
+        // Scrolling up: reveal header
+        this.isHeaderHidden = false;
+      }
+    }
+
+    this.lastScrollY = currentScrollY;
 
     // Save scroll position for the current chapter (throttled 300ms)
-    if (this.chapter && window.scrollY > 50) {
+    if (this.chapter && currentScrollY > 50) {
       if (this.saveScrollTimeout) clearTimeout(this.saveScrollTimeout);
       this.saveScrollTimeout = setTimeout(() => {
         if (this.chapter) {
-          localStorage.setItem(`mangaflux_scroll_${this.chapter.id}`, window.scrollY.toString());
+          localStorage.setItem(`mangaflux_scroll_${this.chapter.id}`, currentScrollY.toString());
         }
       }, 300);
     }
 
     // Auto prefetch next chapter images when scrolling near the end (70%+ down page)
-    const scrollPercent = (window.scrollY + window.innerHeight) / (document.documentElement.scrollHeight || 1);
+    const scrollPercent = (currentScrollY + window.innerHeight) / (document.documentElement.scrollHeight || 1);
     if (scrollPercent > 0.7 && this.nextChapterId) {
       this.preloadNextChapter();
     }
@@ -241,8 +330,22 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     } else if (event.key === ' ' || event.key === 's' || event.key === 'S') {
       event.preventDefault();
       this.toggleAutoScroll();
+    } else if (event.key === 'f' || event.key === 'F') {
+      event.preventDefault();
+      this.toggleFullscreen();
+    } else if (event.key === 'h' || event.key === 'H' || event.key === 'z' || event.key === 'Z') {
+      event.preventDefault();
+      this.toggleHeader();
+    } else if (event.key === 'p' || event.key === 'P') {
+      event.preventDefault();
+      this.togglePin();
+    } else if (event.key === 'Escape') {
+      if (this.showReportModal) {
+        this.closeReportModal();
+      }
     }
   }
+
 
   fetchChapter(id: number): void {
     this.isLoading = true;

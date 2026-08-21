@@ -27,7 +27,9 @@ CREATE TABLE Users (
     IsLocked BIT NOT NULL DEFAULT 0,
     CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
     RefreshToken NVARCHAR(MAX) NULL,
-    RefreshTokenExpiryTime DATETIME2 NULL
+    RefreshTokenExpiryTime DATETIME2 NULL,
+    GoogleId NVARCHAR(255) NULL,
+    AuthProvider NVARCHAR(50) NOT NULL DEFAULT 'Local'
 );
 GO
 
