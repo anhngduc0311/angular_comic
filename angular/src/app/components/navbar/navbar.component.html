@@ -1,242 +1,233 @@
-<header>
-  <!-- TOP HEADER (HEADER V2) -->
-  <div class="top header-v2">
-    <div class="div_middle">
-      <!-- Logo -->
-      <div class="logo">
-        <a routerLink="/" title="TruyenKomi - Truyện tranh online" (click)="closeMobileMenu()">
-          <img src="assets/logo.svg" alt="TruyenKomi" class="site-logo-svg" />
-        </a>
-      </div>
+<header class="floating-header">
+  <div class="nav-container">
+    <!-- LEFT: Brand Logo -->
+    <div class="nav-brand">
+      <a routerLink="/" title="TruyenKomi - Đọc truyện tranh online" (click)="closeMobileMenu()">
+        <img src="assets/logo.svg" alt="TruyenKomi" class="nav-logo-svg" />
+      </a>
+    </div>
 
-      <!-- Right Header Actions -->
-      <div class="right">
-        <ul class="header-actions">
-          <!-- Search Trigger Icon Button -->
-          <li (click)="toggleSearchBar()" class="header-icon-btn search-trigger-btn" title="Tìm kiếm">
-            <i class="fa fa-search" aria-hidden="true"></i>
-          </li>
+    <!-- CENTER-LEFT: Desktop Nav Pill Tabs -->
+    <nav class="nav-menu-desktop">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" class="nav-tab">
+        <i class="fa fa-home"></i>
+        <span>Trang Chủ</span>
+      </a>
 
-          <!-- Dark / Light Mode Toggle Button -->
-          <li class="header-icon-btn">
-            <button id="setting_dark_mode" (click)="toggleTheme()" class="dark_mode" title="Chế độ tối / sáng">
-              <i class="fa fa-lightbulb-o" [class.active-dark]="themeService.isDarkMode" aria-hidden="true"></i>
-            </button>
-          </li>
+      <!-- Category Mega Menu Trigger -->
+      <div class="nav-dropdown-wrapper" (mouseenter)="isCategoryMenuOpen = true" (mouseleave)="isCategoryMenuOpen = false">
+        <button class="nav-tab" [class.active]="isCategoryMenuOpen" (click)="toggleCategoryMenu($event)">
+          <i class="fa fa-th-large"></i>
+          <span>Thể Loại</span>
+          <i class="fa fa-angle-down arrow-icon" [class.rotate]="isCategoryMenuOpen"></i>
+        </button>
 
-          <!-- Facebook Fanpage Link -->
-          <li class="facebook header-icon-btn" title="Facebook Fanpage">
-            <a rel="nofollow" href="https://facebook.com" target="_blank">
-              <i class="fa fa-facebook-official"></i>
+        <!-- Mega Menu Dropdown -->
+        <div class="mega-menu-panel glass-panel" [class.is-visible]="isCategoryMenuOpen">
+          <div class="mega-menu-header">
+            <h4><i class="fa fa-fire text-orange"></i> Khám Phá Thể Loại Truyện</h4>
+            <a routerLink="/categories" class="view-all-link" (click)="closeMobileMenu()">Xem tất cả <i class="fa fa-angle-right"></i></a>
+          </div>
+          <div class="mega-menu-grid">
+            <a *ngFor="let genre of genresList" [routerLink]="['/comics']" [queryParams]="{ category: getGenreSlug(genre) }" (click)="closeMobileMenu()" class="genre-item">
+              <span class="genre-dot"></span>
+              <span class="genre-name">{{ genre }}</span>
             </a>
-          </li>
-
-          <!-- Guest State: Login / Register Buttons -->
-          <ng-container *ngIf="!authService.isLoggedIn">
-            <li class="header-auth-btn">
-              <button class="btn-login" routerLink="/auth" (click)="closeMobileMenu()">
-                <i class="fa fa-sign-in header-btn-icon" aria-hidden="true"></i>
-                <span class="header-btn-text">Đăng nhập</span>
-              </button>
-            </li>
-            <li class="header-auth-btn header-auth-register">
-              <button class="btn-register" routerLink="/auth" [queryParams]="{ mode: 'register' }" (click)="closeMobileMenu()">
-                <span class="header-btn-text">Đăng ký</span>
-              </button>
-            </li>
-          </ng-container>
-
-          <!-- Logged In State: Notifications & User Profile Dropdown -->
-          <ng-container *ngIf="authService.isLoggedIn">
-            <!-- Notification Bell -->
-            <li class="header-icon-btn notication-bell" routerLink="/notifications" (click)="closeMobileMenu()" title="Thông báo">
-              <i class="fa fa-bell" aria-hidden="true"></i>
-              <ng-container *ngIf="(notificationService.unreadCount$ | async) as count">
-                <span class="num" *ngIf="count > 0">{{ count > 99 ? '99+' : count }}</span>
-              </ng-container>
-            </li>
-
-            <!-- User Profile Avatar & Dropdown Menu -->
-            <li class="profile" (click)="toggleUserDropdown($event)" title="Tài khoản cá nhân">
-              <div class="member_profile">
-                <img [src]="authService.currentUserValue?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" />
-              </div>
-              <div class="hidden_div" *ngIf="isUserDropdownOpen">
-                <ul>
-                  <li class="user-greeting">
-                    <span>Xin chào, <strong>{{ authService.currentUserValue?.fullName || authService.currentUserValue?.username }}</strong></span>
-                  </li>
-                  <li class="divider"></li>
-                  <li>
-                    <a routerLink="/profile" (click)="closeUserDropdown(); closeMobileMenu()">
-                      <i class="fa fa-user"></i> Trang cá nhân
-                    </a>
-                  </li>
-                  <li>
-                    <a routerLink="/followed" (click)="closeUserDropdown(); closeMobileMenu()">
-                      <i class="fa fa-bookmark"></i> Truyện theo dõi
-                    </a>
-                  </li>
-                  <li>
-                    <a routerLink="/history" (click)="closeUserDropdown(); closeMobileMenu()">
-                      <i class="fa fa-history"></i> Lịch sử đọc truyện
-                    </a>
-                  </li>
-                  <li>
-                    <a routerLink="/settings" (click)="closeUserDropdown(); closeMobileMenu()">
-                      <i class="fa fa-cog"></i> Cài đặt tài khoản
-                    </a>
-                  </li>
-                  <li *ngIf="authService.isAdmin">
-                    <a routerLink="/admin" (click)="closeUserDropdown(); closeMobileMenu()" class="admin-link">
-                      <i class="fa fa-shield"></i> Trang Quản Trị
-                    </a>
-                  </li>
-                  <li class="divider"></li>
-                  <li>
-                    <a (click)="logout()" class="logout-link">
-                      <i class="fa fa-sign-out"></i> Đăng xuất
-                    </a>
-                  </li>
-                </ul>
-              </div>
-            </li>
-          </ng-container>
-        </ul>
-      </div>
-
-      <!-- Slide-down Search Bar & Autocomplete Overlay -->
-      <div class="search-overlay" *ngIf="isSearchOpen" (click)="toggleSearchBar()"></div>
-      <div class="top_search" [class.open]="isSearchOpen">
-        <input 
-          class="search" 
-          id="search_input" 
-          [(ngModel)]="searchQuery" 
-          (input)="onSearchInput()" 
-          (keydown)="onKeyDown($event)"
-          placeholder="Bạn muốn tìm truyện gì..." 
-          autocomplete="off"
-        />
-        <button class="search-submit-btn" (click)="onSearch()" type="button" title="Tìm">
-          <i class="fa fa-search" aria-hidden="true" *ngIf="!isLoadingAutocomplete"></i>
-          <i class="fa fa-spinner fa-spin" aria-hidden="true" *ngIf="isLoadingAutocomplete"></i>
-        </button>
-        <button class="search-close-btn" (click)="toggleSearchBar()" type="button" title="Đóng">
-          <i class="fa fa-times" aria-hidden="true"></i>
-        </button>
-        
-        <!-- Live Instant Search Results Dropdown -->
-        <div class="search_result" *ngIf="isAutocompleteOpen && autocompleteResults.length > 0">
-          <ul>
-            <li 
-              *ngFor="let item of autocompleteResults; let i = index" 
-              [class.selected]="i === selectedIndex"
-              (click)="selectComic(item.slug)"
-            >
-              <img [src]="item.coverImage" [alt]="item.title" (error)="onImgError($event)" class="thumb" />
-              <div class="info">
-                <h4>{{ item.title }}</h4>
-                <p class="chapter-text" *ngIf="item.latestChapter"><i class="fa fa-book"></i> {{ item.latestChapter }}</p>
-                <div class="genres" *ngIf="item.categories">
-                  <span *ngFor="let cat of item.categories.slice(0, 3)">{{ cat }}</span>
-                </div>
-              </div>
-            </li>
-          </ul>
-          <div class="search_all" (click)="onSearch()">
-            <span>Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>" <i class="fa fa-angle-right"></i></span>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- BOTTOM NAVIGATION (MENU V2) -->
-  <div class="bottom" [class.mobile-open]="isMobileMenuOpen">
-    <div class="div_middle">
-      <ul id="header_left_menu">
-        <!-- Home Link -->
-        <li>
-          <a class="tags_name pc_hover" routerLink="/" routerLinkActive="nav-active" [routerLinkActiveOptions]="{exact: true}" (click)="closeMobileMenu()">
-            <i class="fa fa-home nav-icon"></i><span class="nav-text">Trang Chủ</span>
+      <!-- Rankings Menu Trigger -->
+      <div class="nav-dropdown-wrapper" (mouseenter)="isRankMenuOpen = true" (mouseleave)="isRankMenuOpen = false">
+        <button class="nav-tab" [class.active]="isRankMenuOpen" (click)="toggleRankMenu($event)">
+          <i class="fa fa-trophy"></i>
+          <span>Xếp Hạng</span>
+          <i class="fa fa-angle-down arrow-icon" [class.rotate]="isRankMenuOpen"></i>
+        </button>
+
+        <!-- Rank Dropdown -->
+        <div class="rank-menu-panel glass-panel" [class.is-visible]="isRankMenuOpen">
+          <a *ngFor="let r of rankItems" [routerLink]="['/comics']" [queryParams]="{ sort: r.query }" (click)="closeMobileMenu()" class="rank-menu-item">
+            <div class="rank-icon-box"><i class="fa" [ngClass]="r.icon"></i></div>
+            <div class="rank-info">
+              <span class="rank-title">{{ r.label }}</span>
+            </div>
           </a>
-        </li>
+        </div>
+      </div>
 
-        <!-- Categories Mega-Menu Dropdown -->
-        <li class="menu_hidden category-dropdown-container" [class.open-mobile]="isCategoryMenuOpen">
-          <p class="tags_name pc_hover mega_menu" (click)="toggleCategoryMenu($event)">
-            <i class="fa fa-th-large nav-icon"></i><span class="nav-text">Thể Loại</span> <i class="fa fa-caret-down"></i>
-          </p>
-          <div class="hidden_menu book_tags" [class.is-visible]="isCategoryMenuOpen">
-            <div class="div_middle">
-              <div class="book_tags_content">
-                <p *ngFor="let g of genresList">
-                  <a [title]="g" [routerLink]="['/comics']" [queryParams]="{ category: getGenreSlug(g) }" (click)="closeMobileMenu()">{{ g }}</a>
-                </p>
-                <div class="clear"></div>
+      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manhwa' }" routerLinkActive="active" class="nav-tab">
+        <span class="badge-dot dot-cyan"></span>
+        <span>Manhwa</span>
+      </a>
+
+      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manga' }" routerLinkActive="active" class="nav-tab">
+        <span class="badge-dot dot-orange"></span>
+        <span>Manga</span>
+      </a>
+
+      <a [routerLink]="['/search']" routerLinkActive="active" class="nav-tab">
+        <i class="fa fa-filter"></i>
+        <span>Tìm Nâng Cao</span>
+      </a>
+    </nav>
+
+    <!-- CENTER-RIGHT: Smart Search Bar -->
+    <div class="nav-search-wrapper">
+      <div class="nav-search-bar" [class.has-focus]="isSearchOpen">
+        <i class="fa fa-search search-icon" aria-hidden="true"></i>
+        <input
+          id="search_input"
+          type="text"
+          [(ngModel)]="searchQuery"
+          (input)="onSearchInput()"
+          (keydown)="onKeyDown($event)"
+          (focus)="isSearchOpen = true"
+          placeholder="Tìm truyện, tác giả, manhwa..."
+          autocomplete="off"
+        />
+        <div class="search-kbd-badge" *ngIf="!searchQuery">
+          <span>Ctrl K</span>
+        </div>
+        <button *ngIf="searchQuery" class="clear-search-btn" (click)="searchQuery = ''; autocompleteResults = []; isAutocompleteOpen = false">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Live Autocomplete Dropdown Popup -->
+      <div class="autocomplete-popup glass-panel" *ngIf="isAutocompleteOpen && autocompleteResults.length > 0">
+        <div class="autocomplete-header">
+          <span>Gợi ý kết quả tìm kiếm</span>
+          <span class="results-count">{{ autocompleteResults.length }} truyện</span>
+        </div>
+        <div class="autocomplete-list">
+          <div
+            *ngFor="let item of autocompleteResults; let i = index"
+            class="autocomplete-item"
+            [class.selected]="i === selectedIndex"
+            (click)="selectComic(item.slug)"
+          >
+            <img [src]="item.coverImage || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=100&q=80'" [alt]="item.title" (error)="onImgError($event)" class="item-thumb" />
+            <div class="item-meta">
+              <h4 class="item-title">{{ item.title }}</h4>
+              <div class="item-sub">
+                <span class="item-chapter" *ngIf="item.latestChapter">Chap {{ item.latestChapter }}</span>
+                <span class="item-rating"><i class="fa fa-star text-amber"></i> {{ item.rating }}</span>
               </div>
             </div>
           </div>
-        </li>
-
-        <!-- Rank Dropdown -->
-        <li class="menu_hidden rank-menu" [class.open-mobile]="isRankMenuOpen">
-          <p class="tags_name pc_hover mega_menu" (click)="toggleRankMenu($event)">
-            <i class="fa fa-trophy nav-icon"></i><span class="nav-text">Xếp Hạng</span> <i class="fa fa-caret-down"></i>
-          </p>
-          <div class="hidden_menu book_tags rank-dropdown" [class.is-visible]="isRankMenuOpen">
-            <div class="rank-dropdown__inner">
-              <a *ngFor="let r of rankItems" [routerLink]="['/comics']" [queryParams]="{ sort: r.query }" (click)="closeMobileMenu()" class="rank-item">
-                <span class="rank-item__icon"><i class="fa" [ngClass]="r.icon"></i></span>
-                <span class="rank-item__label">{{ r.label }}</span>
-              </a>
-            </div>
-          </div>
-        </li>
-
-        <!-- Quick Links -->
-        <li class="menu_hidden">
-          <a class="tags_name pc_hover" [routerLink]="['/comics']" [queryParams]="{ category: 'manhwa' }" (click)="closeMobileMenu()">
-            <i class="fa fa-flag nav-icon"></i><span class="nav-text">Top Manhwa</span>
-          </a>
-        </li>
-        <li class="menu_hidden">
-          <a class="tags_name pc_hover" [routerLink]="['/comics']" [queryParams]="{ category: 'manga' }" (click)="closeMobileMenu()">
-            <i class="fa fa-bolt nav-icon"></i><span class="nav-text">Top Manga</span>
-          </a>
-        </li>
-        <li class="menu_hidden">
-          <a class="tags_name pc_hover" [routerLink]="['/comics']" [queryParams]="{ category: 'manhua' }" (click)="closeMobileMenu()">
-            <i class="fa fa-bar-chart nav-icon"></i><span class="nav-text">Top Manhua</span>
-          </a>
-        </li>
-        <li class="menu_hidden">
-          <a class="tags_name pc_hover" routerLink="/comics" (click)="closeMobileMenu()">
-            <i class="fa fa-search nav-icon"></i><span class="nav-text">Tìm Truyện</span>
-          </a>
-        </li>
-        <li class="menu_hidden" *ngIf="authService.isLoggedIn">
-          <a class="tags_name pc_hover" routerLink="/history" (click)="closeMobileMenu()">
-            <i class="fa fa-history nav-icon"></i><span class="nav-text">Lịch Sử</span>
-          </a>
-        </li>
-        <li class="menu_hidden" *ngIf="authService.isLoggedIn">
-          <a class="tags_name pc_hover" routerLink="/followed" (click)="closeMobileMenu()">
-            <i class="fa fa-bookmark nav-icon"></i><span class="nav-text">Theo Dõi</span>
-          </a>
-        </li>
-        <li class="menu_hidden">
-          <a class="tags_name pc_hover" [routerLink]="['/comics']" [queryParams]="{ category: 'ngon-tinh' }" (click)="closeMobileMenu()">
-            <i class="fa fa-book nav-icon"></i><span class="nav-text">Truyện ngôn tình</span>
-          </a>
-        </li>
-      </ul>
-      <div class="clear"></div>
+        </div>
+        <div class="autocomplete-footer" (click)="onSearch()">
+          <span>Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>"</span>
+          <i class="fa fa-arrow-right"></i>
+        </div>
+      </div>
     </div>
 
-    <!-- Mobile Hamburger Toggle Button -->
-    <button class="nav_menu mobile_display menu-toggle-btn" (click)="toggleMobileMenu()" aria-label="Menu">
-      <i class="fa" [class.fa-bars]="!isMobileMenuOpen" [class.fa-times]="isMobileMenuOpen" aria-hidden="true"></i>
-    </button>
+    <!-- RIGHT: User & Quick Actions -->
+    <div class="nav-actions">
+      <!-- Theme Switch Button -->
+      <button class="action-btn theme-btn" (click)="toggleTheme()" [title]="themeService.isDarkMode ? 'Chuyển sang Giao diện Sáng' : 'Chuyển sang Giao diện Tối'">
+        <i class="fa" [ngClass]="themeService.isDarkMode ? 'fa-sun-o text-amber' : 'fa-moon-o text-cyan'"></i>
+      </button>
+
+      <!-- Guest State: Login / Register -->
+      <ng-container *ngIf="!authService.isLoggedIn">
+        <button class="btn-primary-gradient auth-btn-login" routerLink="/auth" (click)="closeMobileMenu()">
+          <i class="fa fa-user-circle"></i>
+          <span>Đăng Nhập</span>
+        </button>
+      </ng-container>
+
+      <!-- Logged-in State: User Profile Dropdown -->
+      <ng-container *ngIf="authService.isLoggedIn">
+        <!-- History Link -->
+        <a routerLink="/history" class="action-btn" title="Lịch sử đọc truyện">
+          <i class="fa fa-history"></i>
+        </a>
+
+        <!-- Followed Link -->
+        <a routerLink="/followed" class="action-btn" title="Truyện đang theo dõi">
+          <i class="fa fa-bookmark"></i>
+        </a>
+
+        <!-- User Avatar Trigger -->
+        <div class="user-avatar-wrapper" (click)="toggleUserDropdown($event)">
+          <div class="user-avatar-badge">
+            <img [src]="authService.currentUserValue?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar-img" />
+          </div>
+
+          <!-- User Menu Dropdown -->
+          <div class="user-dropdown-panel glass-panel" [class.is-visible]="isUserDropdownOpen">
+            <div class="user-info-header">
+              <span class="user-name">{{ authService.currentUserValue?.username || 'Thành viên' }}</span>
+              <span class="user-role-badge">VIP Member 👑</span>
+            </div>
+            <div class="user-dropdown-links">
+              <a routerLink="/profile" (click)="closeUserDropdown()" class="dropdown-link">
+                <i class="fa fa-user-o"></i> <span>Tài Khoản</span>
+              </a>
+              <a routerLink="/followed" (click)="closeUserDropdown()" class="dropdown-link">
+                <i class="fa fa-heart-o"></i> <span>Truyện Theo Dõi</span>
+              </a>
+              <a routerLink="/history" (click)="closeUserDropdown()" class="dropdown-link">
+                <i class="fa fa-clock-o"></i> <span>Lịch Sử Đọc</span>
+              </a>
+              <a routerLink="/settings" (click)="closeUserDropdown()" class="dropdown-link">
+                <i class="fa fa-cog"></i> <span>Cài Đặt</span>
+              </a>
+              <a *ngIf="authService.isAdmin" routerLink="/admin" (click)="closeUserDropdown()" class="dropdown-link admin-link">
+                <i class="fa fa-dashboard"></i> <span>Trang Quản Trị</span>
+              </a>
+              <div class="dropdown-divider"></div>
+              <button class="dropdown-link logout-link" (click)="logout()">
+                <i class="fa fa-sign-out"></i> <span>Đăng Xuất</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- Mobile Hamburger Button -->
+      <button class="mobile-toggle-btn action-btn" (click)="toggleMobileMenu()" aria-label="Menu">
+        <i class="fa" [ngClass]="isMobileMenuOpen ? 'fa-times' : 'fa-bars'"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Mobile Drawer Menu -->
+  <div class="mobile-drawer-backdrop" *ngIf="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+  <div class="mobile-drawer glass-panel" [class.is-open]="isMobileMenuOpen">
+    <div class="drawer-header">
+      <img src="assets/logo.svg" alt="TruyenKomi" class="drawer-logo" />
+      <button class="drawer-close-btn" (click)="closeMobileMenu()"><i class="fa fa-times"></i></button>
+    </div>
+
+    <!-- Mobile Search -->
+    <div class="drawer-search">
+      <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Tìm kiếm truyện tranh..." />
+      <button (click)="onSearch()"><i class="fa fa-search"></i></button>
+    </div>
+
+    <div class="drawer-links">
+      <a routerLink="/" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-home"></i> Trang Chủ</a>
+      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manhwa' }" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-flag"></i> Top Manhwa</a>
+      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manga' }" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-bolt"></i> Top Manga</a>
+      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manhua' }" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-fire"></i> Top Manhua</a>
+      <a routerLink="/categories" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-th-large"></i> Thể Loại Truyện</a>
+      <a routerLink="/search" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-filter"></i> Tìm Nâng Cao</a>
+      <a routerLink="/history" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-history"></i> Lịch Sử Đọc</a>
+      <a routerLink="/followed" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-bookmark"></i> Truyện Theo Dõi</a>
+    </div>
+
+    <!-- Mobile Auth / User CTA -->
+    <div class="drawer-footer">
+      <ng-container *ngIf="!authService.isLoggedIn">
+        <button class="btn-primary-gradient w-100" routerLink="/auth" (click)="closeMobileMenu()">Đăng Nhập / Đăng Ký</button>
+      </ng-container>
+      <ng-container *ngIf="authService.isLoggedIn">
+        <button class="btn-logout-drawer" (click)="logout()"><i class="fa fa-sign-out"></i> Đăng Xuất</button>
+      </ng-container>
+    </div>
   </div>
 </header>

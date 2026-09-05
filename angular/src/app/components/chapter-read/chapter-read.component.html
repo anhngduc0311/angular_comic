@@ -1,183 +1,182 @@
-<div class="content reader-page-content" *ngIf="chapter && !isLoading">
-  <div class="div_middle">
-    <!-- Top Alert -->
-    <div class="alert-note-fix">
-      <p class="alert alert-info">
-        Đăng nhập tài khoản để tự động đồng bộ truyện theo dõi và lịch sử đọc trên mọi thiết bị!
-        <span class="ads-contact">Liên hệ ads: <a target="_blank" rel="nofollow" href="https://t.me/truyenkomi">t.me/truyenkomi</a></span>
-      </p>
-    </div>
-
-    <div class="main_content">
-      <div id="chapter_content">
-        <div class="chapter_content_div chapter_new_load">
-          <div class="box-v2">
-            <!-- Breadcrumb Path Top -->
-            <div id="path" class="path-top">
-              <ol class="breadcrumb">
-                <li>
-                  <a routerLink="/"><i class="fa fa-home"></i> <span>Trang Chủ</span></a>
-                </li>
-                <li>
-                  <a [routerLink]="['/comic', chapter.comicSlug]"><span>{{ chapter.comicTitle }}</span></a>
-                </li>
-                <li>
-                  <span class="active">Chương {{ chapter.chapterNumber }}</span>
-                </li>
-              </ol>
-            </div>
-
-            <!-- Detail Title & Update Timestamp -->
-            <div class="chapter-header-title">
-              <h1 class="detail-title txt-primary">
-                <a [routerLink]="['/comic', chapter.comicSlug]">{{ chapter.comicTitle }}</a> - Chapter {{ chapter.chapterNumber }}
-              </h1>
-              <time *ngIf="chapter.createdAt">
-                (Cập nhật lúc: {{ chapter.createdAt | date:'HH:mm dd/MM/yyyy' }})
-              </time>
-            </div>
-
-            <!-- Chapter Control Bar -->
-            <div class="chapter-control">
-              <div class="mrt10">
-                <button (click)="openReportModal()" class="alertError btn btn-warning">
-                  <i class="fa fa-exclamation-triangle"></i> Báo Lỗi Chương
-                </button>
-              </div>
-
-              <div class="alert alert-info mrt10 shortcut-tip">
-                <i class="fa fa-info-circle"></i> <em>Sử dụng mũi tên trái (←) hoặc phải (→) để chuyển chapter</em>
-              </div>
-
-              <!-- Navigation Buttons & Select Box -->
-              <div class="d-flex align-items-center justify-content-center chapter-step-row">
-                <button 
-                  [disabled]="!prevChapterId" 
-                  (click)="navigateToChapter(prevChapterId)" 
-                  class="btn btn-info go-btn prev text-white" 
-                  title="Chap trước"
-                >
-                  <i class="fa fa-arrow-left"></i> Chap trước
-                </button>
-
-                <!-- Select Box Dropdown -->
-                <div class="select-chapter-wrapper">
-                  <select [(ngModel)]="selectedChapterId" (change)="onSelectChapter()" class="form-control select-chap-dropdown">
-                    <option *ngFor="let ch of chapter.allChapters" [value]="ch.id">
-                      Chapter {{ ch.chapterNumber }}{{ ch.title ? ': ' + ch.title : '' }}
-                    </option>
-                  </select>
-                </div>
-
-                <button 
-                  [disabled]="!nextChapterId" 
-                  (click)="navigateToChapter(nextChapterId)" 
-                  class="btn btn-info go-btn next text-white" 
-                  title="Chap sau"
-                >
-                  Chap sau <i class="fa fa-arrow-right"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Vertical Image Reader Gallery -->
-          <div class="chapter_content" [style.max-width]="zoomWidth > 0 ? zoomWidth + 'px' : '100%'">
-            <div class="chapter-images-list">
-              <div class="page-chapter" *ngFor="let page of chapter.pages; let i = index" [id]="'page_' + i">
-                <img 
-                  [src]="page.imageUrl" 
-                  [alt]="chapter.comicTitle + ' Chap ' + chapter.chapterNumber + ' - Trang ' + (i + 1)" 
-                  loading="lazy" 
-                  (error)="onImgError($event)" 
-                />
-              </div>
-            </div>
-
-            <!-- Bottom Chapter Step Navigation -->
-            <div class="chapter-bottom-control">
-              <button 
-                [disabled]="!prevChapterId" 
-                (click)="navigateToChapter(prevChapterId)" 
-                class="btn btn-info go-btn text-white"
-              >
-                <i class="fa fa-arrow-left"></i> Chap trước
-              </button>
-
-              <button (click)="openReportModal()" class="btn btn-warning">
-                <i class="fa fa-exclamation-triangle"></i> Báo lỗi
-              </button>
-
-              <button 
-                [disabled]="!nextChapterId" 
-                (click)="navigateToChapter(nextChapterId)" 
-                class="btn btn-info go-btn text-white"
-              >
-                Chap sau <i class="fa fa-arrow-right"></i>
-              </button>
-            </div>
-          </div>
+<div class="reader-container" *ngIf="chapter && !isLoading; else readerSkeleton" (click)="onReaderClick($event)">
+  <!-- ==================== 1. FLOATING TOP NAV BAR ==================== -->
+  <header class="reader-header glass-panel" [class.is-hidden]="isHeaderHidden">
+    <div class="div_middle reader-header-inner">
+      <!-- Left: Breadcrumb & Title -->
+      <div class="reader-title-box">
+        <a [routerLink]="['/comic', chapter.comicSlug]" class="btn-back-comic" title="Về trang thông tin truyện">
+          <i class="fa fa-arrow-left"></i>
+        </a>
+        <div class="title-meta">
+          <h2 class="comic-name">
+            <a [routerLink]="['/comic', chapter.comicSlug]">{{ chapter.comicTitle }}</a>
+          </h2>
+          <span class="chap-badge">Chapter {{ chapter.chapterNumber }} <span *ngIf="chapter.title">- {{ chapter.title }}</span></span>
         </div>
       </div>
+
+      <!-- Center: Chapter Navigation Selector -->
+      <div class="reader-nav-controls">
+        <button 
+          class="btn-nav-chap" 
+          [disabled]="!prevChapterId" 
+          (click)="navigateToChapter(prevChapterId)" 
+          title="Chương trước (Phím ←)"
+        >
+          <i class="fa fa-angle-left"></i> <span>Trước</span>
+        </button>
+
+        <div class="chap-select-wrap">
+          <select [(ngModel)]="selectedChapterId" (change)="onSelectChapter()">
+            <option *ngFor="let ch of chapter.allChapters" [value]="ch.id">
+              Chapter {{ ch.chapterNumber }}
+            </option>
+          </select>
+          <i class="fa fa-angle-down select-arrow"></i>
+        </div>
+
+        <button 
+          class="btn-nav-chap btn-nav-next" 
+          [disabled]="!nextChapterId" 
+          (click)="navigateToChapter(nextChapterId)" 
+          title="Chương tiếp theo (Phím →)"
+        >
+          <span>Sau</span> <i class="fa fa-angle-right"></i>
+        </button>
+      </div>
+
+      <!-- Right: Reader Tools -->
+      <div class="reader-tools">
+        <!-- Auto Scroll Toggle -->
+        <button 
+          class="tool-btn" 
+          [class.active]="isAutoScrolling" 
+          (click)="toggleAutoScroll()" 
+          title="Tự động cuộn trang (Phím Space / S)"
+        >
+          <i class="fa fa-play-circle" *ngIf="!isAutoScrolling"></i>
+          <i class="fa fa-pause-circle text-orange" *ngIf="isAutoScrolling"></i>
+        </button>
+
+        <!-- Fullscreen Toggle -->
+        <button 
+          class="tool-btn" 
+          (click)="toggleFullscreen()" 
+          title="Toàn màn hình (Phím F)"
+        >
+          <i class="fa" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
+        </button>
+
+        <!-- Report Error -->
+        <button 
+          class="tool-btn btn-report" 
+          (click)="openReportModal()" 
+          title="Báo lỗi chương truyện"
+        >
+          <i class="fa fa-flag-o"></i>
+        </button>
+      </div>
     </div>
+  </header>
+
+  <!-- ==================== 2. IMAGE STREAM VIEWPORT ==================== -->
+  <main class="reader-main-stream" [style.max-width.px]="zoomWidth > 0 ? zoomWidth : '100%'">
+    <div class="reading-images-list" *ngIf="chapter.pages && chapter.pages.length > 0; else noPages">
+      <div 
+        *ngFor="let page of chapter.pages; let idx = index" 
+        class="page-image-wrapper"
+        [id]="'page-' + (idx + 1)"
+      >
+        <img 
+          [src]="page.imageUrl" 
+          [alt]="chapter.comicTitle + ' - Chap ' + chapter.chapterNumber + ' - Trang ' + (idx + 1)"
+          loading="lazy"
+          (error)="onImgError($event)"
+          class="manga-page-img"
+        />
+        <div class="page-num-pill">Trang {{ idx + 1 }} / {{ chapter.pages.length }}</div>
+      </div>
+    </div>
+
+    <ng-template #noPages>
+      <div class="no-pages-alert glass-card">
+        <i class="fa fa-file-image-o"></i>
+        <h3>Chương này đang được cập nhật hình ảnh</h3>
+        <p>Vui lòng quay lại sau ít phút hoặc báo lỗi cho ban quản trị TruyenKomi!</p>
+        <button (click)="openReportModal()" class="btn-report-alert">Báo Lỗi Chương Này</button>
+      </div>
+    </ng-template>
+  </main>
+
+  <!-- ==================== 3. FLOATING BOTTOM NAVIGATION DOCK ==================== -->
+  <div class="floating-bottom-dock glass-panel">
+    <button 
+      class="dock-nav-btn" 
+      [disabled]="!prevChapterId" 
+      (click)="navigateToChapter(prevChapterId)"
+    >
+      <i class="fa fa-arrow-left"></i> Chap Trước
+    </button>
+
+    <div class="dock-center-info">
+      <span class="dock-chap-text">Chap {{ chapter.chapterNumber }}</span>
+      <span class="dock-total-pages" *ngIf="chapter.pages">{{ chapter.pages.length }} trang</span>
+    </div>
+
+    <button 
+      class="dock-nav-btn dock-next" 
+      [disabled]="!nextChapterId" 
+      (click)="navigateToChapter(nextChapterId)"
+    >
+      Chap Tiếp <i class="fa fa-arrow-right"></i>
+    </button>
   </div>
+
+  <!-- FLOATING SCROLL TOP -->
+  <button id="back-to-top" *ngIf="showScrollTop" (click)="scrollToTop()" title="Lên đầu trang">
+    <i class="fa fa-arrow-up"></i>
+  </button>
 </div>
 
-<!-- Back to Top Button -->
-<a id="back-to-top" (click)="scrollToTop()" title="Lên đầu trang">
-  <i class="fa fa-angle-up"></i>
-</a>
-
-<!-- Report Modal Popup -->
-<div class="modal-backdrop" *ngIf="showReportModal" (click)="closeReportModal()">
-  <div class="report-modal-dialog" (click)="$event.stopPropagation()">
+<!-- ==================== 4. REPORT MODAL ==================== -->
+<div class="report-modal-backdrop" *ngIf="showReportModal" (click)="closeReportModal()">
+  <div class="report-modal-dialog glass-panel" (click)="$event.stopPropagation()">
     <div class="modal-header">
-      <h3><i class="fa fa-exclamation-triangle text-warning"></i> Báo Lỗi Chapter</h3>
-      <button class="btn-close" (click)="closeReportModal()"><i class="fa fa-times"></i></button>
+      <h3><i class="fa fa-flag text-orange"></i> Báo Lỗi Chương Truyện</h3>
+      <button class="modal-close" (click)="closeReportModal()"><i class="fa fa-times"></i></button>
     </div>
 
     <div class="modal-body">
-      <div class="comic-chapter-target" *ngIf="chapter">
-        <strong>{{ chapter.comicTitle }}</strong> - <span>Chapter {{ chapter.chapterNumber }}</span>
+      <p class="modal-sub">Nếu bạn thấy ảnh bị lỗi, thiếu trang hoặc sai chương, hãy gửi thông tin để ban quản trị TruyenKomi khắc phục ngay!</p>
+
+      <div class="form-group">
+        <label>Loại lỗi:</label>
+        <select [(ngModel)]="selectedReportErrorType" class="form-control">
+          <option *ngFor="let opt of errorTypeOptions" [value]="opt.value">{{ opt.label }}</option>
+        </select>
       </div>
 
-      <div class="alert alert-success" *ngIf="reportSuccessMessage" style="margin: 12px 0;">
-        <i class="fa fa-check-circle"></i> {{ reportSuccessMessage }}
+      <div class="form-group">
+        <label>Mô tả chi tiết:</label>
+        <textarea [(ngModel)]="reportDescription" placeholder="Ví dụ: Trang số 4 bị đứt đoạn, không load được ảnh..." rows="3" class="form-control"></textarea>
       </div>
 
-      <div class="alert alert-danger" *ngIf="reportErrorMessage" style="margin: 12px 0;">
-        <i class="fa fa-exclamation-circle"></i> {{ reportErrorMessage }}
-      </div>
+      <div *ngIf="reportSuccessMessage" class="alert-success">{{ reportSuccessMessage }}</div>
+      <div *ngIf="reportErrorMessage" class="alert-error">{{ reportErrorMessage }}</div>
+    </div>
 
-      <form (ngSubmit)="submitReport()" *ngIf="!reportSuccessMessage">
-        <div class="form-group" style="margin-bottom: 12px;">
-          <label style="font-weight: 700; margin-bottom: 6px; display: block;">Chọn Loại Lỗi:</label>
-          <div class="error-options-grid">
-            <label *ngFor="let opt of errorTypeOptions" class="error-option-card"
-              [class.selected]="selectedReportErrorType === opt.value">
-              <input type="radio" name="errorType" [value]="opt.value" [(ngModel)]="selectedReportErrorType" style="display: none;" />
-              <span>{{ opt.label }}</span>
-            </label>
-          </div>
-        </div>
-
-        <div class="form-group" *ngIf="!authService.isLoggedIn" style="margin-bottom: 12px;">
-          <label style="font-weight: 600; font-size: 13px;">Tên của bạn (Tùy chọn):</label>
-          <input type="text" [(ngModel)]="reporterName" name="reporterName" class="form-control" placeholder="Biệt danh..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;" />
-        </div>
-
-        <div class="form-group" style="margin-bottom: 16px;">
-          <label style="font-weight: 600; font-size: 13px;">Mô Tả Chi Tiết (Tùy chọn):</label>
-          <textarea [(ngModel)]="reportDescription" name="reportDescription" rows="3" class="form-control" placeholder="Trang ảnh nào bị lỗi..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px;"></textarea>
-        </div>
-
-        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
-          <button type="button" (click)="closeReportModal()" class="btn btn-secondary" style="padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 6px;">Hủy Bỏ</button>
-          <button type="submit" class="btn btn-primary" [disabled]="isSubmittingReport" style="padding: 8px 20px; background-color: var(--primary-orange); color: #fff; font-weight: 700; border-radius: 6px;">
-            {{ isSubmittingReport ? 'Đang gửi...' : 'Gửi Báo Lỗi' }}
-          </button>
-        </div>
-      </form>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeReportModal()">Hủy</button>
+      <button class="btn-submit-report" [disabled]="isSubmittingReport" (click)="submitReport()">
+        {{ isSubmittingReport ? 'Đang gửi...' : 'Gửi Báo Cáo' }}
+      </button>
     </div>
   </div>
 </div>
+
+<ng-template #readerSkeleton>
+  <div class="div_middle" style="padding-top: 80px; text-align: center;">
+    <div class="skeleton" style="height: 60px; border-radius: 12px; margin-bottom: 20px;"></div>
+    <div class="skeleton" style="height: 600px; max-width: 800px; margin: 0 auto; border-radius: 12px;"></div>
+  </div>
+</ng-template>

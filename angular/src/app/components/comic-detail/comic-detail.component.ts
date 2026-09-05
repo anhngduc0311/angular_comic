@@ -6,7 +6,7 @@ import { ComicService } from '../../services/comic.service';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
 import { SeoService } from '../../services/seo.service';
-import { ComicDetail } from '../../models/comic.model';
+import { ComicDetail, Chapter } from '../../models/comic.model';
 
 @Component({
   selector: 'app-comic-detail',
@@ -25,6 +25,9 @@ export class ComicDetailComponent implements OnInit {
   isLoading: boolean = true;
   visibleCommentsCount: number = 10;
   skeletonChapters: number[] = Array(8).fill(0);
+
+  chapterSearchQuery: string = '';
+  sortOrder: 'desc' | 'asc' = 'desc';
 
   get visibleComments(): any[] {
     if (!this.comic || !this.comic.comments) return [];
@@ -70,6 +73,31 @@ export class ComicDetailComponent implements OnInit {
         this.router.navigate(['/404']);
       }
     });
+  }
+
+  get filteredChapters(): Chapter[] {
+    if (!this.comic || !this.comic.chapters) return [];
+    let list = [...this.comic.chapters];
+
+    if (this.chapterSearchQuery.trim()) {
+      const q = this.chapterSearchQuery.trim().toLowerCase();
+      list = list.filter(ch => 
+        ch.chapterNumber.toString().includes(q) || 
+        (ch.title && ch.title.toLowerCase().includes(q))
+      );
+    }
+
+    if (this.sortOrder === 'desc') {
+      list.sort((a, b) => b.chapterNumber - a.chapterNumber);
+    } else {
+      list.sort((a, b) => a.chapterNumber - b.chapterNumber);
+    }
+
+    return list;
+  }
+
+  toggleSort(): void {
+    this.sortOrder = this.sortOrder === 'desc' ? 'asc' : 'desc';
   }
 
   get firstChapterNumber(): number | null {
