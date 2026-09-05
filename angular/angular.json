@@ -65,7 +65,7 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
             "buildTarget": "mangaflux:build",
-            "allowedHosts": ["hypermmo.site", "www.hypermmo.site", "localhost", "127.0.0.1", ".hypermmo.site"]
+            "allowedHosts": ["truyenkomi.site", "www.truyenkomi.site", ".truyenkomi.site", "hypermmo.site", "www.hypermmo.site", "localhost", "127.0.0.1", ".hypermmo.site"]
           },
           "configurations": {
             "production": {

@@ -38,19 +38,19 @@ async function initStorageClient() {
       }
     }
     global.Date = PatchedDate;
-    console.log(`⏱️ [Time Sync] Đã đồng bộ lệch múi giờ với Cloudflare R2 (${(timeOffset / 1000).toFixed(1)}s)...`);
+    console.log(`⏱️ [Time Sync] Đã đồng bộ lệch múi giờ (${(timeOffset / 1000).toFixed(1)}s)...`);
   }
 
   minioClient = new MinioClient({
-    endPoint: '7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com',
+    endPoint: process.env.R2_ENDPOINT || 'storage.googleapis.com',
     useSSL: true,
-    accessKey: 'b55550a4f61f223173b5c5b742867416',
-    secretKey: '2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3'
+    accessKey: process.env.R2_ACCESS_KEY || 'GOOGQHRXVRS7YCR24JBLB33S',
+    secretKey: process.env.R2_SECRET_KEY || '3Iamo8whmuUeT2B+CMtRnfW6qdIsmwXVec47tF52'
   });
 }
 
 
-const BUCKET_NAME = 'comics';
+const BUCKET_NAME = process.env.R2_BUCKET_NAME || 'truyenkomi';
 const API_BASE_URL = 'http://localhost:5000/api';
 const DEFAULT_COMIC_URL = 'https://truyencanh3.org/thong-tri-tuyet-doi-ngay-tu-level-0-voi-ky-nang-phan-tich-2525';
 
@@ -161,10 +161,10 @@ async function uploadToMinio(objectName, buffer, contentType = 'image/jpeg') {
     } catch (e) {
       // Ignore policy set errors on R2
     }
-    await minioClient.putObject(BUCKET_NAME, objectName, buffer, buffer.length, { 'Content-Type': contentType });
-    return `https://img.hypermmo.site/${objectName}`;
+    const cdnBase = (process.env.R2_CDN_BASE_URL || 'https://img.hypermmo.site').replace(/\/$/, '');
+    return `${cdnBase}/${objectName}`;
   } catch (err) {
-    console.error(`❌ Lỗi upload R2/MinIO [${objectName}]:`, err.message);
+    console.error(`❌ Lỗi upload GCS/MinIO [${objectName}]:`, err.message);
     return null;
   }
 }
