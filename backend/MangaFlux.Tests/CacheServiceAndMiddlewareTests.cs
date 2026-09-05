@@ -6,12 +6,12 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using MangaFlux.API.Middleware;
-using MangaFlux.API.Services;
+using TruyenKomi.API.Middleware;
+using TruyenKomi.API.Services;
 using Moq;
 using Xunit;
 
-namespace MangaFlux.Tests
+namespace TruyenKomi.Tests
 {
     public class CacheServiceAndMiddlewareTests
     {

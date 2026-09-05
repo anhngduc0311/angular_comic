@@ -6,12 +6,12 @@ rule_files:
   - "/etc/prometheus/alert.rules.yml"
 
 scrape_configs:
-  - job_name: "mangaflux-api"
+  - job_name: "truyenkomi-api"
     metrics_path: "/metrics"
     static_configs:
       - targets: ["host.docker.internal:5000", "api:5000"]
         labels:
-          app: "mangaflux-backend"
+          app: "truyenkomi-backend"
           env: "production"
 
   - job_name: "prometheus"

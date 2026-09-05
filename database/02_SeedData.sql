@@ -1,8 +1,8 @@
 -- ============================================================================
--- MANGAFLUX SEED DATA SCRIPT (SQL SERVER)
+-- TRUYENKOMI SEED DATA SCRIPT (SQL SERVER)
 -- ============================================================================
 
-USE MangaFluxDb;
+USE TruyenKomiDb;
 GO
 
 -- 1. Insert Categories
@@ -18,7 +18,7 @@ GO
 
 -- 2. Insert Users (Password: "123456" cho User, "admin123" cho Admin)
 INSERT INTO Users (Username, Email, PasswordHash, FullName, Avatar, Role, IsLocked) VALUES
-('admin', 'admin@mangaflux.com', '$2a$11$qRzN2P10w.hD/W/o5uSrmOCM2C67rR.62m/r.m8P03oT2h/p.8.v2', N'Quản Trị Viên', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', 'Admin', 0),
+('admin', 'admin@truyenkomi.com', '$2a$11$qRzN2P10w.hD/W/o5uSrmOCM2C67rR.62m/r.m8P03oT2h/p.8.v2', N'Quản Trị Viên', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80', 'Admin', 0),
 ('otaku_master', 'user1@gmail.com', '$2a$11$qRzN2P10w.hD/W/o5uSrmOCM2C67rR.62m/r.m8P03oT2h/p.8.v2', N'Nguyễn Văn A', 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=200&q=80', 'User', 0),
 ('manga_lover', 'user2@gmail.com', '$2a$11$qRzN2P10w.hD/W/o5uSrmOCM2C67rR.62m/r.m8P03oT2h/p.8.v2', N'Trần Thị B', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=200&q=80', 'User', 0);
 GO
@@ -89,7 +89,7 @@ GO
 
 -- 11. Insert Notifications
 INSERT INTO Notifications (UserId, Type, Title, Message, Link, IsRead) VALUES
-(2, 'AdminSystem', N'Chào mừng bạn đến với MangaFlux', N'Chúc bạn có những giây phút đọc truyện vui vẻ!', '/comics', 0),
+(2, 'AdminSystem', N'Chào mừng bạn đến với TruyenKomi', N'Chúc bạn có những giây phút đọc truyện vui vẻ!', '/comics', 0),
 (3, 'CommentReply', N'Có phản hồi mới về bình luận của bạn', N'Người dùng otaku_master đã trả lời bình luận của bạn.', '/comics/solo-leveling', 0);
 GO
 

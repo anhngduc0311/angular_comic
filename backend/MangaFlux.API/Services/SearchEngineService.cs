@@ -5,11 +5,11 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using MangaFlux.API.Data;
-using MangaFlux.API.DTOs;
-using MangaFlux.API.Models;
+using TruyenKomi.API.Data;
+using TruyenKomi.API.DTOs;
+using TruyenKomi.API.Models;
 
-namespace MangaFlux.API.Services
+namespace TruyenKomi.API.Services
 {
     public interface ISearchEngineService
     {
@@ -32,7 +32,7 @@ namespace MangaFlux.API.Services
             _cache = cache;
             _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
             _meiliHost = Environment.GetEnvironmentVariable("MEILISEARCH_HOST") ?? "http://localhost:7700";
-            _meiliKey = Environment.GetEnvironmentVariable("MEILI_MASTER_KEY") ?? "MangaFluxMeiliMasterKey2026!";
+            _meiliKey = Environment.GetEnvironmentVariable("MEILI_MASTER_KEY") ?? "TruyenKomiMeiliMasterKey2026!";
         }
 
         public async Task<List<SearchAutocompleteDto>> QuickSearchAsync(string query, int limit = 6)

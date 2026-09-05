@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "mangaflux": {
+    "truyenkomi": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -17,7 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/mangaflux",
+            "outputPath": "dist/truyenkomi",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -64,15 +64,15 @@
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
-            "buildTarget": "mangaflux:build",
+            "buildTarget": "truyenkomi:build",
             "allowedHosts": ["truyenkomi.site", "www.truyenkomi.site", ".truyenkomi.site", "hypermmo.site", "www.hypermmo.site", "localhost", "127.0.0.1", ".hypermmo.site"]
           },
           "configurations": {
             "production": {
-              "buildTarget": "mangaflux:build:production"
+              "buildTarget": "truyenkomi:build:production"
             },
             "development": {
-              "buildTarget": "mangaflux:build:development"
+              "buildTarget": "truyenkomi:build:development"
             }
           },
           "defaultConfiguration": "development"

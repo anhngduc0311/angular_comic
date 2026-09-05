@@ -1,4 +1,4 @@
-namespace MangaFlux.API.DTOs
+namespace TruyenKomi.API.DTOs
 {
     public class RegisterDto
     {

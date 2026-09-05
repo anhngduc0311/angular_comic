@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using MangaFlux.API.Data;
+using TruyenKomi.API.Data;
 
-namespace MangaFlux.API.Controllers
+namespace TruyenKomi.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

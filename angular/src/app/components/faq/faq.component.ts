@@ -80,7 +80,7 @@ interface FaqItem {
       <!-- Support CTA Banner -->
       <div class="cta-banner bg-glass text-center">
         <h2>Vẫn Cần Thêm Sự Hỗ Trợ?</h2>
-        <p>Nếu bạn không tìm thấy câu trả lời cho vấn đề của mình, hãy liên hệ ngay với đội ngũ quản trị MangaFlux.</p>
+        <p>Nếu bạn không tìm thấy câu trả lời cho vấn đề của mình, hãy liên hệ ngay với đội ngũ quản trị TruyenKomi.</p>
         <a routerLink="/contact" class="btn btn-primary"><i class="fa-solid fa-headset"></i> Gửi Yêu Cầu Hỗ Trợ</a>
       </div>
     </div>
@@ -266,7 +266,7 @@ export class FaqComponent {
       id: 1,
       category: 'account',
       categoryLabel: 'Tài Khoản',
-      question: 'Đăng ký tài khoản trên MangaFlux có mất phí không?',
+      question: 'Đăng ký tài khoản trên TruyenKomi có mất phí không?',
       answer: 'Hoàn toàn <strong>MIỄN PHÍ</strong>! Việc đăng ký tài khoản giúp bạn theo dõi truyện yêu thích, lưu lịch sử đọc không giới hạn và nhận thông báo khi có chap mới.',
       isOpen: true
     },
@@ -290,7 +290,7 @@ export class FaqComponent {
       id: 4,
       category: 'reading',
       categoryLabel: 'Đọc Truyện',
-      question: 'MangaFlux có hỗ trợ phím tắt chuyển chương nhanh không?',
+      question: 'TruyenKomi có hỗ trợ phím tắt chuyển chương nhanh không?',
       answer: 'Có! Khi đang xem ở trang đọc chapter, bạn có thể nhấn phím <strong>← (Mũi tên trái)</strong> để về chap trước và <strong>→ (Mũi tên phải)</strong> để sang chap tiếp theo.',
       isOpen: false
     },
@@ -306,8 +306,8 @@ export class FaqComponent {
       id: 6,
       category: 'other',
       categoryLabel: 'Khác',
-      question: 'MangaFlux cập nhật chapter mới vào thời gian nào?',
-      answer: 'Hệ thống MangaFlux tự động cập nhật và đăng tải các chapter truyện mới liên tục 24/7 ngay khi nhóm dịch phát hành.',
+      question: 'TruyenKomi cập nhật chapter mới vào thời gian nào?',
+      answer: 'Hệ thống TruyenKomi tự động cập nhật và đăng tải các chapter truyện mới liên tục 24/7 ngay khi nhóm dịch phát hành.',
       isOpen: false
     }
   ];

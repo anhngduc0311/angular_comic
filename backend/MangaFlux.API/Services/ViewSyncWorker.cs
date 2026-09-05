@@ -7,10 +7,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using MangaFlux.API.Data;
+using TruyenKomi.API.Data;
 using Prometheus;
 
-namespace MangaFlux.API.Services
+namespace TruyenKomi.API.Services
 {
     public class ViewSyncWorker : BackgroundService
     {

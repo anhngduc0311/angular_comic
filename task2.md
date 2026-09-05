@@ -1,6 +1,6 @@
-# 📋 Lộ Trình Nâng Cấp Tính Năng & Hệ Thống MangaFlux - Giai Đoạn 2 (Feature & System Evolution)
+# 📋 Lộ Trình Nâng Cấp Tính Năng & Hệ Thống TruyenKomi - Giai Đoạn 2 (Feature & System Evolution)
 
-Tài liệu kế hoạch chi tiết triển khai các tính năng người dùng, hệ thống thời gian thực (Real-time), tìm kiếm nâng cao, tối ưu SEO, tự động hóa và mở rộng quản trị cho nền tảng **MangaFlux** (Angular + .NET 10 + MS SQL Server + Redis + MinIO / Cloudflare R2).
+Tài liệu kế hoạch chi tiết triển khai các tính năng người dùng, hệ thống thời gian thực (Real-time), tìm kiếm nâng cao, tối ưu SEO, tự động hóa và mở rộng quản trị cho nền tảng **TruyenKomi** (Angular + .NET 10 + MS SQL Server + Redis + MinIO / Cloudflare R2).
 
 ---
 
@@ -9,7 +9,7 @@ Tài liệu kế hoạch chi tiết triển khai các tính năng người dùng
 ### 6.1 PWA & Đọc Truyện Offline (Service Worker & IndexedDB)
 - [ ] **Cấu hình Angular PWA (`@angular/pwa`):**
   - Cài đặt Service Worker, tạo file `manifest.webmanifest` với đầy đủ icon (192x192, 512x512), theme color và splash screen chuẩn Progressive Web App.
-  - Cho phép người dùng cài đặt MangaFlux như một ứng dụng Native trên Android, iOS và Desktop.
+  - Cho phép người dùng cài đặt TruyenKomi như một ứng dụng Native trên Android, iOS và Desktop.
 - [ ] **Lưu trữ ảnh và dữ liệu đọc Offline với IndexedDB:**
   - Xây dựng `OfflineStorageService` (sử dụng `idb` hoặc `dexie.js`) quản lý cơ sở dữ liệu IndexedDB tại trình duyệt.
   - Cho phép người dùng bấm nút **"Tải chương này"** hoặc **"Tải toàn bộ truyện"** để lưu trữ Blob hình ảnh cục bộ.
@@ -95,7 +95,7 @@ Tài liệu kế hoạch chi tiết triển khai các tính năng người dùng
 ### 9.2 Luồng Quên Mật Khẩu & Xác Thực Tài Khoản Qua Email
 - [ ] **Tích hợp dịch vụ gửi Email:**
   - Xây dựng `EmailService` hỗ trợ gửi qua SMTP hoặc REST API (Resend / SendGrid / Amazon SES).
-  - Thiết kế mẫu HTML Email chuyên nghiệp với logo và branding của MangaFlux.
+  - Thiết kế mẫu HTML Email chuyên nghiệp với logo và branding của TruyenKomi.
 - [ ] **Quy trình Reset Password an toàn:**
   - Tạo mã OTP / Token 6 chữ số có hiệu lực trong 15 phút lưu trữ trong Redis.
   - Endpoint xác thực OTP và cho phép đặt lại mật khẩu mới, đồng thời vô hiệu hóa tất cả Refresh Token cũ để bảo vệ tài khoản.
@@ -168,4 +168,4 @@ Tài liệu kế hoạch chi tiết triển khai các tính năng người dùng
 | **Giai Đoạn 11**| Hệ thống Cấp bậc (Leveling) & Nạp xu đọc trước (Fast Pass)| ⭐⭐⭐ (Mở rộng) | Tăng tính gắn kết và tạo nguồn thu doanh thu |
 
 ---
-*Tài liệu lộ trình phát triển tính năng và mở rộng hệ thống MangaFlux - Phiên bản 2.0 (2026).*
+*Tài liệu lộ trình phát triển tính năng và mở rộng hệ thống TruyenKomi - Phiên bản 2.0 (2026).*

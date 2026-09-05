@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using MangaFlux.API.Data;
-using MangaFlux.API.DTOs;
-using MangaFlux.API.Models;
+using TruyenKomi.API.Data;
+using TruyenKomi.API.DTOs;
+using TruyenKomi.API.Models;
 
-namespace MangaFlux.API.Services
+namespace TruyenKomi.API.Services
 {
     public interface IReportService
     {

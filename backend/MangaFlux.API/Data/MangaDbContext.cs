@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
-using MangaFlux.API.Models;
+using TruyenKomi.API.Models;
 
-namespace MangaFlux.API.Data
+namespace TruyenKomi.API.Data
 {
     public class MangaDbContext : DbContext
     {
@@ -63,6 +63,7 @@ namespace MangaFlux.API.Data
             modelBuilder.Entity<Chapter>().HasIndex(ch => new { ch.ComicId, ch.IsPublic, ch.ChapterNumber });
             modelBuilder.Entity<ChapterPage>().HasIndex(cp => new { cp.ChapterId, cp.PageNumber });
             modelBuilder.Entity<Notification>().HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+            modelBuilder.Entity<Comic>().Property(c => c.Rating).HasPrecision(3, 2);
             modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.IsFeatured, c.UpdatedAt });
             modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.UpdatedAt });
         }

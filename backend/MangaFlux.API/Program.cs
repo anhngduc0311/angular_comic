@@ -9,11 +9,11 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using MangaFlux.API.Data;
-using MangaFlux.API.Middleware;
-using MangaFlux.API.Models;
-using MangaFlux.API.Services;
-using MangaFlux.API.Services.HealthChecks;
+using TruyenKomi.API.Data;
+using TruyenKomi.API.Middleware;
+using TruyenKomi.API.Models;
+using TruyenKomi.API.Services;
+using TruyenKomi.API.Services.HealthChecks;
 using Prometheus;
 
 // 0. Auto-load .env file if present in current or parent directories
@@ -66,7 +66,7 @@ if (!string.IsNullOrEmpty(redisConnectionString))
     builder.Services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = redisConnectionString;
-        options.InstanceName = "MangaFlux_";
+        options.InstanceName = "TruyenKomi_";
     });
 
     try
@@ -180,9 +180,9 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
         ValidateIssuer = true,
-        ValidIssuer = jwtSettings["Issuer"] ?? "MangaFluxAPI",
+        ValidIssuer = jwtSettings["Issuer"] ?? "TruyenKomiAPI",
         ValidateAudience = true,
-        ValidAudience = jwtSettings["Audience"] ?? "MangaFluxClient",
+        ValidAudience = jwtSettings["Audience"] ?? "TruyenKomiClient",
         ClockSkew = TimeSpan.Zero
     };
 });
@@ -191,7 +191,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "MangaFlux Web API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "TruyenKomi Web API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
@@ -225,7 +225,7 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "MangaFlux API v1"));
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TruyenKomi API v1"));
 }
 
 app.UseCors("AllowAngularApp");
@@ -278,6 +278,16 @@ using (var scope = app.Services.CreateScope())
                 ALTER TABLE [Users] ADD [AuthProvider] NVARCHAR(50) NOT NULL CONSTRAINT DF_Users_AuthProvider DEFAULT 'Local';
             END;
 
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Comics' AND COLUMN_NAME = 'TranslatorGroup')
+            BEGIN
+                ALTER TABLE [Comics] ADD [TranslatorGroup] NVARCHAR(255) NULL;
+            END;
+
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Comics' AND COLUMN_NAME = 'AgeLimit')
+            BEGIN
+                ALTER TABLE [Comics] ADD [AgeLimit] NVARCHAR(50) NULL;
+            END;
+
             DELETE FROM ChapterPages WHERE ChapterId IN (
                 SELECT Id FROM (
                     SELECT Id, ComicId, ChapterNumber,
@@ -295,13 +305,13 @@ using (var scope = app.Services.CreateScope())
             );
         ");
 
-        var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin" || u.Email == "admin@mangaflux.com");
+        var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin" || u.Email == "admin@truyenkomi.com");
         if (adminUser == null)
         {
             db.Users.Add(new User
             {
                 Username = "admin",
-                Email = "admin@mangaflux.com",
+                Email = "admin@truyenkomi.com",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
                 FullName = "Quản Trị Viên",
                 Role = "Admin",
@@ -314,7 +324,7 @@ using (var scope = app.Services.CreateScope())
         else
         {
             adminUser.Username = "admin";
-            adminUser.Email = "admin@mangaflux.com";
+            adminUser.Email = "admin@truyenkomi.com";
             adminUser.Role = "Admin";
             adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
             adminUser.IsLocked = false;

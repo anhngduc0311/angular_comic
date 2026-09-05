@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace MangaFlux.API.Middleware
+namespace TruyenKomi.API.Middleware
 {
     public class GlobalExceptionHandler : IExceptionHandler
     {

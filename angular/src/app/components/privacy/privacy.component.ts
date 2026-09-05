@@ -17,7 +17,7 @@ import { CommonModule } from '@angular/common';
           <section class="section-block">
             <h2>1. Cam Kết Bảo Mật</h2>
             <p>
-              MangaFlux tôn trọng và cam kết bảo vệ quyền riêng tư của người dùng. Chính sách bảo mật này giải thích cách chúng tôi thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn khi bạn sử dụng dịch vụ đọc truyện tranh trên website và ứng dụng của chúng tôi.
+              TruyenKomi tôn trọng và cam kết bảo vệ quyền riêng tư của người dùng. Chính sách bảo mật này giải thích cách chúng tôi thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn khi bạn sử dụng dịch vụ đọc truyện tranh trên website và ứng dụng của chúng tôi.
             </p>
           </section>
 
@@ -34,14 +34,14 @@ import { CommonModule } from '@angular/common';
           <section class="section-block">
             <h2>3. Sử Dụng Cookie & Trình Lưu Trữ Cục Bộ (LocalStorage)</h2>
             <p>
-              MangaFlux sử dụng Cookie và LocalStorage để lưu trạng thái đăng nhập (JWT token), cài đặt giao diện (Chế độ đọc, kích thước chữ) và lịch sử đọc dở dang. Các dữ liệu này được lưu trữ an toàn trên thiết bị của bạn.
+              TruyenKomi sử dụng Cookie và LocalStorage để lưu trạng thái đăng nhập (JWT token), cài đặt giao diện (Chế độ đọc, kích thước chữ) và lịch sử đọc dở dang. Các dữ liệu này được lưu trữ an toàn trên thiết bị của bạn.
             </p>
           </section>
 
           <section class="section-block">
             <h2>4. Cam Kết Không Chia Sẻ Dữ Liệu</h2>
             <p>
-              MangaFlux tuyệt đối <strong>KHÔNG</strong> bán, trao đổi hoặc cho thuê thông tin cá nhân của người dùng cho bất kỳ bên thứ ba nào vì mục đích thương mại. Thông tin chỉ có thể được cung cấp trong trường hợp có yêu cầu chính thức từ cơ quan pháp luật có thẩm quyền.
+              TruyenKomi tuyệt đối <strong>KHÔNG</strong> bán, trao đổi hoặc cho thuê thông tin cá nhân của người dùng cho bất kỳ bên thứ ba nào vì mục đích thương mại. Thông tin chỉ có thể được cung cấp trong trường hợp có yêu cầu chính thức từ cơ quan pháp luật có thẩm quyền.
             </p>
           </section>
 

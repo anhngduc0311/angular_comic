@@ -42,12 +42,16 @@ export interface Comic {
   otherNames?: string;
   artist?: string;
   country?: string;
+  translatorGroup?: string;
+  ageLimit?: string;
   releaseYear?: number;
   status: string;
   views: number;
   rating: number;
   isFeatured: boolean;
   isPublic?: boolean;
+  totalChapters?: number;
+  createdAt?: string;
   updatedAt: string;
   categories: Category[];
   latestChapter?: Chapter;

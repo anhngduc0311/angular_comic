@@ -1,6 +1,6 @@
-# 📋 Lộ Trình Tối Ưu Hệ Thống MangaFlux Cho 1 Triệu Người Dùng (Optimization Roadmap)
+# 📋 Lộ Trình Tối Ưu Hệ Thống TruyenKomi Cho 1 Triệu Người Dùng (Optimization Roadmap)
 
-Tài liệu hướng dẫn triển khai lần lượt các tác vụ tối ưu hóa hiệu năng, băng thông và khả năng chịu tải cho hệ thống **MangaFlux** (Angular + .NET 10 + MS SQL Server + Redis + MinIO).
+Tài liệu hướng dẫn triển khai lần lượt các tác vụ tối ưu hóa hiệu năng, băng thông và khả năng chịu tải cho hệ thống **TruyenKomi** (Angular + .NET 10 + MS SQL Server + Redis + MinIO).
 
 ---
 
@@ -70,7 +70,7 @@ Tài liệu hướng dẫn triển khai lần lượt các tác vụ tối ưu h
   - Bổ sung `AntiScraperMiddleware` và `chapter-limiter` policy trong .NET 10 Web API chặn đứng các bot cào tự động (`Scrapy`, `Python-requests`, `Bytespider`, `Sqlmap`,...).
   - Thiết lập Cloudflare Edge Rate Limiting Rules, Super Bot Fight Mode và Hotlink Protection trong tài liệu [cloudflare.md](file:///c:/Users/ADMIN/Desktop/angular_comic/cloudflare.md).
 - [x] **Bảo vệ JWT Token & Session:**
-  - Cấu hình HttpOnly Cookie cho Refresh Token (`mangaflux_refresh_token`) với các cờ `HttpOnly=true`, `SameSite=Lax`, `Path=/api/auth`, và dynamic `Secure=Request.IsHttps` chống triệt để tấn công XSS.
+  - Cấu hình HttpOnly Cookie cho Refresh Token (`truyenkomi_refresh_token`) với các cờ `HttpOnly=true`, `SameSite=Lax`, `Path=/api/auth`, và dynamic `Secure=Request.IsHttps` chống triệt để tấn công XSS.
   - Triển khai cơ chế Refresh Token Rotation và Token Revocation an toàn khi đăng xuất trong `AuthController.cs` & `AuthService.cs`.
 
 ---
@@ -89,8 +89,8 @@ Tài liệu hướng dẫn triển khai lần lượt các tác vụ tối ưu h
   - Xây dựng Probes `/health`, `/health/ready`, `/health/live` giám sát trạng thái SQL Server, Redis Cache và MinIO Storage.
 - [x] **Thiết lập Stack Prometheus + Grafana APM Dashboard:**
   - Tích hợp Prometheus và Grafana vào `docker-compose.yml` với cấu hình tự động kết nối Datasource.
-  - Cung cấp sẵn Dashboard APM trực quan (`mangaflux-apm.json`) theo dõi Response time, RPS, Redis Cache Hit Ratio, Views traffic và hệ thống cảnh báo Alerting Rules (`alert.rules.yml`).
+  - Cung cấp sẵn Dashboard APM trực quan (`truyenkomi-apm.json`) theo dõi Response time, RPS, Redis Cache Hit Ratio, Views traffic và hệ thống cảnh báo Alerting Rules (`alert.rules.yml`).
   - Tài liệu chi tiết hướng dẫn kiểm thử tải & vận hành APM trong [loadtest_monitoring.md](file:///c:/Users/ADMIN/Desktop/angular_comic/loadtest_monitoring.md).
 
 ---
-*Tài liệu tác vụ tối ưu hóa MangaFlux cho 1M users - Cập nhật hoàn tất 2026.*
+*Tài liệu tác vụ tối ưu hóa TruyenKomi cho 1M users - Cập nhật hoàn tất 2026.*

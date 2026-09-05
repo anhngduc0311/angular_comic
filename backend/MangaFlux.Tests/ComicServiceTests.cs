@@ -2,14 +2,14 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using MangaFlux.API.Data;
-using MangaFlux.API.DTOs;
-using MangaFlux.API.Models;
-using MangaFlux.API.Services;
+using TruyenKomi.API.Data;
+using TruyenKomi.API.DTOs;
+using TruyenKomi.API.Models;
+using TruyenKomi.API.Services;
 using Moq;
 using Xunit;
 
-namespace MangaFlux.Tests
+namespace TruyenKomi.Tests
 {
     public class ComicServiceTests
     {

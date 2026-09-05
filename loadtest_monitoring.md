@@ -1,6 +1,6 @@
-# 📈 Hướng Dẫn Kiểm Thử Chịu Tải & Giám Sát Hệ Thống MangaFlux (Load Testing & APM Monitoring)
+# 📈 Hướng Dẫn Kiểm Thử Chịu Tải & Giám Sát Hệ Thống TruyenKomi (Load Testing & APM Monitoring)
 
-Tài liệu hướng dẫn chi tiết quy trình kiểm thử tải mô phỏng **1.000 đến 10.000 người dùng đồng thời (VUs)** và vận hành hệ thống giám sát hiệu năng thời gian thực (**Prometheus + Grafana APM + Health Checks**) cho hệ thống **MangaFlux**.
+Tài liệu hướng dẫn chi tiết quy trình kiểm thử tải mô phỏng **1.000 đến 10.000 người dùng đồng thời (VUs)** và vận hành hệ thống giám sát hiệu năng thời gian thực (**Prometheus + Grafana APM + Health Checks**) cho hệ thống **TruyenKomi**.
 
 ---
 
@@ -61,11 +61,11 @@ graph TD
 * **Các chỉ số chính thu thập:**
   * `http_requests_received_total`: Tổng số lượt requests theo từng HTTP Method, Route và Status Code.
   * `http_request_duration_seconds`: Histogram thời gian xử lý request (Buckets từ 5ms đến 10s).
-  * `mangaflux_cache_hits_total` & `mangaflux_cache_misses_total`: Chỉ số Cache Hit/Miss theo từng prefix key.
-  * `mangaflux_chapter_views_incremented_total`: Tốc độ ghi lượt xem vào Redis.
-  * `mangaflux_chapter_views_synced_total`: Tổng số lượt xem được worker đồng bộ xuống SQL Server.
-  * `mangaflux_db_views_sync_duration_seconds`: Thời gian worker thực hiện batch update SQL Server.
-  * `mangaflux_redis_connected`: Trạng thái kết nối Redis (1 = Online, 0 = Offline).
+  * `truyenkomi_cache_hits_total` & `truyenkomi_cache_misses_total`: Chỉ số Cache Hit/Miss theo từng prefix key.
+  * `truyenkomi_chapter_views_incremented_total`: Tốc độ ghi lượt xem vào Redis.
+  * `truyenkomi_chapter_views_synced_total`: Tổng số lượt xem được worker đồng bộ xuống SQL Server.
+  * `truyenkomi_db_views_sync_duration_seconds`: Thời gian worker thực hiện batch update SQL Server.
+  * `truyenkomi_redis_connected`: Trạng thái kết nối Redis (1 = Online, 0 = Offline).
   * `process_working_set_bytes`, `dotnet_total_memory_bytes`, `dotnet_collection_count_total`: Mức chiếm dụng RAM và tần suất thu gom rác GC.
 
 ---
@@ -80,7 +80,7 @@ docker-compose up -d
 
 ### Truy Cập Dashboard:
 * **Grafana APM UI:** `http://localhost:3000` (Tài khoản: `admin` / Mật khẩu: `admin`)
-  * Dashboard đã được tự động nạp sẵn: **"MangaFlux APM & System Performance"**.
+  * Dashboard đã được tự động nạp sẵn: **"TruyenKomi APM & System Performance"**.
 * **Prometheus UI:** `http://localhost:9090`
   * Xem đồ thị biểu thức PromQL và danh sách cảnh báo tại tab `Alerts`.
 
@@ -137,4 +137,4 @@ k6 run k6-spike-test.js
 | **CPU API Instance** | `< 70%` | Scale thêm API container (`docker-compose up --scale api=3`). |
 
 ---
-*Tài liệu hướng dẫn kiểm thử tải và giám sát hệ thống MangaFlux - Hoàn thành 2026.*
+*Tài liệu hướng dẫn kiểm thử tải và giám sát hệ thống TruyenKomi - Hoàn thành 2026.*

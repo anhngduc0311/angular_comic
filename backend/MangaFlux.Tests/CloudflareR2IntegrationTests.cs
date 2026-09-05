@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using MangaFlux.API.Services;
+using TruyenKomi.API.Services;
 using Moq;
 using Xunit;
 
-namespace MangaFlux.Tests
+namespace TruyenKomi.Tests
 {
     public class CloudflareR2IntegrationTests
     {
@@ -35,7 +35,7 @@ namespace MangaFlux.Tests
             var storageService = new MinioStorageService(config, mockLogger.Object);
 
             // Create a small test image/file stream
-            var content = "MangaFlux Cloudflare CDN Test Image Content " + Guid.NewGuid();
+            var content = "TruyenKomi Cloudflare CDN Test Image Content " + Guid.NewGuid();
             var fileName = "test-image.txt";
             var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
             
@@ -69,9 +69,9 @@ namespace MangaFlux.Tests
                 {"Minio:Endpoint", "s3.us-east-005.backblazeb2.com"},
                 {"Minio:AccessKey", "0050dfbf3919d500000000001"},
                 {"Minio:SecretKey", "K005wTMv67F283/4QcZoy1JXYSBAGuM"},
-                {"Minio:BucketName", "mangaflux-b2"},
+                {"Minio:BucketName", "truyenkomi-b2"},
                 {"Minio:Secure", "true"},
-                {"Minio:CdnBaseUrl", "https://f005.backblazeb2.com/file/mangaflux-b2"}
+                {"Minio:CdnBaseUrl", "https://f005.backblazeb2.com/file/truyenkomi-b2"}
             };
 
             IConfiguration config = new ConfigurationBuilder()
@@ -82,7 +82,7 @@ namespace MangaFlux.Tests
             var storageService = new MinioStorageService(config, mockLogger.Object);
 
             // Create a small test image/file stream
-            var content = "MangaFlux Backblaze B2 CDN Test Content " + Guid.NewGuid();
+            var content = "TruyenKomi Backblaze B2 CDN Test Content " + Guid.NewGuid();
             var fileName = "test-b2-image.txt";
             var stream = new MemoryStream(Encoding.UTF8.GetBytes(content));
 
@@ -96,7 +96,7 @@ namespace MangaFlux.Tests
             string uploadedUrl = await storageService.UploadFileAsync(formFile, "test-b2");
 
             // Assert Upload URL format
-            Assert.StartsWith("https://f005.backblazeb2.com/file/mangaflux-b2/test-b2/", uploadedUrl);
+            Assert.StartsWith("https://f005.backblazeb2.com/file/truyenkomi-b2/test-b2/", uploadedUrl);
 
             // Act 2: Fetch uploaded file from Backblaze B2 CDN/Friendly URL
             using var httpClient = new HttpClient();

@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
-namespace MangaFlux.API.Middleware
+namespace TruyenKomi.API.Middleware
 {
     public class AntiScraperMiddleware
     {

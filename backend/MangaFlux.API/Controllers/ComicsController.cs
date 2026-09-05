@@ -3,10 +3,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using MangaFlux.API.DTOs;
-using MangaFlux.API.Services;
+using TruyenKomi.API.DTOs;
+using TruyenKomi.API.Services;
 
-namespace MangaFlux.API.Controllers
+namespace TruyenKomi.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -99,7 +99,15 @@ namespace MangaFlux.API.Controllers
         }
 
         [HttpPost("import-scraped")]
-        public async Task<IActionResult> ImportScraped([FromBody] ChapterCreateDto dto, [FromQuery] string comicTitle, [FromQuery] string comicSlug, [FromQuery] string coverImage)
+        public async Task<IActionResult> ImportScraped(
+            [FromBody] ChapterCreateDto dto, 
+            [FromQuery] string comicTitle, 
+            [FromQuery] string comicSlug, 
+            [FromQuery] string coverImage,
+            [FromQuery] string? author = null,
+            [FromQuery] string? translatorGroup = null,
+            [FromQuery] string? otherNames = null,
+            [FromQuery] string? ageLimit = "13+")
         {
             var existingComic = await _comicService.GetComicBySlugAsync(comicSlug);
             int comicId;
@@ -112,7 +120,10 @@ namespace MangaFlux.API.Controllers
                     Description = $"Truyện {comicTitle} Tiếng Việt bản dịch Full mới nhất.",
                     CoverImage = coverImage,
                     BannerImage = coverImage,
-                    Author = "Đang cập nhật",
+                    Author = string.IsNullOrWhiteSpace(author) ? "Đang cập nhật" : author,
+                    TranslatorGroup = string.IsNullOrWhiteSpace(translatorGroup) ? "Đang cập nhật" : translatorGroup,
+                    OtherNames = otherNames,
+                    AgeLimit = string.IsNullOrWhiteSpace(ageLimit) ? "13+" : ageLimit,
                     Status = "Ongoing",
                     IsFeatured = true,
                     IsPublic = true
@@ -122,6 +133,7 @@ namespace MangaFlux.API.Controllers
             else
             {
                 comicId = existingComic.Id;
+                await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage);
             }
 
             dto.ComicId = comicId;

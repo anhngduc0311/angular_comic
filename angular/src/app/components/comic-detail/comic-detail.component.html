@@ -39,34 +39,62 @@
           </div>
 
           <h1 class="comic-title">{{ comic.title }}</h1>
-          <p class="comic-other-names" *ngIf="comic.otherNames">Tên khác: {{ comic.otherNames }}</p>
+          <!-- Meta Grid (2 Columns Layout matching user specs) -->
+          <div class="comic-specs-grid">
+            <!-- Row 1 -->
+            <div class="spec-cell">
+              <span class="spec-label">Tác giả</span>
+              <span class="spec-value">{{ comic.author || 'Đang cập nhật' }}</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-label">Lượt xem</span>
+              <span class="spec-value">{{ formatViews(comic.views) }} lượt xem</span>
+            </div>
 
-          <!-- Meta Grid -->
-          <div class="meta-grid">
-            <div class="meta-item">
-              <span class="meta-label"><i class="fa fa-user-o"></i> Tác giả:</span>
-              <span class="meta-val">{{ comic.author || 'Đang cập nhật' }}</span>
+            <!-- Row 2 -->
+            <div class="spec-cell">
+              <span class="spec-label">Cập nhật</span>
+              <span class="spec-value">{{ comic.updatedAt | date:'dd/MM/yyyy' }}</span>
             </div>
-            <div class="meta-item" *ngIf="comic.artist">
-              <span class="meta-label"><i class="fa fa-paint-brush"></i> Họa sĩ:</span>
-              <span class="meta-val">{{ comic.artist }}</span>
+            <div class="spec-cell">
+              <span class="spec-label">Nhóm dịch</span>
+              <span class="spec-value text-translator">{{ comic.translatorGroup || 'Đang cập nhật' }}</span>
             </div>
-            <div class="meta-item">
-              <span class="meta-label"><i class="fa fa-calendar-o"></i> Cập nhật:</span>
-              <span class="meta-val">{{ comic.updatedAt | date:'dd/MM/yyyy' }}</span>
+
+            <!-- Row 3 -->
+            <div class="spec-cell">
+              <span class="spec-label">Tổng số chap</span>
+              <span class="spec-value">{{ comic.chapters ? comic.chapters.length : (comic.totalChapters || 0) }}</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-label">Ngày tạo</span>
+              <span class="spec-value">{{ (comic.createdAt || comic.updatedAt) | date:'dd/MM/yyyy' }}</span>
+            </div>
+
+            <!-- Row 4 -->
+            <div class="spec-cell">
+              <span class="spec-label">Tên khác</span>
+              <span class="spec-value">{{ comic.otherNames || 'Đang cập nhật' }}</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-label">Độ tuổi</span>
+              <span class="spec-value">{{ comic.ageLimit || '13+' }}</span>
             </div>
           </div>
 
-          <!-- Genres Tags -->
-          <div class="genres-row">
-            <a 
-              *ngFor="let cat of comic.categories" 
-              [routerLink]="['/comics']" 
-              [queryParams]="{ category: cat.slug }" 
-              class="genre-tag"
-            >
-              {{ cat.name }}
-            </a>
+          <!-- Genres Block -->
+          <div class="spec-genres-block" *ngIf="comic.categories && comic.categories.length > 0">
+            <span class="spec-label">Thể loại</span>
+            <div class="genres-row">
+              <a 
+                *ngFor="let cat of comic.categories" 
+                [routerLink]="['/comics']" 
+                [queryParams]="{ category: cat.slug }" 
+                class="genre-tag"
+              >
+                {{ cat.name }}
+              </a>
+            </div>
           </div>
 
           <!-- CTA Actions Row -->

@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace MangaFlux.API.Services
+namespace TruyenKomi.API.Services
 {
     public static class VietnameseTextNormalizer
     {

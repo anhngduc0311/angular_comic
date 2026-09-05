@@ -2,10 +2,10 @@ using System.IO;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
-using MangaFlux.API.Middleware;
+using TruyenKomi.API.Middleware;
 using Xunit;
 
-namespace MangaFlux.Tests
+namespace TruyenKomi.Tests
 {
     public class SecurityAndAuthTests
     {

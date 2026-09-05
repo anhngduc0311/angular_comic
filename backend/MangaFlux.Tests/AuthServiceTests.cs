@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using MangaFlux.API.Data;
-using MangaFlux.API.DTOs;
-using MangaFlux.API.Services;
+using TruyenKomi.API.Data;
+using TruyenKomi.API.DTOs;
+using TruyenKomi.API.Services;
 using Xunit;
 
-namespace MangaFlux.Tests
+namespace TruyenKomi.Tests
 {
     public class AuthServiceTests
     {
@@ -24,9 +24,9 @@ namespace MangaFlux.Tests
         {
             var inMemorySettings = new Dictionary<string, string?>
             {
-                {"JwtSettings:Secret", "SuperSecretKeyForMangaFluxUnitTesting2026!"},
-                {"JwtSettings:Issuer", "MangaFluxTest"},
-                {"JwtSettings:Audience", "MangaFluxClientTest"}
+                {"JwtSettings:Secret", "SuperSecretKeyForTruyenKomiUnitTesting2026!"},
+                {"JwtSettings:Issuer", "TruyenKomiTest"},
+                {"JwtSettings:Audience", "TruyenKomiClientTest"}
             };
 
             return new ConfigurationBuilder()

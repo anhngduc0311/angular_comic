@@ -17,14 +17,14 @@ import { CommonModule } from '@angular/common';
           <section class="section-block">
             <h2>1. Chấp Nhận Điều Khoản</h2>
             <p>
-              Chào mừng bạn đến với MangaFlux. Khi truy cập và sử dụng dịch vụ của chúng tôi, bạn đồng ý tuân thủ và chịu sự ràng buộc bởi các điều khoản và điều kiện sử dụng dưới đây. Nếu bạn không đồng ý với bất kỳ phần nào của các điều khoản này, vui lòng không sử dụng dịch vụ của chúng tôi.
+              Chào mừng bạn đến với TruyenKomi. Khi truy cập và sử dụng dịch vụ của chúng tôi, bạn đồng ý tuân thủ và chịu sự ràng buộc bởi các điều khoản và điều kiện sử dụng dưới đây. Nếu bạn không đồng ý với bất kỳ phần nào của các điều khoản này, vui lòng không sử dụng dịch vụ của chúng tôi.
             </p>
           </section>
 
           <section class="section-block">
             <h2>2. Quyền Bản Quyền & Nội Dung</h2>
             <p>
-              Tất cả thông tin, truyện tranh, hình ảnh và tài nguyên hiển thị trên MangaFlux được sưu tầm và tổng hợp từ các nguồn công khai trên Internet hoặc do cộng đồng đóng góp. Chúng tôi không sở hữu bản quyền trực tiếp đối với các tác phẩm này ngoại trừ giao diện và mã nguồn của nền tảng MangaFlux.
+              Tất cả thông tin, truyện tranh, hình ảnh và tài nguyên hiển thị trên TruyenKomi được sưu tầm và tổng hợp từ các nguồn công khai trên Internet hoặc do cộng đồng đóng góp. Chúng tôi không sở hữu bản quyền trực tiếp đối với các tác phẩm này ngoại trừ giao diện và mã nguồn của nền tảng TruyenKomi.
             </p>
             <p>
               Nếu bạn là chủ sở hữu bản quyền hợp pháp của bất kỳ nội dung nào và không muốn nó xuất hiện trên ứng dụng, vui lòng liên hệ với chúng tôi qua trang <a href="/contact" class="link-text">Liên Hệ (DMCA)</a> kèm bằng chứng sở hữu. Chúng tôi sẽ tiến hành gỡ bỏ nội dung trong vòng 48 giờ làm việc.
@@ -36,7 +36,7 @@ import { CommonModule } from '@angular/common';
             <ul>
               <li>Người dùng phải cung cấp thông tin chính xác khi đăng ký tài khoản (Tên đăng nhập, Email).</li>
               <li>Bạn có trách nhiệm bảo mật mật khẩu và chịu trách nhiệm cho mọi hoạt động diễn ra dưới tài khoản của mình.</li>
-              <li>Nghiêm cấm việc tạo tài khoản giả mạo, spam, hack hoặc phá hoại hệ thống của MangaFlux.</li>
+              <li>Nghiêm cấm việc tạo tài khoản giả mạo, spam, hack hoặc phá hoại hệ thống của TruyenKomi.</li>
             </ul>
           </section>
 
@@ -53,7 +53,7 @@ import { CommonModule } from '@angular/common';
           <section class="section-block">
             <h2>5. Giới Hạn Trách Nhiệm</h2>
             <p>
-              MangaFlux cung cấp dịch vụ "như hiện có" và không đưa ra bất kỳ bảo đảm nào về tính liên tục không bị gián đoạn của ứng dụng. Chúng tôi không chịu trách nhiệm cho bất kỳ thiệt hại trực tiếp hoặc gián tiếp nào phát sinh từ việc sử dụng dịch vụ của bạn.
+              TruyenKomi cung cấp dịch vụ "như hiện có" và không đưa ra bất kỳ bảo đảm nào về tính liên tục không bị gián đoạn của ứng dụng. Chúng tôi không chịu trách nhiệm cho bất kỳ thiệt hại trực tiếp hoặc gián tiếp nào phát sinh từ việc sử dụng dịch vụ của bạn.
             </p>
           </section>
         </div>

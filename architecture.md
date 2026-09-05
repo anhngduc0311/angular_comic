@@ -1,6 +1,6 @@
-# 🏗️ Kiến Trúc Hệ Thống MangaFlux (Architecture Documentation)
+# 🏗️ Kiến Trúc Hệ Thống TruyenKomi (Architecture Documentation)
 
-Nền tảng đọc và quản lý truyện tranh trực tuyến **MangaFlux** được thiết kế theo kiến trúc **Multi-tier Client-Server** kết hợp giữa Frontend Single Page Application (SPA), Backend RESTful Web API, Caching Layer, Object Storage và Hệ thống Crawler dữ liệu tự động.
+Nền tảng đọc và quản lý truyện tranh trực tuyến **TruyenKomi** được thiết kế theo kiến trúc **Multi-tier Client-Server** kết hợp giữa Frontend Single Page Application (SPA), Backend RESTful Web API, Caching Layer, Object Storage và Hệ thống Crawler dữ liệu tự động.
 
 ---
 
@@ -17,7 +17,7 @@ graph TD
     end
 
     subgraph Application Layer (.NET 10 Web API)
-        C[MangaFlux.API]
+        C[TruyenKomi.API]
         C1[Controllers]
         C2[Services Layer]
         C3[JWT Auth & Rate Limiter Middleware]
@@ -76,8 +76,8 @@ graph TD
 
 ### **Database, APM & Infrastructure**
 * **Primary Database:** Microsoft SQL Server.
-* **Caching Server:** Redis Server v7 (Chạy trên Container `mangaflux-redis`).
-* **Storage Server:** MinIO Object Storage (Chạy trên Container `mangaflux-minio`).
+* **Caching Server:** Redis Server v7 (Chạy trên Container `truyenkomi-redis`).
+* **Storage Server:** MinIO Object Storage (Chạy trên Container `truyenkomi-minio`).
 * **APM & Monitoring:** Prometheus v2.54.1 & Grafana v11.2.0 (`docker-compose.yml`).
 * **Containerization:** Docker & Docker Compose (`docker-compose.yml`).
 * **Edge Proxy:** Cloudflare Tunnel (`cloudflared`).
@@ -128,12 +128,12 @@ src/app/
 
 ---
 
-### 3.2. Backend Architecture (`backend/MangaFlux.API`)
+### 3.2. Backend Architecture (`backend/TruyenKomi.API`)
 
 Backend áp dụng mô hình **Layered Architecture (Controller - Service - Data/Repository)**:
 
 ```
-MangaFlux.API/
+TruyenKomi.API/
 ├── Controllers/         # API Endpoint Handlers
 │   ├── AuthController.cs                # Login, Register, RefreshToken, Logout
 │   ├── ComicsController.cs              # CRUD Comic, Chapters, Comments, Follow, Rating
@@ -245,7 +245,7 @@ sequenceDiagram
     participant Target as External Manga Site
     participant Sharp as Sharp Image Engine
     participant MinIO as MinIO Object Storage
-    participant API as MangaFlux API
+    participant API as TruyenKomi API
     participant DB as SQL Server
 
     Crawler->>Target: Fetch HTML / API truyện nguồn
@@ -286,11 +286,11 @@ sequenceDiagram
 docker-compose up -d
 ```
 * **Redis Cache:** `localhost:6379`
-* **MinIO Console:** `http://localhost:9001` (User: `mangaflux_admin`, Pass: `MangaFluxSecretPassword2026!`)
+* **MinIO Console:** `http://localhost:9001` (User: `truyenkomi_admin`, Pass: `TruyenKomiSecretPassword2026!`)
 
 ### **2. Khởi chạy Backend Web API (.NET 10)**
 ```bash
-cd backend/MangaFlux.API
+cd backend/TruyenKomi.API
 dotnet run --environment Production
 ```
 * Swagger UI: `http://localhost:5000/swagger`
@@ -310,4 +310,4 @@ node crawler.js
 ```
 
 ---
-*Tài liệu kiến trúc hệ thống MangaFlux - Cập nhật tự động 2026.*
+*Tài liệu kiến trúc hệ thống TruyenKomi - Cập nhật tự động 2026.*

@@ -10,6 +10,7 @@ bazel-out/
 .cache/
 .parcel-cache/
 .npm/
+.turbo/
 
 # Logs & Debugging
 *.log
@@ -18,6 +19,37 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 lerna-debug.log*
+
+# ==========================================
+# Python (Crawlers, GUI & Automation)
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.pytest_cache/
+*.egg-info/
+.installed.cfg
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ==========================================
+# Comic Downloader Outputs & Media Dumps
+# ==========================================
+downloads/
+temp_downloads/
+stitched_output/
+uploads/
+output/
+*.pdf
 
 # ==========================================
 # .NET / C# (Backend)
@@ -92,9 +124,23 @@ secrets.json
 *.crt
 
 # ==========================================
-# Docker / Containers
+# Docker / Containers / Databases Local Data
 # ==========================================
 docker-compose.override.yml
+dump.rdb
+mssql_data/
+redis_data/
+minio_data/
+data/
+*.sqlite
+*.sqlite3
+*.db
+*.db-shm
+*.db-wal
+*.mdf
+*.ldf
+*.ndf
+*.bak
 
 # ==========================================
 # IDEs & Editors
@@ -106,7 +152,7 @@ docker-compose.override.yml
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# JetBrains (Rider, WebStorm, IntelliJ)
+# JetBrains (Rider, WebStorm, IntelliJ, PyCharm)
 .idea/
 *.iml
 *.sln.iml
@@ -132,20 +178,7 @@ Thumbs.db:encryptable
 desktop.ini
 
 # ==========================================
-# Databases & Local Data Dumps
-# ==========================================
-*.sqlite
-*.sqlite3
-*.db
-*.db-shm
-*.db-wal
-*.mdf
-*.ldf
-*.ndf
-*.bak
-
-# ==========================================
-# Temp Files & Reports
+# Temp Files & Test Reports
 # ==========================================
 *.tmp
 *.temp

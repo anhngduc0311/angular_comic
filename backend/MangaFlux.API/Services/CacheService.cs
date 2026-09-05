@@ -7,7 +7,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
-namespace MangaFlux.API.Services
+namespace TruyenKomi.API.Services
 {
     public interface ICacheService
     {

@@ -1,7 +1,7 @@
 {
-  "name": "mangaflux-loadtests",
+  "name": "truyenkomi-loadtests",
   "version": "1.0.0",
-  "description": "Load Testing & Performance Benchmarking Suite for MangaFlux (1M Users Optimization)",
+  "description": "Load Testing & Performance Benchmarking Suite for TruyenKomi (1M Users Optimization)",
   "main": "autocannon-benchmark.js",
   "scripts": {
     "test:benchmark": "node autocannon-benchmark.js",
@@ -19,8 +19,8 @@
     "performance",
     "k6",
     "autocannon",
-    "mangaflux"
+    "truyenkomi"
   ],
-  "author": "MangaFlux Team",
+  "author": "TruyenKomi Team",
   "license": "MIT"
 }

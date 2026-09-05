@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MangaFlux.API.Models
+namespace TruyenKomi.API.Models
 {
     public class User
     {

@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Google.Apis.Auth;
-using MangaFlux.API.Data;
-using MangaFlux.API.DTOs;
-using MangaFlux.API.Models;
+using TruyenKomi.API.Data;
+using TruyenKomi.API.DTOs;
+using TruyenKomi.API.Models;
 
-namespace MangaFlux.API.Services
+namespace TruyenKomi.API.Services
 {
     public class AuthResult
     {
@@ -339,8 +339,8 @@ namespace MangaFlux.API.Services
             {
                 Subject = new ClaimsIdentity(claims),
                 Expires = DateTime.UtcNow.AddMinutes(30),
-                Issuer = jwtSettings["Issuer"] ?? "MangaFluxAPI",
-                Audience = jwtSettings["Audience"] ?? "MangaFluxClient",
+                Issuer = jwtSettings["Issuer"] ?? "TruyenKomiAPI",
+                Audience = jwtSettings["Audience"] ?? "TruyenKomiClient",
                 SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature)
             };
 

@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MangaFlux.API.Models
+namespace TruyenKomi.API.Models
 {
     public class Comic
     {
@@ -15,6 +15,8 @@ namespace MangaFlux.API.Models
         public string? OtherNames { get; set; }
         public string? Artist { get; set; }
         public string? Country { get; set; }
+        public string? TranslatorGroup { get; set; }
+        public string? AgeLimit { get; set; } = "13+";
         public int? ReleaseYear { get; set; }
         public string Status { get; set; } = "Ongoing"; // "Ongoing", "Completed"
         public int Views { get; set; } = 0;

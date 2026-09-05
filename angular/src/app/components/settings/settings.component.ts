@@ -135,7 +135,7 @@ export class SettingsComponent implements OnInit {
 
   // Theme Handling
   initTheme(): void {
-    const savedTheme = (localStorage.getItem('mangaflux_theme') as 'dark' | 'light') || 'dark';
+    const savedTheme = (localStorage.getItem('truyenkomi_theme') as 'dark' | 'light') || 'dark';
     this.setTheme(savedTheme);
   }
 
@@ -146,7 +146,7 @@ export class SettingsComponent implements OnInit {
 
   // Notification Preferences Handling
   initNotificationPrefs(): void {
-    const saved = localStorage.getItem('mangaflux_notif_prefs');
+    const saved = localStorage.getItem('truyenkomi_notif_prefs');
     if (saved) {
       try {
         this.notificationPrefs = JSON.parse(saved);
@@ -155,7 +155,7 @@ export class SettingsComponent implements OnInit {
   }
 
   saveNotificationPrefs(): void {
-    localStorage.setItem('mangaflux_notif_prefs', JSON.stringify(this.notificationPrefs));
+    localStorage.setItem('truyenkomi_notif_prefs', JSON.stringify(this.notificationPrefs));
     this.showMessage('Cài đặt thông báo đã được lưu!');
   }
 

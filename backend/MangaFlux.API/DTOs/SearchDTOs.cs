@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MangaFlux.API.DTOs
+namespace TruyenKomi.API.DTOs
 {
     public class SearchAutocompleteDto
     {

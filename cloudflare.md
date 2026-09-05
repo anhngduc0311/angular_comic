@@ -1,10 +1,10 @@
-# ☁️ Hướng Dẫn Tích Hợp Cloudflare CDN Cho Hệ Thống MangaFlux
+# ☁️ Hướng Dẫn Tích Hợp Cloudflare CDN Cho Hệ Thống TruyenKomi
 
 Tài liệu chi tiết cấu hình **Cloudflare CDN, Cloudflare Tunnel & Cloudflare R2** để phục vụ **1 triệu người dùng** đọc truyện với băng thông tối ưu và chi phí 0đ (Zero-Egress Fee).
 
 ---
 
-## 🎯 1. Tại Sao Cần Cloudflare CDN Cho MangaFlux?
+## 🎯 1. Tại Sao Cần Cloudflare CDN Cho TruyenKomi?
 
 Trong ứng dụng đọc truyện tranh:
 - 85% - 90% dung lượng truyền tải hệ thống nằm ở **Hình Ảnh Chapter (.webp, .jpg, .png)**.
@@ -40,7 +40,7 @@ Thay vì MinIO trên Server tự host (ngốn băng thông mạng), chuyển san
   "SecretKey": "<your_r2_secret_key>",
   "BucketName": "comics",
   "Secure": true,
-  "CdnBaseUrl": "https://cdn.mangaflux.com"
+  "CdnBaseUrl": "https://cdn.truyenkomi.com"
 }
 ```
 
@@ -79,7 +79,7 @@ Vào **Security** -> **WAF** -> **Rate limiting rules** -> Tạo các quy tắc 
 Vào **Security** -> **WAF** -> **Custom rules**:
 - **Expression:** `(http.user_agent contains "Scrapy" or http.user_agent contains "python-requests" or http.user_agent contains "Bytespider" or http.user_agent contains "sqlmap" or http.user_agent contains "wget" or http.user_agent eq "")`
 - **Action:** `Block` (Chặn đứng 100% các công cụ crawler cào truyện tự động trước khi chạm tới Server Backend).
-- **Hotlink Protection:** Bật **Scrape Shield** -> **Hotlink Protection** để ngăn chặn các website khác nhúng trộm link ảnh truyện từ hệ thống MangaFlux.
+- **Hotlink Protection:** Bật **Scrape Shield** -> **Hotlink Protection** để ngăn chặn các website khác nhúng trộm link ảnh truyện từ hệ thống TruyenKomi.
 
 ---
 
@@ -90,7 +90,7 @@ Cấu hình `docker-compose.yml` chạy ngầm Tunnel bảo mật kết nối Se
 ```yaml
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: mangaflux-cloudflared
+    container_name: truyenkomi-cloudflared
     restart: always
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
 ```
@@ -134,8 +134,8 @@ Nếu bạn sử dụng Cloudflare R2 gói miễn phí **10 GB dung lượng**:
        "Endpoint": "s3.us-east-005.backblazeb2.com",
        "AccessKey": "0050dfbf3919d500000000001",
        "SecretKey": "K005wTMv67F283/4QcZoy1JXYSBAGuM",
-       "BucketName": "mangaflux-b2",
-       "CdnBaseUrl": "https://cdn.mangaflux.com/mangaflux-b2"
+       "BucketName": "truyenkomi-b2",
+       "CdnBaseUrl": "https://cdn.truyenkomi.com/truyenkomi-b2"
      }
    }
 ---
@@ -153,19 +153,19 @@ Nếu bạn sử dụng Cloudflare R2 gói miễn phí **10 GB dung lượng**:
    - Copy **Access Key ID** (điền vào `AccessKey`) và **Secret Access Key** (điền vào `SecretKey`).
 4. **Lấy CdnBaseUrl (Custom Domain):**
    - Vào lại Bucket `comics` -> chọn tab **Settings** -> mục **Custom Domains** -> chọn **Connect Domain**.
-   - Nhập domain/subdomain của bạn (ví dụ: `cdn.mangaflux.com`) -> Chọn **Connect Domain**.
+   - Nhập domain/subdomain của bạn (ví dụ: `cdn.truyenkomi.com`) -> Chọn **Connect Domain**.
 
 ### B. Hướng Dẫn Lấy Thông Số Backblaze B2:
 1. **Tạo Bucket:** Đăng ký [Backblaze B2](https://www.backblaze.com/b2/cloud-storage.html) (10 GB miễn phí) -> Chọn **B2 Cloud Storage** -> **Buckets** -> **Create a Bucket**.
-   - Nhập tên: `mangaflux-b2` -> Chọn **Public** -> **Create**.
+   - Nhập tên: `truyenkomi-b2` -> Chọn **Public** -> **Create**.
 2. **Lấy Endpoint:** Xem trong chi tiết bucket vừa tạo, ví dụ: `s3.us-west-004.backblazeb2.com`.
 3. **Lấy Key ID & Application Key:**
    - Chọn menu **Application Keys** -> **Add a New Application Key**.
-   - Chọn bucket `mangaflux-b2`, quyền **Read and Write** -> bấm **Create**.
+   - Chọn bucket `truyenkomi-b2`, quyền **Read and Write** -> bấm **Create**.
    - Copy **keyID** (`<b2_key_id>`) và **applicationKey** (`<b2_application_key>`).
 
 ---
-*Tài liệu tích hợp Cloudflare CDN - MangaFlux 2026.*
+*Tài liệu tích hợp Cloudflare CDN - TruyenKomi 2026.*
 
 https://7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com
 Access Key ID

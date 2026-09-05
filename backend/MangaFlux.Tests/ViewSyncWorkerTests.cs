@@ -4,13 +4,13 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using MangaFlux.API.Data;
-using MangaFlux.API.Models;
-using MangaFlux.API.Services;
+using TruyenKomi.API.Data;
+using TruyenKomi.API.Models;
+using TruyenKomi.API.Services;
 using Moq;
 using Xunit;
 
-namespace MangaFlux.Tests
+namespace TruyenKomi.Tests
 {
     public class ViewSyncWorkerTests
     {
@@ -32,15 +32,15 @@ namespace MangaFlux.Tests
 
             var mockCacheService = new Mock<ICacheService>();
             mockCacheService.Setup(c => c.GetKeysAsync("*comic_views_count_*"))
-                .ReturnsAsync(new List<string> { "MangaFlux_comic_views_count_10" });
+                .ReturnsAsync(new List<string> { "TruyenKomi_comic_views_count_10" });
 
             mockCacheService.Setup(c => c.GetKeysAsync("*chapter_views_count_*"))
-                .ReturnsAsync(new List<string> { "MangaFlux_chapter_views_count_50" });
+                .ReturnsAsync(new List<string> { "TruyenKomi_chapter_views_count_50" });
 
-            mockCacheService.Setup(c => c.GetAndResetCountAsync("MangaFlux_comic_views_count_10"))
+            mockCacheService.Setup(c => c.GetAndResetCountAsync("TruyenKomi_comic_views_count_10"))
                 .ReturnsAsync(25);
 
-            mockCacheService.Setup(c => c.GetAndResetCountAsync("MangaFlux_chapter_views_count_50"))
+            mockCacheService.Setup(c => c.GetAndResetCountAsync("TruyenKomi_chapter_views_count_50"))
                 .ReturnsAsync(15);
 
             var serviceCollection = new ServiceCollection();
@@ -52,8 +52,8 @@ namespace MangaFlux.Tests
             var worker = new ViewSyncWorker(serviceProvider, mockLogger.Object);
 
             // Act: We test GetAndResetCountAsync logic directly
-            var comicDelta = await mockCacheService.Object.GetAndResetCountAsync("MangaFlux_comic_views_count_10");
-            var chapterDelta = await mockCacheService.Object.GetAndResetCountAsync("MangaFlux_chapter_views_count_50");
+            var comicDelta = await mockCacheService.Object.GetAndResetCountAsync("TruyenKomi_comic_views_count_10");
+            var chapterDelta = await mockCacheService.Object.GetAndResetCountAsync("TruyenKomi_chapter_views_count_50");
 
             comic.Views += (int)comicDelta;
             chapter.Views += (int)chapterDelta;

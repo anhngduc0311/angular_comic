@@ -4,11 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using MangaFlux.API.Data;
-using MangaFlux.API.DTOs;
-using MangaFlux.API.Models;
+using TruyenKomi.API.Data;
+using TruyenKomi.API.DTOs;
+using TruyenKomi.API.Models;
 
-namespace MangaFlux.API.Services
+namespace TruyenKomi.API.Services
 {
     public interface IComicService
     {
@@ -27,6 +27,7 @@ namespace MangaFlux.API.Services
         Task<DashboardStatsDto> GetDashboardStatsAsync();
         Task<ComicDto> CreateComicAsync(ComicCreateUpdateDto dto);
         Task<ComicDto?> UpdateComicAsync(int id, ComicCreateUpdateDto dto);
+        Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage);
         Task<bool> ToggleComicVisibilityAsync(int id);
         Task<bool> DeleteComicAsync(int id);
         Task<List<ChapterDetailDto>> GetAdminChaptersByComicIdAsync(int comicId);
@@ -183,12 +184,16 @@ namespace MangaFlux.API.Services
                 OtherNames = comic.OtherNames,
                 Artist = comic.Artist,
                 Country = comic.Country,
+                TranslatorGroup = comic.TranslatorGroup ?? "Đang cập nhật",
+                AgeLimit = string.IsNullOrWhiteSpace(comic.AgeLimit) ? "13+" : comic.AgeLimit,
                 ReleaseYear = comic.ReleaseYear,
                 Status = comic.Status,
                 Views = comic.Views,
                 Rating = comic.Rating,
                 IsFeatured = comic.IsFeatured,
                 IsPublic = comic.IsPublic,
+                TotalChapters = comic.Chapters?.Count ?? 0,
+                CreatedAt = comic.CreatedAt,
                 UpdatedAt = comic.UpdatedAt,
                 Categories = comic.ComicCategories.Select(cc => new CategoryDto
                 {
@@ -466,6 +471,8 @@ namespace MangaFlux.API.Services
                 OtherNames = dto.OtherNames,
                 Artist = dto.Artist,
                 Country = dto.Country,
+                TranslatorGroup = dto.TranslatorGroup ?? "Đang cập nhật",
+                AgeLimit = string.IsNullOrWhiteSpace(dto.AgeLimit) ? "13+" : dto.AgeLimit,
                 ReleaseYear = dto.ReleaseYear,
                 Status = dto.Status,
                 IsFeatured = dto.IsFeatured,
@@ -509,6 +516,8 @@ namespace MangaFlux.API.Services
             comic.OtherNames = dto.OtherNames;
             comic.Artist = dto.Artist;
             comic.Country = dto.Country;
+            if (!string.IsNullOrWhiteSpace(dto.TranslatorGroup)) comic.TranslatorGroup = dto.TranslatorGroup;
+            if (!string.IsNullOrWhiteSpace(dto.AgeLimit)) comic.AgeLimit = dto.AgeLimit;
             comic.ReleaseYear = dto.ReleaseYear;
             comic.Status = dto.Status;
             comic.IsFeatured = dto.IsFeatured;
@@ -524,6 +533,48 @@ namespace MangaFlux.API.Services
             await _context.SaveChangesAsync();
             await InvalidateComicCacheAsync(comic.Slug);
             return MapToComicDto(comic);
+        }
+
+        public async Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage)
+        {
+            var comic = await _context.Comics.FindAsync(comicId);
+            if (comic == null) return false;
+
+            bool changed = false;
+            if (!string.IsNullOrWhiteSpace(author) && author != "Đang cập nhật" && (comic.Author == "Đang cập nhật" || string.IsNullOrWhiteSpace(comic.Author) || comic.Author != author))
+            {
+                comic.Author = author;
+                changed = true;
+            }
+            if (!string.IsNullOrWhiteSpace(translatorGroup) && translatorGroup != "Đang cập nhật" && (comic.TranslatorGroup == "Đang cập nhật" || string.IsNullOrWhiteSpace(comic.TranslatorGroup) || comic.TranslatorGroup != translatorGroup))
+            {
+                comic.TranslatorGroup = translatorGroup;
+                changed = true;
+            }
+            if (!string.IsNullOrWhiteSpace(otherNames) && otherNames != "Đang cập nhật" && (comic.OtherNames == "Đang cập nhật" || string.IsNullOrWhiteSpace(comic.OtherNames) || comic.OtherNames != otherNames))
+            {
+                comic.OtherNames = otherNames;
+                changed = true;
+            }
+            if (!string.IsNullOrWhiteSpace(ageLimit) && comic.AgeLimit != ageLimit)
+            {
+                comic.AgeLimit = ageLimit;
+                changed = true;
+            }
+            if (!string.IsNullOrWhiteSpace(coverImage) && (string.IsNullOrWhiteSpace(comic.CoverImage) || comic.CoverImage != coverImage))
+            {
+                comic.CoverImage = coverImage;
+                comic.BannerImage = coverImage;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                comic.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                await InvalidateComicCacheAsync(comic.Slug);
+            }
+            return true;
         }
 
         public async Task<bool> ToggleComicVisibilityAsync(int id)
@@ -1056,12 +1107,16 @@ namespace MangaFlux.API.Services
                 OtherNames = c.OtherNames,
                 Artist = c.Artist,
                 Country = c.Country,
+                TranslatorGroup = c.TranslatorGroup ?? "Đang cập nhật",
+                AgeLimit = string.IsNullOrWhiteSpace(c.AgeLimit) ? "13+" : c.AgeLimit,
                 ReleaseYear = c.ReleaseYear,
                 Status = c.Status,
                 Views = c.Views,
                 Rating = c.Rating,
                 IsFeatured = c.IsFeatured,
                 IsPublic = c.IsPublic,
+                TotalChapters = c.Chapters?.Count ?? 0,
+                CreatedAt = c.CreatedAt,
                 UpdatedAt = c.UpdatedAt,
                 Categories = c.ComicCategories?.Select(cc => new CategoryDto
                 {

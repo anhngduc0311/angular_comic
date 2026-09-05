@@ -1,6 +1,6 @@
 /**
- * MangaFlux High-Concurrency Benchmark Suite (Node.js Autocannon)
- * Simulates high-throughput load on MangaFlux API & Redis Cache.
+ * TruyenKomi High-Concurrency Benchmark Suite (Node.js Autocannon)
+ * Simulates high-throughput load on TruyenKomi API & Redis Cache.
  */
 
 const http = require('http');
@@ -81,7 +81,7 @@ async function runScenario(scenario) {
       pipelining: scenario.pipelining || 1,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'MangaFlux-Benchmark-Agent/1.0'
+        'User-Agent': 'TruyenKomi-Benchmark-Agent/1.0'
       }
     }, (err, result) => {
       if (err) return reject(err);
@@ -94,7 +94,7 @@ async function runScenario(scenario) {
 
 function printSummaryTable(results) {
   console.log('\n\n========================================================================================');
-  console.log('📊 MANGAFLUX LOAD TESTING & BENCHMARK SUMMARY REPORT');
+  console.log('📊 TRUYENKOMI LOAD TESTING & BENCHMARK SUMMARY REPORT');
   console.log('========================================================================================');
   console.table(results.map(r => {
     const p50 = r.latency && (r.latency.p50 ?? r.latency.p50_0 ?? r.latency.average ?? 0);
@@ -123,7 +123,7 @@ function printSummaryTable(results) {
 }
 
 async function main() {
-  console.log('⚡ MangaFlux System Load Testing & Optimization Verification Suite');
+  console.log('⚡ TruyenKomi System Load Testing & Optimization Verification Suite');
   console.log(`🔍 Checking API connectivity at ${BASE_URL}/health ...`);
 
   const isAlive = await checkServerAlive(`${BASE_URL}/health`);

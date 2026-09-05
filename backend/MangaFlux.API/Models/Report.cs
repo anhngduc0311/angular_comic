@@ -1,6 +1,6 @@
 using System;
 
-namespace MangaFlux.API.Models
+namespace TruyenKomi.API.Models
 {
     public class Report
     {

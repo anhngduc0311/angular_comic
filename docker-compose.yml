@@ -3,12 +3,12 @@ version: '3.8'
 services:
   sqlserver:
     image: mcr.microsoft.com/azure-sql-edge:latest
-    container_name: mangaflux-sqlserver
+    container_name: truyenkomi-sqlserver
     ports:
       - "1433:1433"
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=MangaFluxDbPassword2026!
+      - MSSQL_SA_PASSWORD=TruyenKomiDbPassword2026!
       - MSSQL_PID=Developer
     restart: always
     volumes:
@@ -17,7 +17,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: mangaflux-redis
+    container_name: truyenkomi-redis
     ports:
       - "6379:6379"
     restart: always
@@ -26,10 +26,10 @@ services:
 
   minio:
     image: minio/minio:latest
-    container_name: mangaflux-minio
+    container_name: truyenkomi-minio
     environment:
-      MINIO_ROOT_USER: "mangaflux_admin"
-      MINIO_ROOT_PASSWORD: "MangaFluxSecretPassword2026!"
+      MINIO_ROOT_USER: "truyenkomi_admin"
+      MINIO_ROOT_PASSWORD: "TruyenKomiSecretPassword2026!"
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
@@ -40,7 +40,7 @@ services:
 
   nginx:
     image: nginx:alpine
-    container_name: mangaflux-nginx
+    container_name: truyenkomi-nginx
     ports:
       - "8080:80"
     restart: always
@@ -54,7 +54,7 @@ services:
 
   cloudflared:
     image: cloudflare/cloudflared:latest
-    container_name: mangaflux-cloudflared
+    container_name: truyenkomi-cloudflared
     profiles: ["tunnel"]
     restart: always
     environment:
@@ -67,7 +67,7 @@ services:
 
   prometheus:
     image: prom/prometheus:v2.54.1
-    container_name: mangaflux-prometheus
+    container_name: truyenkomi-prometheus
     restart: always
     ports:
       - "9090:9090"
@@ -83,7 +83,7 @@ services:
 
   grafana:
     image: grafana/grafana:11.2.0
-    container_name: mangaflux-grafana
+    container_name: truyenkomi-grafana
     restart: always
     ports:
       - "3000:3000"
@@ -101,11 +101,11 @@ services:
 
   meilisearch:
     image: getmeili/meilisearch:v1.10
-    container_name: mangaflux-meilisearch
+    container_name: truyenkomi-meilisearch
     ports:
       - "7700:7700"
     environment:
-      - MEILI_MASTER_KEY=MangaFluxMeiliMasterKey2026!
+      - MEILI_MASTER_KEY=TruyenKomiMeiliMasterKey2026!
       - MEILI_ENV=production
       - MEILI_NO_ANALYTICS=true
     restart: always

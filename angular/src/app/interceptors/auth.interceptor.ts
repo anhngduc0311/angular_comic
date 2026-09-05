@@ -9,7 +9,7 @@ let isRefreshing = false;
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
-  const token = localStorage.getItem('mangaflux_token');
+  const token = localStorage.getItem('truyenkomi_token');
 
   let authReq = req.clone({
     withCredentials: true
@@ -35,7 +35,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
           return authService.refreshToken().pipe(
             switchMap((user) => {
               isRefreshing = false;
-              const newToken = user?.token || localStorage.getItem('mangaflux_token');
+              const newToken = user?.token || localStorage.getItem('truyenkomi_token');
               const retryReq = req.clone({
                 setHeaders: {
                   Authorization: `Bearer ${newToken}`

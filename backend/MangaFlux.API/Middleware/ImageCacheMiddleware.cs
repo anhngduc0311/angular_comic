@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 
-namespace MangaFlux.API.Middleware
+namespace TruyenKomi.API.Middleware
 {
     public class ImageCacheMiddleware
     {

@@ -1,18 +1,18 @@
 -- ============================================================================
--- MANGAFLUX DATABASE CREATION SCRIPT (SQL SERVER)
+-- TRUYENKOMI DATABASE CREATION SCRIPT (SQL SERVER)
 -- ============================================================================
 
-IF DB_ID('MangaFluxDb') IS NOT NULL
+IF DB_ID('TruyenKomiDb') IS NOT NULL
 BEGIN
-    ALTER DATABASE MangaFluxDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE MangaFluxDb;
+    ALTER DATABASE TruyenKomiDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE TruyenKomiDb;
 END
 GO
 
-CREATE DATABASE MangaFluxDb;
+CREATE DATABASE TruyenKomiDb;
 GO
 
-USE MangaFluxDb;
+USE TruyenKomiDb;
 GO
 
 -- 1. Table: Users

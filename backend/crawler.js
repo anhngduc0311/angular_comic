@@ -216,9 +216,9 @@ async function optimizeImageToWebP(inputBuffer, maxWidthTarget = 1920, quality =
 }
 
 // -------------------------------------------------------------
-// 3. Image Merging Engine (4-in-1 Vertical Stitching with Sharp)
+// 3. Image Merging Engine (5-in-1 Vertical Stitching with Sharp)
 // -------------------------------------------------------------
-async function mergeImageBuffers(pageBuffers, groupSize = 4, threshold = 70) {
+async function mergeImageBuffers(pageBuffers, groupSize = 5, threshold = 70) {
   if (pageBuffers.length < threshold) {
     return pageBuffers;
   }
@@ -579,15 +579,40 @@ async function scrapeComicInfo(comicUrl) {
     }
   }
 
+  // Metadata extraction (Tác giả, Nhóm dịch, Tên khác, Độ tuổi)
+  let author = 'Đang cập nhật';
+  let translatorGroup = 'Đang cập nhật';
+  let otherNames = 'Đang cập nhật';
+  let ageLimit = '13+';
+
+  const cleanText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+
+  const authMatch = cleanText.match(/Tác giả\s*[:：]?\s*([^\n\r]+?)\s+(?:Lượt xem|Cập nhật|Nhóm dịch|Tổng số|Thể loại)/i) ||
+                    cleanText.match(/sáng tác bởi\s+([^,.]+)/i);
+  if (authMatch && authMatch[1]) author = authMatch[1].trim();
+
+  const transMatch = cleanText.match(/Nhóm dịch\s*[:：]?\s*([^\n\r]+?)\s+(?:Tổng số chap|Ngày tạo|Tên khác|Độ tuổi|Loại|Trạng thái|Thể loại)/i) ||
+                     cleanText.match(/chuyển ngữ bởi\s+([^,.]+)/i) ||
+                     cleanText.match(/Bản dịch từ\s+([^,.]+)/i);
+  if (transMatch && transMatch[1]) translatorGroup = transMatch[1].trim();
+
+  const otherMatch = cleanText.match(/Tên khác\s*[:：]?\s*([^\n\r]+?)\s+(?:Độ tuổi|Loại|Trạng thái|Thể loại)/i);
+  if (otherMatch && otherMatch[1]) otherNames = otherMatch[1].trim();
+
+  const ageMatch = cleanText.match(/Độ tuổi\s*[:：]?\s*([^\n\r]+?)\s+(?:Loại|Trạng thái|Thể loại)/i);
+  if (ageMatch && ageMatch[1]) ageLimit = ageMatch[1].trim();
+
   // Sort ascending by chapterNumber
   chapters.sort((a, b) => a.chapterNumber - b.chapterNumber);
 
   console.log(`📌 Tên bộ truyện: ${title}`);
   console.log(`📌 Slug: ${slug}`);
+  console.log(`📌 Tác giả: ${author}`);
+  console.log(`📌 Nhóm dịch: ${translatorGroup}`);
   console.log(`📌 Ảnh bìa gốc: ${coverUrl}`);
   console.log(`📚 Tổng số chapter phát hiện: ${chapters.length} chương (Chương ${chapters[0]?.chapterNumber || 1} -> Chương ${chapters[chapters.length - 1]?.chapterNumber || chapters.length})\n`);
 
-  return { title, slug, coverUrl, chapters };
+  return { title, slug, coverUrl, author, translatorGroup, otherNames, ageLimit, chapters };
 }
 
 async function scrapeChapterImages(engine, chapterUrl) {
@@ -681,7 +706,7 @@ async function startCrawler() {
   }
 
   console.log('========================================================================');
-  console.log(`🚀 MANGAFLUX ANTI-SCRAPING CRAWLER ENGINE (AUTOMATIC MULTI-CHAPTER)`);
+  console.log(`🚀 TRUYENKOMI ANTI-SCRAPING CRAWLER ENGINE (AUTOMATIC MULTI-CHAPTER)`);
   console.log('========================================================================\n');
 
   // Initialize Storage with Cloudflare R2 Time-Offset Sync
@@ -691,7 +716,7 @@ async function startCrawler() {
 
   // 1. Scrape Comic Information
   const comicInfo = await scrapeComicInfo(comicUrl);
-  const { title, slug, coverUrl, chapters } = comicInfo;
+  const { title, slug, coverUrl, author, translatorGroup, otherNames, ageLimit, chapters } = comicInfo;
   const cleanTitle = title.replace(/\s*\|\s*ZetTruyen/i, '').replace(/\s*-\s*ZetTruyen/i, '').replace(/\s*-\s*truyencanh3/i, '').trim();
 
   // Filter chapters if requested
@@ -742,8 +767,8 @@ async function startCrawler() {
         continue;
       }
 
-      // Merge 4 images into 1 if >= 70 pages (using sharp high quality vertical stitching)
-      pageBuffers = await mergeImageBuffers(pageBuffers, 4, 70);
+      // Merge 5 images into 1 if >= 70 pages (using sharp high quality vertical stitching)
+      pageBuffers = await mergeImageBuffers(pageBuffers, 5, 70);
 
       // Parallel upload to MinIO/R2 in batches of 15 (WebP Optimized)
       const minioPages = [];
@@ -760,7 +785,7 @@ async function startCrawler() {
       }
 
       // Synchronize with API
-      const importUrl = `${API_BASE_URL}/comics/import-scraped?comicTitle=${encodeURIComponent(cleanTitle)}&comicSlug=${encodeURIComponent(slug)}&coverImage=${encodeURIComponent(finalCoverUrl)}`;
+      const importUrl = `${API_BASE_URL}/comics/import-scraped?comicTitle=${encodeURIComponent(cleanTitle)}&comicSlug=${encodeURIComponent(slug)}&coverImage=${encodeURIComponent(finalCoverUrl)}&author=${encodeURIComponent(author || 'Đang cập nhật')}&translatorGroup=${encodeURIComponent(translatorGroup || 'Đang cập nhật')}&otherNames=${encodeURIComponent(otherNames || 'Đang cập nhật')}&ageLimit=${encodeURIComponent(ageLimit || '13+')}`;
       const chapterPayload = {
         comicId: 0,
         chapterNumber: chapNum,

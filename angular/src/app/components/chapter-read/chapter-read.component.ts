@@ -118,7 +118,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
 
   loadSavedPinState(): void {
-    const savedPin = localStorage.getItem('mangaflux_reader_pinned');
+    const savedPin = localStorage.getItem('truyenkomi_reader_pinned');
     this.isPinned = savedPin === 'true';
   }
 
@@ -127,7 +127,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     if (this.isPinned) {
       this.isHeaderHidden = false;
     }
-    localStorage.setItem('mangaflux_reader_pinned', this.isPinned.toString());
+    localStorage.setItem('truyenkomi_reader_pinned', this.isPinned.toString());
   }
 
   toggleFullscreen(): void {
@@ -153,7 +153,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   }
 
   checkHintVisibility(): void {
-    const hasSeenHint = localStorage.getItem('mangaflux_seen_zen_hint');
+    const hasSeenHint = localStorage.getItem('truyenkomi_seen_zen_hint');
     if (!hasSeenHint) {
       this.showHint = true;
       setTimeout(() => {
@@ -167,11 +167,11 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
       event.stopPropagation();
     }
     this.showHint = false;
-    localStorage.setItem('mangaflux_seen_zen_hint', 'true');
+    localStorage.setItem('truyenkomi_seen_zen_hint', 'true');
   }
 
   loadSavedAutoScrollSpeed(): void {
-    const savedSpeed = localStorage.getItem('mangaflux_autoscroll_speed');
+    const savedSpeed = localStorage.getItem('truyenkomi_autoscroll_speed');
     if (savedSpeed !== null) {
       const parsed = parseInt(savedSpeed, 10);
       if (!isNaN(parsed) && parsed >= 1 && parsed <= 4) {
@@ -225,11 +225,11 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   setAutoScrollSpeed(speed: number): void {
     this.autoScrollSpeed = speed;
-    localStorage.setItem('mangaflux_autoscroll_speed', speed.toString());
+    localStorage.setItem('truyenkomi_autoscroll_speed', speed.toString());
   }
 
   loadSavedZoom(): void {
-    const savedZoom = localStorage.getItem('mangaflux_reader_zoom');
+    const savedZoom = localStorage.getItem('truyenkomi_reader_zoom');
     if (savedZoom !== null) {
       const parsed = parseInt(savedZoom, 10);
       if (!isNaN(parsed)) {
@@ -240,7 +240,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   setZoomWidth(width: number): void {
     this.zoomWidth = width;
-    localStorage.setItem('mangaflux_reader_zoom', width.toString());
+    localStorage.setItem('truyenkomi_reader_zoom', width.toString());
   }
 
   zoomIn(): void {
@@ -298,7 +298,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
       if (this.saveScrollTimeout) clearTimeout(this.saveScrollTimeout);
       this.saveScrollTimeout = setTimeout(() => {
         if (this.chapter) {
-          localStorage.setItem(`mangaflux_scroll_${this.chapter.id}`, currentScrollY.toString());
+          localStorage.setItem(`truyenkomi_scroll_${this.chapter.id}`, currentScrollY.toString());
         }
       }, 300);
     }
@@ -417,7 +417,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     if (!chId || !this.chapter) return;
     const ch = this.chapter.allChapters.find(c => c.id === chId);
     if (ch && this.chapter.comicSlug) {
-      this.router.navigate(['/', this.chapter.comicSlug, `chuong-${ch.chapterNumber}`]);
+      this.router.navigate(['/read', this.chapter.comicSlug, `chuong-${ch.chapterNumber}`]);
     } else {
       this.router.navigate(['/read', chId]);
     }
@@ -427,13 +427,13 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     if (!chId || !this.chapter) return ['/404'];
     const ch = this.chapter.allChapters.find(c => c.id === chId);
     if (ch && this.chapter.comicSlug) {
-      return ['/', this.chapter.comicSlug, `chuong-${ch.chapterNumber}`];
+      return ['/read', this.chapter.comicSlug, `chuong-${ch.chapterNumber}`];
     }
     return ['/read', chId];
   }
 
   restoreReadingPosition(chapterId: number): void {
-    const savedScroll = localStorage.getItem(`mangaflux_scroll_${chapterId}`);
+    const savedScroll = localStorage.getItem(`truyenkomi_scroll_${chapterId}`);
     if (savedScroll && +savedScroll > 150) {
       setTimeout(() => {
         window.scrollTo({ top: +savedScroll, behavior: 'instant' });

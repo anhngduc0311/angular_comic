@@ -3,10 +3,10 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using MangaFlux.API.DTOs;
-using MangaFlux.API.Services;
+using TruyenKomi.API.DTOs;
+using TruyenKomi.API.Services;
 
-namespace MangaFlux.API.Controllers
+namespace TruyenKomi.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -68,7 +68,7 @@ namespace MangaFlux.API.Controllers
         [HttpPost("refresh-token")]
         public async Task<IActionResult> RefreshToken()
         {
-            var refreshToken = Request.Cookies["mangaflux_refresh_token"];
+            var refreshToken = Request.Cookies["truyenkomi_refresh_token"];
             if (string.IsNullOrEmpty(refreshToken))
             {
                 return Unauthorized(new { message = "Không tìm thấy Refresh Token." });
@@ -88,7 +88,7 @@ namespace MangaFlux.API.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            var refreshToken = Request.Cookies["mangaflux_refresh_token"];
+            var refreshToken = Request.Cookies["truyenkomi_refresh_token"];
             if (!string.IsNullOrEmpty(refreshToken))
             {
                 await _authService.RevokeRefreshTokenAsync(refreshToken);
@@ -108,12 +108,12 @@ namespace MangaFlux.API.Controllers
                 Secure = Request.IsHttps,
                 Path = "/api/auth"
             };
-            Response.Cookies.Append("mangaflux_refresh_token", refreshToken, cookieOptions);
+            Response.Cookies.Append("truyenkomi_refresh_token", refreshToken, cookieOptions);
         }
 
         private void ClearRefreshTokenCookie()
         {
-            Response.Cookies.Delete("mangaflux_refresh_token", new CookieOptions
+            Response.Cookies.Delete("truyenkomi_refresh_token", new CookieOptions
             {
                 HttpOnly = true,
                 SameSite = SameSiteMode.Lax,

@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Minio;
 using Minio.DataModel.Args;
 
-namespace MangaFlux.API.Services
+namespace TruyenKomi.API.Services
 {
     public interface IStorageService
     {
@@ -32,8 +32,8 @@ namespace MangaFlux.API.Services
 
             // Primary Provider (Cloudflare R2 or MinIO)
             var endpoint = Environment.GetEnvironmentVariable("R2_ENDPOINT") ?? config["Minio:Endpoint"] ?? "localhost:9000";
-            var accessKey = Environment.GetEnvironmentVariable("R2_ACCESS_KEY") ?? config["Minio:AccessKey"] ?? "mangaflux_admin";
-            var secretKey = Environment.GetEnvironmentVariable("R2_SECRET_KEY") ?? config["Minio:SecretKey"] ?? "MangaFluxSecretPassword2026!";
+            var accessKey = Environment.GetEnvironmentVariable("R2_ACCESS_KEY") ?? config["Minio:AccessKey"] ?? "truyenkomi_admin";
+            var secretKey = Environment.GetEnvironmentVariable("R2_SECRET_KEY") ?? config["Minio:SecretKey"] ?? "TruyenKomiSecretPassword2026!";
             _primaryBucket = Environment.GetEnvironmentVariable("R2_BUCKET_NAME") ?? config["Minio:BucketName"] ?? "comics";
             _primaryCdnUrl = Environment.GetEnvironmentVariable("R2_CDN_BASE_URL") ?? config["Minio:CdnBaseUrl"] ?? "https://hypermmo.site";
             var secureStr = Environment.GetEnvironmentVariable("R2_SECURE") ?? config["Minio:Secure"];
@@ -51,7 +51,7 @@ namespace MangaFlux.API.Services
             {
                 var secAccessKey = Environment.GetEnvironmentVariable("B2_ACCESS_KEY") ?? config["Minio:Secondary:AccessKey"] ?? "";
                 var secSecretKey = Environment.GetEnvironmentVariable("B2_SECRET_KEY") ?? config["Minio:Secondary:SecretKey"] ?? "";
-                _secondaryBucket = Environment.GetEnvironmentVariable("B2_BUCKET_NAME") ?? config["Minio:Secondary:BucketName"] ?? "mangaflux-b2";
+                _secondaryBucket = Environment.GetEnvironmentVariable("B2_BUCKET_NAME") ?? config["Minio:Secondary:BucketName"] ?? "truyenkomi-b2";
                 _secondaryCdnUrl = Environment.GetEnvironmentVariable("B2_CDN_BASE_URL") ?? config["Minio:Secondary:CdnBaseUrl"] ?? ("https://f005.backblazeb2.com/file/" + _secondaryBucket);
                 var secSecureStr = Environment.GetEnvironmentVariable("B2_SECURE") ?? config["Minio:Secondary:Secure"];
                 var secSecure = !bool.TryParse(secSecureStr, out var ss) || ss;

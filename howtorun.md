@@ -1,6 +1,6 @@
-# 🚀 Hướng Dẫn Khởi Chạy Dự Án MangaFlux (How to Run)
+# 🚀 Hướng Dẫn Khởi Chạy Dự Án TruyenKomi (How to Run)
 
-Tài liệu hướng dẫn chi tiết các bước thiết lập môi trường và khởi chạy toàn bộ hệ thống nền tảng truyện tranh **MangaFlux** (bao gồm: Hạ tầng Docker, Backend .NET API, Frontend Angular, Crawler Engine và Hệ thống Giám sát).
+Tài liệu hướng dẫn chi tiết các bước thiết lập môi trường và khởi chạy toàn bộ hệ thống nền tảng truyện tranh **TruyenKomi** (bao gồm: Hạ tầng Docker, Backend .NET API, Frontend Angular, Crawler Engine và Hệ thống Giám sát).
 
 ---
 
@@ -26,7 +26,7 @@ docker-compose up -d
 ```
 
 > **Các dịch vụ container được khởi động:**
-> - **SQL Server**: Port `1433` (Database `MangaFluxDb`, user: `sa`, password: `MangaFluxDbPassword2026!`)
+> - **SQL Server**: Port `1433` (Database `TruyenKomiDb`, user: `sa`, password: `TruyenKomiDbPassword2026!`)
 > - **Redis Cache**: Port `6379` (Caching dữ liệu & Rate Limiting)
 > - **MinIO Object Storage**: Port `9000` (S3 API) & Port `9001` (Web Management Console)
 > - **Meilisearch**: Port `7700` (Công cụ tìm kiếm Full-text search tốc độ cao)
@@ -45,7 +45,7 @@ docker-compose ps
 Mở một cửa sổ Terminal mới:
 
 ```bash
-cd backend/MangaFlux.API
+cd backend/TruyenKomi.API
 dotnet run
 ```
 *(Hoặc chạy với môi trường Production nếu muốn tối ưu: `dotnet run --environment Production`)*
@@ -113,11 +113,11 @@ C:\cloudflare\cloudflared.exe --config "C:\Users\ADMIN\.cloudflared\config.yml" 
 | :--- | :--- | :--- | :--- |
 | **Giao diện Web (Angular)** | [http://localhost:4200](http://localhost:4200) | `admin` | `admin123` |
 | **Backend Swagger API** | [http://localhost:5000/swagger](http://localhost:5000/swagger) | - | - |
-| **MinIO Console (Storage)** | [http://localhost:9001](http://localhost:9001) | `mangaflux_admin` | `MangaFluxSecretPassword2026!` |
+| **MinIO Console (Storage)** | [http://localhost:9001](http://localhost:9001) | `truyenkomi_admin` | `TruyenKomiSecretPassword2026!` |
 | **Grafana APM Dashboard** | [http://localhost:3000](http://localhost:3000) | `admin` | `admin` |
 | **Prometheus Metrics** | [http://localhost:9090](http://localhost:9090) | - | - |
-| **Meilisearch Search Engine** | [http://localhost:7700](http://localhost:7700) | Master Key | `MangaFluxMeiliMasterKey2026!` |
-| **SQL Server Database** | `localhost:1433` | `sa` | `MangaFluxDbPassword2026!` |
+| **Meilisearch Search Engine** | [http://localhost:7700](http://localhost:7700) | Master Key | `TruyenKomiMeiliMasterKey2026!` |
+| **SQL Server Database** | `localhost:1433` | `sa` | `TruyenKomiDbPassword2026!` |
 
 ---
 
@@ -131,14 +131,14 @@ echo [1/3] Dang khoi dong Docker Containers...
 docker-compose up -d
 
 echo [2/3] Dang khoi dong Backend API...
-start "MangaFlux Backend" cmd /k "cd backend\MangaFlux.API && dotnet run"
+start "TruyenKomi Backend" cmd /k "cd backend\TruyenKomi.API && dotnet run"
 
 echo [3/3] Dang khoi dong Frontend Angular...
-start "MangaFlux Frontend" cmd /k "cd angular && npm start"
+start "TruyenKomi Frontend" cmd /k "cd angular && npm start"
 
 echo.
 echo ==============================================
-echo  He thong MangaFlux dang khoi dong thanh cong!
+echo  He thong TruyenKomi dang khoi dong thanh cong!
 echo  Frontend: http://localhost:4200
 echo  Backend:  http://localhost:5000/swagger
 echo ==============================================

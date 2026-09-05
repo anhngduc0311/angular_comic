@@ -1,9 +1,9 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using MangaFlux.API.Services;
+using TruyenKomi.API.Services;
 
-namespace MangaFlux.API.Controllers
+namespace TruyenKomi.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

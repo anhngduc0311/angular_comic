@@ -20,7 +20,7 @@ import { FormsModule } from '@angular/forms';
 
         <h1>Hệ Thống Đang Được Nâng Cấp!</h1>
         <p class="desc-text">
-          MangaFlux đang tiến hành nâng cấp máy chủ và tối ưu hóa hệ thống để mang lại trải nghiệm đọc truyện tuyệt vời hơn. 
+          TruyenKomi đang tiến hành nâng cấp máy chủ và tối ưu hóa hệ thống để mang lại trải nghiệm đọc truyện tuyệt vời hơn. 
           Chúng tôi sẽ quay trở lại ngay lập tức!
         </p>
 

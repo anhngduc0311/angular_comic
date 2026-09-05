@@ -35,7 +35,7 @@ import { Comic } from '../../models/comic.model';
       <div class="recommended-section" *ngIf="recommendedComics.length > 0">
         <div class="section-title text-left">
           <h2><i class="fa-solid fa-fire text-danger"></i> Gợi Ý Truyện HOT Đang Được Đọc Nhiều</h2>
-          <p>Khám phá ngay những bộ truyện hấp dẫn khác trên MangaFlux</p>
+          <p>Khám phá ngay những bộ truyện hấp dẫn khác trên TruyenKomi</p>
         </div>
 
         <div class="comics-grid">

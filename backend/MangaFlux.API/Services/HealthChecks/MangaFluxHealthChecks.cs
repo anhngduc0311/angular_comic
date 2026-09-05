@@ -4,9 +4,9 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using StackExchange.Redis;
-using MangaFlux.API.Data;
+using TruyenKomi.API.Data;
 
-namespace MangaFlux.API.Services.HealthChecks
+namespace TruyenKomi.API.Services.HealthChecks
 {
     public class SqlServerHealthCheck : IHealthCheck
     {

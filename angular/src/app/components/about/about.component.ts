@@ -11,11 +11,11 @@ import { RouterLink } from '@angular/router';
       <!-- Hero Section -->
       <div class="about-hero bg-glass">
         <div class="hero-badge">
-          <i class="fa-solid fa-bolt text-primary"></i> Về MangaFlux
+          <i class="fa-solid fa-bolt text-primary"></i> Về TruyenKomi
         </div>
         <h1 class="hero-title">Trải Nghiệm Đọc Truyện Tranh <span class="text-gradient">Đỉnh Cao</span> & <span class="text-gradient">Miễn Phí</span></h1>
         <p class="hero-desc">
-          MangaFlux được xây dựng với mục tiêu mang đến cho cộng đồng yêu thích Manga, Manhwa, Manhua nền tảng đọc truyện mượt mà nhất, không bị quấy rầy bởi quảng cáo độc hại và tốc độ tải trang tức thì.
+          TruyenKomi được xây dựng với mục tiêu mang đến cho cộng đồng yêu thích Manga, Manhwa, Manhua nền tảng đọc truyện mượt mà nhất, không bị quấy rầy bởi quảng cáo độc hại và tốc độ tải trang tức thì.
         </p>
 
         <div class="hero-stats">
@@ -40,8 +40,8 @@ import { RouterLink } from '@angular/router';
 
       <!-- Core Features Grid -->
       <div class="section-title text-center">
-        <h2><i class="fa-solid fa-star text-warning"></i> Tại Sao Chọn MangaFlux?</h2>
-        <p>Những ưu điểm vượt trội khiến MangaFlux trở thành lựa chọn hàng đầu của độc giả Việt Nam</p>
+        <h2><i class="fa-solid fa-star text-warning"></i> Tại Sao Chọn TruyenKomi?</h2>
+        <p>Những ưu điểm vượt trội khiến TruyenKomi trở thành lựa chọn hàng đầu của độc giả Việt Nam</p>
       </div>
 
       <div class="features-grid">
@@ -99,7 +99,7 @@ import { RouterLink } from '@angular/router';
         <div class="mission-content">
           <h2><i class="fa-solid fa-bullseye text-accent"></i> Sứ Mệnh Của Chúng Tôi</h2>
           <p>
-            Chúng tôi tin rằng niềm vui đọc truyện tranh là không biên giới. Đội ngũ phát triển MangaFlux luôn nỗ lực cải tiến công nghệ hàng ngày để tạo nên một sân chơi văn minh, hiện đại và kết nối hàng triệu người hâm mộ truyện tranh tại Việt Nam.
+            Chúng tôi tin rằng niềm vui đọc truyện tranh là không biên giới. Đội ngũ phát triển TruyenKomi luôn nỗ lực cải tiến công nghệ hàng ngày để tạo nên một sân chơi văn minh, hiện đại và kết nối hàng triệu người hâm mộ truyện tranh tại Việt Nam.
           </p>
           <div class="mission-actions">
             <a routerLink="/comics" class="btn btn-primary"><i class="fa-solid fa-compass"></i> Khám Phá Kho Truyện</a>

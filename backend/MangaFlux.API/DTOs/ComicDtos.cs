@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace MangaFlux.API.DTOs
+namespace TruyenKomi.API.DTOs
 {
     public class CategoryDto
     {
@@ -33,12 +33,16 @@ namespace MangaFlux.API.DTOs
         public string? OtherNames { get; set; }
         public string? Artist { get; set; }
         public string? Country { get; set; }
+        public string? TranslatorGroup { get; set; }
+        public string? AgeLimit { get; set; } = "13+";
         public int? ReleaseYear { get; set; }
         public string Status { get; set; } = "Ongoing";
         public int Views { get; set; }
         public decimal Rating { get; set; }
         public bool IsFeatured { get; set; }
         public bool IsPublic { get; set; } = true;
+        public int TotalChapters { get; set; }
+        public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<CategoryDto> Categories { get; set; } = new();
         public ChapterDto? LatestChapter { get; set; }
@@ -61,6 +65,8 @@ namespace MangaFlux.API.DTOs
         public string? OtherNames { get; set; }
         public string? Artist { get; set; }
         public string? Country { get; set; }
+        public string? TranslatorGroup { get; set; }
+        public string? AgeLimit { get; set; } = "13+";
         public int? ReleaseYear { get; set; }
         public string Status { get; set; } = "Ongoing";
         public bool IsFeatured { get; set; }

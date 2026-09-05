@@ -13,7 +13,7 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
-      "title": "⚡ MangaFlux Real-time High-Level KPIs",
+      "title": "⚡ TruyenKomi Real-time High-Level KPIs",
       "type": "row"
     },
     {
@@ -122,7 +122,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "(sum(rate(mangaflux_cache_hits_total[1m])) / (sum(rate(mangaflux_cache_hits_total[1m])) + sum(rate(mangaflux_cache_misses_total[1m])))) * 100",
+          "expr": "(sum(rate(truyenkomi_cache_hits_total[1m])) / (sum(rate(truyenkomi_cache_hits_total[1m])) + sum(rate(truyenkomi_cache_misses_total[1m])))) * 100",
           "refId": "A"
         }
       ],
@@ -159,7 +159,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "mangaflux_redis_connected",
+          "expr": "truyenkomi_redis_connected",
           "refId": "A"
         }
       ],
@@ -270,13 +270,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "sum(rate(mangaflux_cache_hits_total[1m]))",
+          "expr": "sum(rate(truyenkomi_cache_hits_total[1m]))",
           "legendFormat": "Cache Hits",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "sum(rate(mangaflux_cache_misses_total[1m]))",
+          "expr": "sum(rate(truyenkomi_cache_misses_total[1m]))",
           "legendFormat": "Cache Misses",
           "refId": "B"
         }
@@ -302,13 +302,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "rate(mangaflux_chapter_views_synced_total[1m])",
+          "expr": "rate(truyenkomi_chapter_views_synced_total[1m])",
           "legendFormat": "Views Synced to DB / sec",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "Prometheus" },
-          "expr": "sum(rate(mangaflux_chapter_views_incremented_total[1m]))",
+          "expr": "sum(rate(truyenkomi_chapter_views_incremented_total[1m]))",
           "legendFormat": "Views Incremented in Redis / sec",
           "refId": "B"
         }
@@ -319,11 +319,11 @@
   ],
   "refresh": "5s",
   "schemaVersion": 39,
-  "tags": ["mangaflux", "apm", "optimization", "1m-users"],
+  "tags": ["truyenkomi", "apm", "optimization", "1m-users"],
   "time": { "from": "now-15m", "to": "now" },
   "timepicker": { "refresh_intervals": ["5s", "10s", "30s", "1m"] },
   "timezone": "browser",
-  "title": "MangaFlux APM & System Performance",
-  "uid": "mangaflux-apm",
+  "title": "TruyenKomi APM & System Performance",
+  "uid": "truyenkomi-apm",
   "version": 1
 }
