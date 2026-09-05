@@ -106,8 +106,10 @@ namespace TruyenKomi.API.DTOs
         public int ComicId { get; set; }
         public double ChapterNumber { get; set; }
         public string Title { get; set; } = string.Empty;
+        public int Views { get; set; } = 0;
         public bool IsPublic { get; set; } = true;
         public DateTime? PublishedAt { get; set; }
+        public DateTime? CreatedAt { get; set; }
         public List<string> ImageUrls { get; set; } = new();
     }
 
@@ -115,8 +117,10 @@ namespace TruyenKomi.API.DTOs
     {
         public double ChapterNumber { get; set; }
         public string Title { get; set; } = string.Empty;
+        public int Views { get; set; } = 0;
         public bool IsPublic { get; set; } = true;
         public DateTime? PublishedAt { get; set; }
+        public DateTime? CreatedAt { get; set; }
         public List<string> ImageUrls { get; set; } = new();
     }
 

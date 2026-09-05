@@ -463,9 +463,23 @@
               .chap-title { font-weight: 500; color: var(--text-muted); }
             }
 
-            .chap-date {
+            .chap-meta {
+              display: flex;
+              align-items: center;
+              gap: 12px;
               font-size: 11.5px;
               color: var(--text-muted);
+
+              .chap-date, .chap-views {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+              }
+
+              .chap-views {
+                color: #94a3b8;
+                i { font-size: 11px; }
+              }
             }
 
             &:hover {
@@ -474,6 +488,7 @@
               transform: translateX(3px);
 
               .chap-name { color: var(--primary-orange); }
+              .chap-meta .chap-views { color: var(--primary-orange); }
             }
           }
         }

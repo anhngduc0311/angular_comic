@@ -110,7 +110,43 @@ def upload_file_to_cloud(local_path: Path, object_name: str, content_type: str =
         raise Exception(f"Upload failed HTTP {res.status_code}: {res.text[:100]}")
 
 
-def sync_chapter_to_web_api(api_base_url: str, comic_title: str, comic_slug: str, cover_cdn_url: str, chapter_num: float, chapter_title: str, image_urls: list, author: str = None, translator_group: str = None, other_names: str = None, age_limit: str = None) -> bool:
+def parse_date_to_iso(date_val):
+    """Chuyển đổi các định dạng ngày thành chuẩn ISO 8601"""
+    if not date_val:
+        return None
+    if isinstance(date_val, datetime):
+        return date_val.isoformat()
+    val_str = str(date_val).strip()
+    try:
+        clean_str = val_str.replace("Z", "+00:00")
+        return datetime.fromisoformat(clean_str).isoformat()
+    except Exception:
+        pass
+    for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%d/%m/%Y %H:%M:%S", "%d/%m/%Y %H:%M"):
+        try:
+            return datetime.strptime(val_str, fmt).isoformat()
+        except Exception:
+            pass
+    return val_str
+
+
+def sync_chapter_to_web_api(
+    api_base_url: str, 
+    comic_title: str, 
+    comic_slug: str, 
+    cover_cdn_url: str, 
+    chapter_num: float, 
+    chapter_title: str, 
+    image_urls: list, 
+    author: str = None, 
+    translator_group: str = None, 
+    other_names: str = None, 
+    age_limit: str = None,
+    views: int = 0,
+    published_at: str = None,
+    created_at: str = None,
+    comic_views: int = None
+) -> bool:
     """Đồng bộ truyện và chapter lên TruyenKomi Web API"""
     import urllib.parse
     params = {
@@ -122,6 +158,7 @@ def sync_chapter_to_web_api(api_base_url: str, comic_title: str, comic_slug: str
     if translator_group: params["translatorGroup"] = translator_group
     if other_names: params["otherNames"] = other_names
     if age_limit: params["ageLimit"] = age_limit
+    if comic_views is not None and comic_views > 0: params["comicViews"] = str(comic_views)
 
     query_str = urllib.parse.urlencode(params)
     url = f"{api_base_url.rstrip('/')}/comics/import-scraped?{query_str}"
@@ -130,6 +167,9 @@ def sync_chapter_to_web_api(api_base_url: str, comic_title: str, comic_slug: str
         "chapterNumber": chapter_num,
         "title": chapter_title or f"Chương {chapter_num}",
         "isPublic": True,
+        "views": views or 0,
+        "publishedAt": published_at,
+        "createdAt": created_at or published_at,
         "imageUrls": image_urls
     }
     headers = {
@@ -158,6 +198,8 @@ class ZetMangaDownloader:
         self.translator_group = "Đang cập nhật"
         self.other_names = "Đang cập nhật"
         self.age_limit = "13+"
+        self.views = 0
+        self.created_date_str = None
         self.scraper = cloudscraper.create_scraper(
             browser={
                 'browser': 'chrome',
@@ -270,6 +312,18 @@ class ZetMangaDownloader:
                 val = text.split(":", 1)[1].strip()
                 if val and len(val) < 30: self.age_limit = val
 
+        # 3.3 Cào lượt xem và ngày tạo/cập nhật truyện
+        m_view = re.search(r'Lượt xem\s*[:：]?\s*([\d,.]+)', page_text, re.I)
+        if m_view:
+            try:
+                self.views = int(re.sub(r'[^\d]', '', m_view.group(1)))
+            except Exception:
+                pass
+
+        m_date = re.search(r'(?:Ngày tạo|Cập nhật)\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', page_text, re.I)
+        if m_date:
+            self.created_date_str = m_date.group(1)
+
         # 4. Lấy danh sách toàn bộ Chapter qua ZetTruyen API
         chapters = []
         api_url = f"https://www.zettruyen1.com/api/comics/{self.slug}/chapters?per_page=-1"
@@ -283,11 +337,17 @@ class ZetMangaDownloader:
                     chap_name = item.get("chapter_name") or f"Chapter {chap_num}"
                     chap_slug = item.get("chapter_slug") or f"chapter-{int(chap_num)}"
                     chap_url = f"https://www.zettruyen1.com/truyen-tranh/{self.slug}/chuong-{int(chap_num) if chap_num.is_integer() else chap_num}"
+                    chap_views = int(item.get("view") or 0)
+                    chap_date_raw = item.get("updated_at") or item.get("created_at")
+                    chap_date_iso = parse_date_to_iso(chap_date_raw)
                     chapters.append({
                         "number": chap_num,
                         "title": chap_name,
                         "slug": chap_slug,
-                        "url": chap_url
+                        "url": chap_url,
+                        "views": chap_views,
+                        "updated_at": chap_date_iso,
+                        "updated_at_raw": chap_date_raw
                     })
         except Exception as e:
             if HAS_RICH:
@@ -309,11 +369,17 @@ class ZetMangaDownloader:
                                 "number": num,
                                 "title": a.get_text(strip=True) or f"Chương {num}",
                                 "slug": f"chuong-{num}",
-                                "url": full_u
+                                "url": full_u,
+                                "views": 0,
+                                "updated_at": None,
+                                "updated_at_raw": None
                             })
 
         # Sắp xếp chương tăng dần
         chapters.sort(key=lambda x: x["number"])
+
+        if self.views == 0 and chapters:
+            self.views = sum(c.get("views", 0) for c in chapters)
 
         return {
             "title": title,
@@ -323,6 +389,8 @@ class ZetMangaDownloader:
             "translator_group": self.translator_group,
             "other_names": self.other_names,
             "age_limit": self.age_limit,
+            "views": self.views,
+            "created_date_str": self.created_date_str,
             "chapters": chapters
         }
 
@@ -574,7 +642,11 @@ class ZetMangaDownloader:
                     author=self.author,
                     translator_group=self.translator_group,
                     other_names=self.other_names,
-                    age_limit=self.age_limit
+                    age_limit=self.age_limit,
+                    views=chapter.get("views", 0),
+                    published_at=chapter.get("updated_at"),
+                    created_at=chapter.get("updated_at"),
+                    comic_views=self.views
                 )
                 if synced:
                     if HAS_RICH and console:

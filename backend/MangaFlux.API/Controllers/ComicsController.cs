@@ -107,7 +107,8 @@ namespace TruyenKomi.API.Controllers
             [FromQuery] string? author = null,
             [FromQuery] string? translatorGroup = null,
             [FromQuery] string? otherNames = null,
-            [FromQuery] string? ageLimit = "13+")
+            [FromQuery] string? ageLimit = "13+",
+            [FromQuery] int? comicViews = null)
         {
             var existingComic = await _comicService.GetComicBySlugAsync(comicSlug);
             int comicId;
@@ -129,11 +130,15 @@ namespace TruyenKomi.API.Controllers
                     IsPublic = true
                 });
                 comicId = created.Id;
+                if (comicViews.HasValue && comicViews.Value > 0)
+                {
+                    await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage, comicViews.Value);
+                }
             }
             else
             {
                 comicId = existingComic.Id;
-                await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage);
+                await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage, comicViews);
             }
 
             dto.ComicId = comicId;

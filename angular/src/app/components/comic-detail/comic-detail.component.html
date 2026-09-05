@@ -182,8 +182,11 @@
               [routerLink]="['/read', comic.slug, 'chuong-' + chap.chapterNumber]" 
               class="chapter-row"
             >
-              <span class="chap-name">Chapter {{ chap.chapterNumber }} <span class="chap-title" *ngIf="chap.title">- {{ chap.title }}</span></span>
-              <span class="chap-date"><i class="fa fa-clock-o"></i> {{ chap.createdAt | date:'dd/MM/yyyy' }}</span>
+              <span class="chap-name">Chapter {{ chap.chapterNumber }} <span class="chap-title" *ngIf="chap.title && chap.title !== 'Chapter ' + chap.chapterNumber && chap.title !== 'Chương ' + chap.chapterNumber">- {{ chap.title }}</span></span>
+              <div class="chap-meta">
+                <span class="chap-date"><i class="fa fa-clock-o"></i> {{ (chap.publishedAt || chap.createdAt) | date:'dd/MM/yyyy' }}</span>
+                <span class="chap-views" *ngIf="chap.views !== undefined && chap.views > 0"><i class="fa fa-eye"></i> {{ chap.views | number }}</span>
+              </div>
             </a>
           </div>
         </div>

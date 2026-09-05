@@ -27,7 +27,7 @@ namespace TruyenKomi.API.Services
         Task<DashboardStatsDto> GetDashboardStatsAsync();
         Task<ComicDto> CreateComicAsync(ComicCreateUpdateDto dto);
         Task<ComicDto?> UpdateComicAsync(int id, ComicCreateUpdateDto dto);
-        Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage);
+        Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage, int? views = null);
         Task<bool> ToggleComicVisibilityAsync(int id);
         Task<bool> DeleteComicAsync(int id);
         Task<List<ChapterDetailDto>> GetAdminChaptersByComicIdAsync(int comicId);
@@ -535,7 +535,7 @@ namespace TruyenKomi.API.Services
             return MapToComicDto(comic);
         }
 
-        public async Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage)
+        public async Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage, int? views = null)
         {
             var comic = await _context.Comics.FindAsync(comicId);
             if (comic == null) return false;
@@ -565,6 +565,11 @@ namespace TruyenKomi.API.Services
             {
                 comic.CoverImage = coverImage;
                 comic.BannerImage = coverImage;
+                changed = true;
+            }
+            if (views.HasValue && views.Value > comic.Views)
+            {
+                comic.Views = views.Value;
                 changed = true;
             }
 
@@ -684,6 +689,9 @@ namespace TruyenKomi.API.Services
                 .Include(c => c.Pages)
                 .FirstOrDefaultAsync(c => c.ComicId == dto.ComicId && Math.Abs(c.ChapterNumber - dto.ChapterNumber) < 0.001);
 
+            DateTime publishDate = dto.PublishedAt ?? dto.CreatedAt ?? DateTime.UtcNow;
+            DateTime createdDate = dto.CreatedAt ?? dto.PublishedAt ?? DateTime.UtcNow;
+
             if (chapter == null)
             {
                 chapter = new Chapter
@@ -691,9 +699,10 @@ namespace TruyenKomi.API.Services
                     ComicId = dto.ComicId,
                     ChapterNumber = dto.ChapterNumber,
                     Title = dto.Title,
+                    Views = dto.Views,
                     IsPublic = dto.IsPublic,
-                    PublishedAt = dto.PublishedAt,
-                    CreatedAt = DateTime.UtcNow
+                    PublishedAt = publishDate,
+                    CreatedAt = createdDate
                 };
                 _context.Chapters.Add(chapter);
                 await _context.SaveChangesAsync();
@@ -701,8 +710,10 @@ namespace TruyenKomi.API.Services
             else
             {
                 chapter.Title = dto.Title;
+                if (dto.Views > 0) chapter.Views = dto.Views;
                 chapter.IsPublic = dto.IsPublic;
-                chapter.PublishedAt = dto.PublishedAt;
+                if (dto.PublishedAt.HasValue) chapter.PublishedAt = dto.PublishedAt;
+                if (dto.CreatedAt.HasValue) chapter.CreatedAt = dto.CreatedAt.Value;
                 _context.ChapterPages.RemoveRange(chapter.Pages);
             }
 
@@ -716,11 +727,19 @@ namespace TruyenKomi.API.Services
                 });
             }
 
-            // Update comic updated time & clear cache
-            var comic = await _context.Comics.FindAsync(dto.ComicId);
+            // Update comic updated time & views & clear cache
+            var comic = await _context.Comics.Include(c => c.Chapters).FirstOrDefaultAsync(c => c.Id == dto.ComicId);
             if (comic != null)
             {
-                comic.UpdatedAt = DateTime.UtcNow;
+                if (createdDate > comic.UpdatedAt)
+                {
+                    comic.UpdatedAt = createdDate;
+                }
+                int totalChapterViews = comic.Chapters.Sum(c => c.Views);
+                if (totalChapterViews > comic.Views)
+                {
+                    comic.Views = totalChapterViews;
+                }
             }
 
             await _context.SaveChangesAsync();
@@ -767,8 +786,10 @@ namespace TruyenKomi.API.Services
 
             chapter.ChapterNumber = dto.ChapterNumber;
             chapter.Title = dto.Title;
+            if (dto.Views > 0) chapter.Views = dto.Views;
             chapter.IsPublic = dto.IsPublic;
-            chapter.PublishedAt = dto.PublishedAt;
+            if (dto.PublishedAt.HasValue) chapter.PublishedAt = dto.PublishedAt;
+            if (dto.CreatedAt.HasValue) chapter.CreatedAt = dto.CreatedAt.Value;
 
             // Remove existing pages and add new ones in order
             _context.ChapterPages.RemoveRange(chapter.Pages);
