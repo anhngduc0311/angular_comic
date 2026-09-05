@@ -13,8 +13,7 @@ import { RouterModule } from '@angular/router';
         <div class="left footer-col-left">
           <div class="footer-logo">
             <a routerLink="/" title="TruyenKomi - Truyện tranh Online">
-              <span class="logo-t-orange">Truyen</span><span class="logo-t-blue">Komi</span>
-              <span class="logo-dot">.com</span>
+              <img src="assets/logo.svg" alt="TruyenKomi" class="footer-logo-svg" />
             </a>
           </div>
           <p class="footer-disclaimer">
@@ -77,14 +76,20 @@ import { RouterModule } from '@angular/router';
           }
 
           .footer-logo {
-            font-family: 'Quicksand', sans-serif;
-            font-weight: 800;
-            font-size: 24px;
             margin-bottom: 12px;
 
-            .logo-t-orange { color: var(--primary-orange); }
-            .logo-t-blue { color: var(--primary-blue); }
-            .logo-dot { font-size: 13px; color: var(--text-muted); }
+            a {
+              display: inline-flex;
+              align-items: center;
+            }
+
+            .footer-logo-svg {
+              height: 40px;
+              width: auto;
+              max-width: 200px;
+              display: block;
+              object-fit: contain;
+            }
           }
 
           .footer-disclaimer {

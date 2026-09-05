@@ -24,29 +24,30 @@ header {
     /* Logo Brand */
     .logo {
       flex-shrink: 0;
+      display: flex;
+      align-items: center;
 
-      .truyengg-brand-logo {
-        font-family: 'Quicksand', sans-serif;
-        font-weight: 800;
-        font-size: 26px;
-        letter-spacing: -0.5px;
-        line-height: 1;
+      a {
         display: flex;
-        align-items: baseline;
+        align-items: center;
+      }
 
-        .logo-t-orange {
-          color: var(--primary-orange);
+      .site-logo-svg {
+        height: 44px;
+        width: auto;
+        max-width: 220px;
+        display: block;
+        object-fit: contain;
+        transition: transform 0.2s ease, filter 0.2s ease;
+
+        &:hover {
+          transform: scale(1.03);
+          filter: drop-shadow(0 4px 12px rgba(253, 84, 0, 0.4));
         }
 
-        .logo-t-blue {
-          color: var(--primary-blue);
-        }
-
-        .logo-dot {
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-muted);
-          margin-left: 2px;
+        @media (max-width: 576px) {
+          height: 34px;
+          max-width: 170px;
         }
       }
     }
