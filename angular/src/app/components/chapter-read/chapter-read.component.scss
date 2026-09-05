@@ -208,21 +208,42 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    line-height: 0;
+    font-size: 0;
 
     .page-image-wrapper {
       position: relative;
       width: 100%;
-      margin-bottom: 2px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      margin: 0 0 -1.5px 0; /* Overlap 1.5px to completely eradicate subpixel rendering gaps on all screen DPRs */
+      padding: 0;
+      line-height: 0;
+      font-size: 0;
+      display: block;
+      border: none;
+      outline: none;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
 
       .manga-page-img {
         width: 100%;
         max-width: 100%;
         height: auto;
         display: block;
+        vertical-align: top;
+        margin: 0;
+        padding: 0;
+        border: none;
+        outline: none;
         user-select: none;
+        -webkit-user-drag: none;
+        transform: translateZ(0); /* Hardware accelerated compositing to prevent sub-pixel antialiasing gaps */
+        backface-visibility: hidden;
+        image-rendering: -webkit-optimize-contrast;
       }
 
       .page-num-pill {
@@ -237,7 +258,9 @@
         padding: 3px 8px;
         border-radius: var(--radius-pill);
         opacity: 0;
+        line-height: 1.4;
         transition: opacity 0.2s ease;
+        pointer-events: none;
       }
 
       &:hover .page-num-pill {

@@ -108,8 +108,15 @@ namespace TruyenKomi.API.Controllers
             [FromQuery] string? translatorGroup = null,
             [FromQuery] string? otherNames = null,
             [FromQuery] string? ageLimit = "13+",
-            [FromQuery] int? comicViews = null)
+            [FromQuery] int? comicViews = null,
+            [FromQuery] DateTime? comicCreatedAt = null,
+            [FromQuery] DateTime? comicUpdatedAt = null)
         {
+            if (!string.IsNullOrWhiteSpace(author) && (author.Trim().Equals("ZETTRUYEN", StringComparison.OrdinalIgnoreCase) || author.Trim().Equals("ZET TRUYEN", StringComparison.OrdinalIgnoreCase)))
+            {
+                author = "TRUYENKOMI";
+            }
+
             var existingComic = await _comicService.GetComicBySlugAsync(comicSlug);
             int comicId;
             if (existingComic == null)
@@ -127,18 +134,20 @@ namespace TruyenKomi.API.Controllers
                     AgeLimit = string.IsNullOrWhiteSpace(ageLimit) ? "13+" : ageLimit,
                     Status = "Ongoing",
                     IsFeatured = true,
-                    IsPublic = true
+                    IsPublic = true,
+                    CreatedAt = comicCreatedAt ?? DateTime.UtcNow,
+                    UpdatedAt = comicUpdatedAt ?? DateTime.UtcNow
                 });
                 comicId = created.Id;
-                if (comicViews.HasValue && comicViews.Value > 0)
+                if ((comicViews.HasValue && comicViews.Value > 0) || comicCreatedAt.HasValue || comicUpdatedAt.HasValue)
                 {
-                    await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage, comicViews.Value);
+                    await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage, comicViews, comicCreatedAt, comicUpdatedAt);
                 }
             }
             else
             {
                 comicId = existingComic.Id;
-                await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage, comicViews);
+                await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage, comicViews, comicCreatedAt, comicUpdatedAt);
             }
 
             dto.ComicId = comicId;

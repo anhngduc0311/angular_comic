@@ -145,7 +145,9 @@ def sync_chapter_to_web_api(
     views: int = 0,
     published_at: str = None,
     created_at: str = None,
-    comic_views: int = None
+    comic_views: int = None,
+    comic_created_at: str = None,
+    comic_updated_at: str = None
 ) -> bool:
     """Đồng bộ truyện và chapter lên TruyenKomi Web API"""
     import urllib.parse
@@ -154,11 +156,16 @@ def sync_chapter_to_web_api(
         "comicSlug": comic_slug,
         "coverImage": cover_cdn_url
     }
-    if author: params["author"] = author
+    if author: 
+        if "zettruyen" in author.lower() or "zet truyen" in author.lower():
+            author = "TRUYENKOMI"
+        params["author"] = author
     if translator_group: params["translatorGroup"] = translator_group
     if other_names: params["otherNames"] = other_names
     if age_limit: params["ageLimit"] = age_limit
     if comic_views is not None and comic_views > 0: params["comicViews"] = str(comic_views)
+    if comic_created_at: params["comicCreatedAt"] = parse_date_to_iso(comic_created_at)
+    if comic_updated_at: params["comicUpdatedAt"] = parse_date_to_iso(comic_updated_at)
 
     query_str = urllib.parse.urlencode(params)
     url = f"{api_base_url.rstrip('/')}/comics/import-scraped?{query_str}"
@@ -312,6 +319,10 @@ class ZetMangaDownloader:
                 val = text.split(":", 1)[1].strip()
                 if val and len(val) < 30: self.age_limit = val
 
+        # Chuẩn hóa nếu tác giả là ZETTRUYEN -> TRUYENKOMI
+        if self.author and ("zettruyen" in self.author.lower() or "zet truyen" in self.author.lower()):
+            self.author = "TRUYENKOMI"
+
         # 3.3 Cào lượt xem và ngày tạo/cập nhật truyện
         m_view = re.search(r'Lượt xem\s*[:：]?\s*([\d,.]+)', page_text, re.I)
         if m_view:
@@ -320,9 +331,30 @@ class ZetMangaDownloader:
             except Exception:
                 pass
 
-        m_date = re.search(r'(?:Ngày tạo|Cập nhật)\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', page_text, re.I)
-        if m_date:
-            self.created_date_str = m_date.group(1)
+        created_date_str = None
+        m_created = re.search(r'Ngày tạo\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', page_text, re.I)
+        if m_created:
+            created_date_str = m_created.group(1)
+
+        updated_date_str = None
+        m_updated = re.search(r'Cập nhật\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', page_text, re.I)
+        if m_updated:
+            updated_date_str = m_updated.group(1)
+
+        for item in soup.find_all(["li", "p", "div", "span", "tr"]):
+            text = item.get_text(" ", strip=True)
+            if not created_date_str and "Ngày tạo" in text and ":" in text:
+                m = re.search(r'(\d{1,2}[/-]\d{1,2}[/-]\d{4})', text)
+                if m: created_date_str = m.group(1)
+            elif not updated_date_str and "Cập nhật" in text and ":" in text:
+                m = re.search(r'(\d{1,2}[/-]\d{1,2}[/-]\d{4})', text)
+                if m: updated_date_str = m.group(1)
+
+        if not created_date_str and updated_date_str:
+            created_date_str = updated_date_str
+
+        self.created_date_str = created_date_str
+        self.updated_date_str = updated_date_str
 
         # 4. Lấy danh sách toàn bộ Chapter qua ZetTruyen API
         chapters = []
@@ -391,6 +423,9 @@ class ZetMangaDownloader:
             "age_limit": self.age_limit,
             "views": self.views,
             "created_date_str": self.created_date_str,
+            "updated_date_str": self.updated_date_str,
+            "created_at_iso": parse_date_to_iso(self.created_date_str),
+            "updated_at_iso": parse_date_to_iso(self.updated_date_str),
             "chapters": chapters
         }
 
@@ -646,7 +681,9 @@ class ZetMangaDownloader:
                     views=chapter.get("views", 0),
                     published_at=chapter.get("updated_at"),
                     created_at=chapter.get("updated_at"),
-                    comic_views=self.views
+                    comic_views=self.views,
+                    comic_created_at=self.created_date_str,
+                    comic_updated_at=self.updated_date_str
                 )
                 if synced:
                     if HAS_RICH and console:

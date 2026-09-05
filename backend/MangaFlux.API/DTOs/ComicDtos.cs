@@ -71,6 +71,8 @@ namespace TruyenKomi.API.DTOs
         public string Status { get; set; } = "Ongoing";
         public bool IsFeatured { get; set; }
         public bool IsPublic { get; set; } = true;
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
         public List<int> CategoryIds { get; set; } = new();
     }
 

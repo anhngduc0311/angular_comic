@@ -140,7 +140,9 @@ def sync_chapter_to_web_api(
     views: int = 0,
     published_at: str = None,
     created_at: str = None,
-    comic_views: int = None
+    comic_views: int = None,
+    comic_created_at: str = None,
+    comic_updated_at: str = None
 ) -> bool:
     """Đồng bộ truyện và chapter lên TruyenKomi Web API"""
     params = {
@@ -148,11 +150,16 @@ def sync_chapter_to_web_api(
         "comicSlug": comic_slug,
         "coverImage": cover_cdn_url
     }
-    if author: params["author"] = author
+    if author: 
+        if "zettruyen" in author.lower() or "zet truyen" in author.lower():
+            author = "TRUYENKOMI"
+        params["author"] = author
     if translator_group: params["translatorGroup"] = translator_group
     if other_names: params["otherNames"] = other_names
     if age_limit: params["ageLimit"] = age_limit
     if comic_views is not None and comic_views > 0: params["comicViews"] = str(comic_views)
+    if comic_created_at: params["comicCreatedAt"] = parse_date_to_iso(comic_created_at)
+    if comic_updated_at: params["comicUpdatedAt"] = parse_date_to_iso(comic_updated_at)
 
     query_str = urllib.parse.urlencode(params)
     url = f"{api_base_url.rstrip('/')}/comics/import-scraped?{query_str}"
@@ -530,7 +537,11 @@ class MangaDownloaderGUI(ctk.CTk):
                     val = text.split(":", 1)[1].strip()
                     if val and len(val) < 30: age_limit = val
 
-            # 3.3 Cào lượt xem và ngày tạo/cập nhật truyện
+            # Chuẩn hóa nếu tác giả là ZETTRUYEN -> TRUYENKOMI
+            if author and ("zettruyen" in author.lower() or "zet truyen" in author.lower()):
+                author = "TRUYENKOMI"
+
+            # 3.3 Cào lượt xem, ngày tạo, ngày cập nhật truyện
             views = 0
             m_view = re.search(r'Lượt xem\s*[:：]?\s*([\d,.]+)', page_text, re.I)
             if m_view:
@@ -540,9 +551,26 @@ class MangaDownloaderGUI(ctk.CTk):
                     pass
 
             created_date_str = None
-            m_date = re.search(r'(?:Ngày tạo|Cập nhật)\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', page_text, re.I)
-            if m_date:
-                created_date_str = m_date.group(1)
+            m_created = re.search(r'Ngày tạo\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', page_text, re.I)
+            if m_created:
+                created_date_str = m_created.group(1)
+
+            updated_date_str = None
+            m_updated = re.search(r'Cập nhật\s*[:：]?\s*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', page_text, re.I)
+            if m_updated:
+                updated_date_str = m_updated.group(1)
+
+            for item in soup.find_all(["li", "p", "div", "span", "tr"]):
+                text = item.get_text(" ", strip=True)
+                if not created_date_str and "Ngày tạo" in text and ":" in text:
+                    m = re.search(r'(\d{1,2}[/-]\d{1,2}[/-]\d{4})', text)
+                    if m: created_date_str = m.group(1)
+                elif not updated_date_str and "Cập nhật" in text and ":" in text:
+                    m = re.search(r'(\d{1,2}[/-]\d{1,2}[/-]\d{4})', text)
+                    if m: updated_date_str = m.group(1)
+
+            if not created_date_str and updated_date_str:
+                created_date_str = updated_date_str
 
             # Chapters from API
             chapters = []
@@ -602,6 +630,9 @@ class MangaDownloaderGUI(ctk.CTk):
                 "age_limit": age_limit,
                 "views": views,
                 "created_date_str": created_date_str,
+                "updated_date_str": updated_date_str,
+                "created_at_iso": parse_date_to_iso(created_date_str),
+                "updated_at_iso": parse_date_to_iso(updated_date_str),
                 "chapters": chapters
             }
 
@@ -616,8 +647,9 @@ class MangaDownloaderGUI(ctk.CTk):
         self.btn_fetch.configure(state="normal", text="🔍 Lấy Thông Tin")
         self.lbl_comic_title.configure(text=f"📖 {info['title']}")
         views_txt = f"{info.get('views', 0):,} lượt xem" if info.get('views') else "0 lượt xem"
+        date_txt = f"📅 Ngày tạo: {info.get('created_date_str', 'Đang cập nhật')}"
         self.lbl_comic_stats.configure(
-            text=f"📚 {len(info['chapters'])} chương | 👁️ {views_txt} | ✍️ {info.get('author', 'Đang cập nhật')} | 👥 {info.get('translator_group', 'Đang cập nhật')}"
+            text=f"📚 {len(info['chapters'])} chương | 👁️ {views_txt} | {date_txt} | ✍️ {info.get('author', 'Đang cập nhật')}"
         )
         
         if info['chapters']:
@@ -626,8 +658,8 @@ class MangaDownloaderGUI(ctk.CTk):
             self.end_chap_entry.delete(0, "end")
             self.end_chap_entry.insert(0, str(int(info['chapters'][-1]['number'])))
 
-        self.lbl_status.configure(text=f"Đã lấy thông tin bộ truyện: {info['title']} ({len(info['chapters'])} chương | {views_txt})")
-        self.log(f"✓ Đã tìm thấy {len(info['chapters'])} chương của '{info['title']}' ({views_txt}).")
+        self.lbl_status.configure(text=f"Đã lấy thông tin bộ truyện: {info['title']} ({len(info['chapters'])} chương | {views_txt} | {date_txt})")
+        self.log(f"✓ Đã tìm thấy {len(info['chapters'])} chương của '{info['title']}' ({views_txt} | {date_txt}).")
 
         # Load cover image preview
         if info["cover_url"]:
@@ -975,7 +1007,9 @@ class MangaDownloaderGUI(ctk.CTk):
                         views=chap.get("views", 0),
                         published_at=chap.get("updated_at"),
                         created_at=chap.get("updated_at"),
-                        comic_views=info.get("views", 0)
+                        comic_views=info.get("views", 0),
+                        comic_created_at=info.get("created_at_iso") or info.get("created_date_str"),
+                        comic_updated_at=info.get("updated_at_iso") or info.get("updated_date_str")
                     )
                     if synced:
                         self.after(0, lambda t=chap_title, cnt=len(valid_cdn_urls): self.log(

@@ -27,7 +27,7 @@ namespace TruyenKomi.API.Services
         Task<DashboardStatsDto> GetDashboardStatsAsync();
         Task<ComicDto> CreateComicAsync(ComicCreateUpdateDto dto);
         Task<ComicDto?> UpdateComicAsync(int id, ComicCreateUpdateDto dto);
-        Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage, int? views = null);
+        Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage, int? views = null, DateTime? createdAt = null, DateTime? updatedAt = null);
         Task<bool> ToggleComicVisibilityAsync(int id);
         Task<bool> DeleteComicAsync(int id);
         Task<List<ChapterDetailDto>> GetAdminChaptersByComicIdAsync(int comicId);
@@ -460,6 +460,12 @@ namespace TruyenKomi.API.Services
             slug = System.Text.RegularExpressions.Regex.Replace(slug, @"\s+", "-").Trim('-');
             if (string.IsNullOrEmpty(slug)) slug = "comic-" + Guid.NewGuid().ToString("N")[..8];
 
+            var author = dto.Author;
+            if (!string.IsNullOrWhiteSpace(author) && (author.Trim().Equals("ZETTRUYEN", StringComparison.OrdinalIgnoreCase) || author.Trim().Equals("ZET TRUYEN", StringComparison.OrdinalIgnoreCase)))
+            {
+                author = "TRUYENKOMI";
+            }
+
             var comic = new Comic
             {
                 Title = dto.Title,
@@ -467,7 +473,7 @@ namespace TruyenKomi.API.Services
                 Description = dto.Description,
                 CoverImage = dto.CoverImage,
                 BannerImage = dto.BannerImage,
-                Author = dto.Author,
+                Author = author,
                 OtherNames = dto.OtherNames,
                 Artist = dto.Artist,
                 Country = dto.Country,
@@ -477,8 +483,8 @@ namespace TruyenKomi.API.Services
                 Status = dto.Status,
                 IsFeatured = dto.IsFeatured,
                 IsPublic = dto.IsPublic,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                CreatedAt = dto.CreatedAt ?? DateTime.UtcNow,
+                UpdatedAt = dto.UpdatedAt ?? DateTime.UtcNow
             };
 
             _context.Comics.Add(comic);
@@ -512,7 +518,13 @@ namespace TruyenKomi.API.Services
             comic.Description = dto.Description;
             comic.CoverImage = dto.CoverImage;
             comic.BannerImage = dto.BannerImage;
-            comic.Author = dto.Author;
+
+            var author = dto.Author;
+            if (!string.IsNullOrWhiteSpace(author) && (author.Trim().Equals("ZETTRUYEN", StringComparison.OrdinalIgnoreCase) || author.Trim().Equals("ZET TRUYEN", StringComparison.OrdinalIgnoreCase)))
+            {
+                author = "TRUYENKOMI";
+            }
+            comic.Author = author;
             comic.OtherNames = dto.OtherNames;
             comic.Artist = dto.Artist;
             comic.Country = dto.Country;
@@ -522,7 +534,8 @@ namespace TruyenKomi.API.Services
             comic.Status = dto.Status;
             comic.IsFeatured = dto.IsFeatured;
             comic.IsPublic = dto.IsPublic;
-            comic.UpdatedAt = DateTime.UtcNow;
+            if (dto.CreatedAt.HasValue) comic.CreatedAt = dto.CreatedAt.Value;
+            comic.UpdatedAt = dto.UpdatedAt ?? DateTime.UtcNow;
 
             _context.ComicCategories.RemoveRange(comic.ComicCategories);
             foreach (var catId in dto.CategoryIds)
@@ -535,12 +548,22 @@ namespace TruyenKomi.API.Services
             return MapToComicDto(comic);
         }
 
-        public async Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage, int? views = null)
+        public async Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage, int? views = null, DateTime? createdAt = null, DateTime? updatedAt = null)
         {
             var comic = await _context.Comics.FindAsync(comicId);
             if (comic == null) return false;
 
+            if (!string.IsNullOrWhiteSpace(author) && (author.Trim().Equals("ZETTRUYEN", StringComparison.OrdinalIgnoreCase) || author.Trim().Equals("ZET TRUYEN", StringComparison.OrdinalIgnoreCase)))
+            {
+                author = "TRUYENKOMI";
+            }
+
             bool changed = false;
+            if (comic.Author != null && (comic.Author.Trim().Equals("ZETTRUYEN", StringComparison.OrdinalIgnoreCase) || comic.Author.Trim().Equals("ZET TRUYEN", StringComparison.OrdinalIgnoreCase)))
+            {
+                comic.Author = "TRUYENKOMI";
+                changed = true;
+            }
             if (!string.IsNullOrWhiteSpace(author) && author != "Đang cập nhật" && (comic.Author == "Đang cập nhật" || string.IsNullOrWhiteSpace(comic.Author) || comic.Author != author))
             {
                 comic.Author = author;
@@ -572,10 +595,19 @@ namespace TruyenKomi.API.Services
                 comic.Views = views.Value;
                 changed = true;
             }
+            if (createdAt.HasValue)
+            {
+                comic.CreatedAt = createdAt.Value;
+                changed = true;
+            }
+            if (updatedAt.HasValue && updatedAt.Value > comic.UpdatedAt)
+            {
+                comic.UpdatedAt = updatedAt.Value;
+                changed = true;
+            }
 
             if (changed)
             {
-                comic.UpdatedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
                 await InvalidateComicCacheAsync(comic.Slug);
             }
