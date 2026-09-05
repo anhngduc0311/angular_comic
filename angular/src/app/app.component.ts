@@ -21,9 +21,13 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     this.checkReaderRoute(this.router.url);
     this.router.events.pipe(
-      filter(event => event instanceof NavigationEnd)
-    ).subscribe((event: any) => {
-      this.checkReaderRoute(event.urlAfterRedirects || event.url || '');
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd)
+    ).subscribe((event: NavigationEnd) => {
+      const url = event.urlAfterRedirects || event.url || '';
+      this.checkReaderRoute(url);
+      if (!this.isReaderRoute) {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
     });
   }
 

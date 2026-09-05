@@ -50,7 +50,10 @@ export class ComicDetailComponent implements OnInit {
   ngOnInit(): void {
     this.route.params.subscribe(params => {
       const slug = params['slug'];
-      if (slug) this.fetchComic(slug);
+      if (slug) {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        this.fetchComic(slug);
+      }
     });
   }
 
