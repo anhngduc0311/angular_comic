@@ -7,253 +7,133 @@ import { RouterModule } from '@angular/router';
   standalone: true,
   imports: [CommonModule, RouterModule],
   template: `
-    <footer class="footer">
-      <div class="container footer-content">
-        <div class="brand-col">
-          <a routerLink="/" class="logo">
-            <i class="fa-solid fa-bolt logo-icon"></i>
-            <span class="logo-text">Manga<span class="text-gradient">Flux</span></span>
-          </a>
-          <p class="brand-desc">
-            Nền tảng đọc truyện tranh online miễn phí hàng đầu với giao diện hiện đại, tốc độ tải nhanh và trải nghiệm tối ưu nhất trên mọi thiết bị.
+    <footer class="truyengg-footer">
+      <div class="div_middle footer-body">
+        <!-- Left Column: Logo & Disclaimer -->
+        <div class="left footer-col-left">
+          <div class="footer-logo">
+            <a routerLink="/" title="TruyenGG - Truyện tranh Online">
+              <span class="logo-t-orange">Truyen</span><span class="logo-t-blue">GG</span>
+              <span class="logo-dot">.com</span>
+            </a>
+          </div>
+          <p class="footer-disclaimer">
+            Trang web này cung cấp truyện tranh chỉ với mục đích giải trí và không chịu trách nhiệm về nội dung quảng cáo hoặc liên kết từ bên thứ ba. Mọi thông tin và hình ảnh đều được thu thập từ internet. Nếu bạn có bất kỳ vấn đề nào liên quan đến nội dung hiển thị, vui lòng liên hệ với chúng tôi để được hỗ trợ.
           </p>
-          <div class="brand-badges">
-            <span class="badge badge-primary"><i class="fa-solid fa-bolt"></i> Tải siêu nhanh</span>
-            <span class="badge badge-success"><i class="fa-solid fa-shield-halved"></i> Không quảng cáo độc hại</span>
-          </div>
         </div>
 
-        <div class="footer-links">
-          <h4><i class="fa-solid fa-compass text-primary"></i> Điều Hướng</h4>
-          <a routerLink="/"><i class="fa-solid fa-angle-right"></i> Trang chủ</a>
-          <a routerLink="/comics"><i class="fa-solid fa-angle-right"></i> Danh sách truyện</a>
-          <a routerLink="/categories"><i class="fa-solid fa-angle-right"></i> Thể loại truyện</a>
-          <a routerLink="/about"><i class="fa-solid fa-angle-right"></i> Giới thiệu MangaFlux</a>
-          <a routerLink="/history"><i class="fa-solid fa-angle-right"></i> Lịch sử đọc</a>
+        <!-- Right Column: Navigation Tag Links -->
+        <div class="right footer-col-right">
+          <ul class="footer-tags-grid">
+            <li><a routerLink="/">Truyện Tranh</a></li>
+            <li><a routerLink="/comics">Truyện Tranh Online</a></li>
+            <li><a routerLink="/comics" [queryParams]="{ sort: 'new' }">Truyện Tranh Mới</a></li>
+            <li><a routerLink="/comics" [queryParams]="{ sort: 'hot' }">Truyện Tranh Hay</a></li>
+            <li><a routerLink="/comics">Đọc Truyện Tranh</a></li>
+            <li><a routerLink="/">TruyenGG</a></li>
+            <li><a routerLink="/comics" [queryParams]="{ category: 'manhwa' }">Manhwa</a></li>
+            <li><a routerLink="/comics" [queryParams]="{ category: 'manhua' }">Manhua</a></li>
+            <li><a routerLink="/comics" [queryParams]="{ category: 'manga' }">Manga</a></li>
+            <li><a routerLink="/comics" [queryParams]="{ category: 'ngon-tinh' }">Truyện Ngôn Tình</a></li>
+            <li><a routerLink="/comics">nettruyen</a></li>
+            <li><a routerLink="/comics">toptruyen</a></li>
+            <li><a routerLink="/comics">blogtruyen</a></li>
+            <li><a routerLink="/comics">vcomycs</a></li>
+            <li><a routerLink="/comics">protruyen</a></li>
+            <li><a routerLink="/comics">tusachxinh</a></li>
+          </ul>
+          <p class="privacy-link">
+            <a routerLink="/privacy">Chính Sách Bảo Mật</a> - 
+            <a routerLink="/terms">Điều Khoản Sử Dụng</a> - 
+            <a routerLink="/contact">Liên Hệ</a>
+          </p>
         </div>
-
-        <div class="footer-links">
-          <h4><i class="fa-solid fa-shield-cat text-accent"></i> Thông Tin & Hỗ Trợ</h4>
-          <a routerLink="/terms"><i class="fa-solid fa-angle-right"></i> Điều khoản dịch vụ</a>
-          <a routerLink="/privacy"><i class="fa-solid fa-angle-right"></i> Chính sách bảo mật</a>
-          <a routerLink="/faq"><i class="fa-solid fa-angle-right"></i> Câu hỏi thường gặp</a>
-          <a routerLink="/contact"><i class="fa-solid fa-angle-right"></i> Liên hệ & Khiếu nại</a>
-        </div>
-
-        <div class="socials-col">
-          <h4><i class="fa-solid fa-share-nodes text-primary"></i> Kết Nối</h4>
-          <p class="social-desc">Tham gia cộng đồng để cập nhật tin tức truyện mới nhất!</p>
-          <div class="social-buttons">
-            <a href="https://facebook.com" target="_blank" class="social-btn facebook" title="Facebook">
-              <i class="fa-brands fa-facebook-f"></i>
-            </a>
-            <a href="https://discord.com" target="_blank" class="social-btn discord" title="Discord">
-              <i class="fa-brands fa-discord"></i>
-            </a>
-            <a href="https://t.me" target="_blank" class="social-btn telegram" title="Telegram">
-              <i class="fa-brands fa-telegram"></i>
-            </a>
-            <a href="https://youtube.com" target="_blank" class="social-btn youtube" title="Youtube">
-              <i class="fa-brands fa-youtube"></i>
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <div class="footer-bottom">
-        <div class="container footer-bottom-content">
-          <p class="copyright">© 2026 <strong>MangaFlux</strong>. All rights reserved.</p>
-          <p class="disclaimer">Nội dung được chia sẻ từ cộng đồng. MangaFlux không lưu trữ file trên máy chủ.</p>
-        </div>
+        <div class="clear"></div>
       </div>
     </footer>
   `,
   styles: [`
-    .footer {
-      background: linear-gradient(180deg, #0B0E14 0%, #06080C 100%);
+    .truyengg-footer {
+      background-color: var(--bg-card);
       border-top: 1px solid var(--border-color);
-      padding-top: 3.5rem;
-      margin-top: 4rem;
-      position: relative;
-    }
+      padding: 30px 0 24px;
+      margin-top: 30px;
+      color: var(--text-main);
 
-    .footer-content {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1.3fr;
-      gap: 2.5rem;
-      padding-bottom: 3rem;
-
-      @media (max-width: 992px) {
-        grid-template-columns: 1fr 1fr;
-        gap: 2rem;
-      }
-
-      @media (max-width: 576px) {
-        grid-template-columns: 1fr;
-        gap: 2rem;
-      }
-    }
-
-    .brand-col {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-
-      .logo {
+      .footer-body {
         display: flex;
-        align-items: center;
-        gap: 0.6rem;
-        text-decoration: none;
-
-        .logo-icon {
-          font-size: 1.5rem;
-          color: var(--primary);
-        }
-
-        .logo-text {
-          font-size: 1.5rem;
-          font-weight: 800;
-          color: var(--text-main);
-          letter-spacing: -0.5px;
-        }
-      }
-
-      .brand-desc {
-        color: var(--text-muted);
-        font-size: 0.88rem;
-        line-height: 1.6;
-        max-width: 420px;
-      }
-
-      .brand-badges {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.6rem;
-        margin-top: 0.3rem;
-      }
-    }
-
-    .footer-links {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-
-      h4 {
-        color: var(--text-main);
-        font-size: 1rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      a {
-        color: var(--text-muted);
-        text-decoration: none;
-        font-size: 0.88rem;
-        white-space: nowrap;
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        transition: var(--transition);
-
-        i {
-          font-size: 0.75rem;
-          opacity: 0.5;
-          transition: var(--transition);
-        }
-
-        &:hover {
-          color: var(--primary);
-          transform: translateX(4px);
-
-          i {
-            opacity: 1;
-            color: var(--primary);
-          }
-        }
-      }
-    }
-
-    .socials-col {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-
-      h4 {
-        color: var(--text-main);
-        font-size: 1rem;
-        font-weight: 700;
-        margin-bottom: 0.2rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .social-desc {
-        color: var(--text-muted);
-        font-size: 0.85rem;
-        margin-bottom: 0.5rem;
-      }
-
-      .social-buttons {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-
-        .social-btn {
-          width: 40px;
-          height: 40px;
-          border-radius: var(--radius-md);
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid var(--border-color);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--text-main);
-          font-size: 1.1rem;
-          text-decoration: none;
-          transition: var(--transition);
-
-          &.facebook:hover { background: #1877F2; color: #FFF; border-color: #1877F2; transform: translateY(-3px); }
-          &.discord:hover { background: #5865F2; color: #FFF; border-color: #5865F2; transform: translateY(-3px); }
-          &.telegram:hover { background: #24A1DE; color: #FFF; border-color: #24A1DE; transform: translateY(-3px); }
-          &.youtube:hover { background: #FF0000; color: #FFF; border-color: #FF0000; transform: translateY(-3px); }
-        }
-      }
-    }
-
-    .footer-bottom {
-      border-top: 1px solid rgba(255, 255, 255, 0.06);
-      padding: 1.25rem 0;
-      background: #040508;
-
-      .footer-bottom-content {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 1rem;
-        flex-wrap: wrap;
+        gap: 30px;
 
         @media (max-width: 768px) {
           flex-direction: column;
-          text-align: center;
+          gap: 20px;
         }
-      }
 
-      .copyright {
-        color: var(--text-muted);
-        font-size: 0.82rem;
+        .footer-col-left {
+          flex: 0 0 45%;
 
-        strong {
-          color: var(--text-main);
+          @media (max-width: 768px) {
+            flex: 1;
+          }
+
+          .footer-logo {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 800;
+            font-size: 24px;
+            margin-bottom: 12px;
+
+            .logo-t-orange { color: var(--primary-orange); }
+            .logo-t-blue { color: var(--primary-blue); }
+            .logo-dot { font-size: 13px; color: var(--text-muted); }
+          }
+
+          .footer-disclaimer {
+            font-size: 13px;
+            line-height: 1.65;
+            color: var(--text-muted);
+          }
         }
-      }
 
-      .disclaimer {
-        color: var(--text-dark);
-        font-size: 0.78rem;
+        .footer-col-right {
+          flex: 1;
+
+          .footer-tags-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px 12px;
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px;
+
+            @media (max-width: 576px) {
+              grid-template-columns: repeat(2, 1fr);
+            }
+
+            li a {
+              font-size: 13px;
+              color: var(--text-muted);
+              transition: color 0.2s;
+
+              &:hover {
+                color: var(--primary-orange);
+              }
+            }
+          }
+
+          .privacy-link {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--primary-blue);
+
+            a {
+              color: inherit;
+              &:hover {
+                color: var(--primary-orange);
+                text-decoration: underline !important;
+              }
+            }
+          }
+        }
       }
     }
   `]

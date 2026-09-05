@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
+import { ThemeService } from '../../services/theme.service';
 
 @Component({
   selector: 'app-settings',
@@ -35,7 +36,7 @@ export class SettingsComponent implements OnInit {
   };
 
   // Theme Settings
-  currentTheme: 'dark' | 'light' = 'dark';
+  currentTheme: 'dark' | 'light' = 'light';
 
   // Notification Preferences
   notificationPrefs = {
@@ -52,12 +53,13 @@ export class SettingsComponent implements OnInit {
   constructor(
     public authService: AuthService,
     private userService: UserService,
+    public themeService: ThemeService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
     this.loadUserData();
-    this.initTheme();
+    this.currentTheme = this.themeService.currentTheme;
     this.initNotificationPrefs();
   }
 
@@ -139,8 +141,7 @@ export class SettingsComponent implements OnInit {
 
   setTheme(theme: 'dark' | 'light'): void {
     this.currentTheme = theme;
-    localStorage.setItem('mangaflux_theme', theme);
-    document.documentElement.setAttribute('data-theme', theme);
+    this.themeService.setTheme(theme);
   }
 
   // Notification Preferences Handling

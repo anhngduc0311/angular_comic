@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnInit, OnDestroy } from '@angular/core';
+import { Component, ElementRef, HostListener, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -7,6 +7,7 @@ import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 import { ComicService } from '../../services/comic.service';
+import { ThemeService } from '../../services/theme.service';
 import { SearchAutocompleteItem } from '../../models/comic.model';
 
 @Component({
@@ -17,24 +18,50 @@ import { SearchAutocompleteItem } from '../../models/comic.model';
   styleUrls: ['./navbar.component.scss']
 })
 export class NavbarComponent implements OnInit, OnDestroy {
+  public authService = inject(AuthService);
+  public notificationService = inject(NotificationService);
+  public themeService = inject(ThemeService);
+  private comicService = inject(ComicService);
+  private router = inject(Router);
+  private elementRef = inject(ElementRef);
+
   searchQuery: string = '';
+  isSearchOpen: boolean = false;
   isMobileMenuOpen: boolean = false;
   isUserDropdownOpen: boolean = false;
+  isCategoryMenuOpen: boolean = false;
+  isRankMenuOpen: boolean = false;
+  
   isAutocompleteOpen: boolean = false;
   autocompleteResults: SearchAutocompleteItem[] = [];
   isLoadingAutocomplete: boolean = false;
   selectedIndex: number = -1;
 
+  genresList: string[] = [
+    'Action', 'Adventure', 'Anime', 'Chuyển Sinh', 'Cổ Đại', 'Comedy', 'Comic',
+    'Demons', 'Detective', 'Doujinshi', 'Drama', 'Fantasy', 'Gender Bender',
+    'Harem', 'Historical', 'Horror', 'Huyền Huyễn', 'Isekai', 'Josei', 'Mafia',
+    'Magic', 'Manga', 'Manhua', 'Manhwa', 'Martial Arts', 'Military', 'Mystery',
+    'Ngôn Tình', 'One shot', 'Psychological', 'Romance', 'School Life', 'Sci-fi',
+    'Seinen', 'Shoujo', 'Shoujo Ai', 'Shounen', 'Shounen Ai', 'Slice of life',
+    'Sports', 'Supernatural', 'Tragedy', 'Trọng Sinh', 'Truyện Màu', 'Webtoon', 'Xuyên Không'
+  ];
+
+  rankItems = [
+    { label: 'Top Ngày', icon: 'fa-sun-o', query: 'day' },
+    { label: 'Top Tuần', icon: 'fa-calendar-o', query: 'week' },
+    { label: 'Top Tháng', icon: 'fa-trophy', query: 'month' },
+    { label: 'Yêu Thích', icon: 'fa-heart', query: 'favorite' },
+    { label: 'Mới Cập Nhật', icon: 'fa-refresh', query: 'latest' },
+    { label: 'Truyện Mới', icon: 'fa-star', query: 'new' },
+    { label: 'Truyện Full', icon: 'fa-check-circle', query: 'full' },
+    { label: 'Ngẫu Nhiên', icon: 'fa-random', query: 'random' }
+  ];
+
   private searchSubject = new Subject<string>();
   private searchSub?: Subscription;
 
-  constructor(
-    public authService: AuthService, 
-    public notificationService: NotificationService,
-    private comicService: ComicService,
-    private router: Router,
-    private elementRef: ElementRef
-  ) {
+  constructor() {
     this.authService.currentUser$.subscribe((user) => {
       if (user) {
         this.notificationService.fetchUnreadCount().subscribe();
@@ -74,6 +101,22 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.searchSub?.unsubscribe();
   }
 
+  toggleSearchBar(): void {
+    this.isSearchOpen = !this.isSearchOpen;
+    if (this.isSearchOpen) {
+      setTimeout(() => {
+        const input = document.getElementById('search_input') as HTMLInputElement;
+        input?.focus();
+      }, 50);
+    } else {
+      this.isAutocompleteOpen = false;
+    }
+  }
+
+  toggleTheme(): void {
+    this.themeService.toggleTheme();
+  }
+
   onSearchInput(): void {
     this.searchSubject.next(this.searchQuery);
   }
@@ -95,11 +138,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.selectComic(selected.slug);
     } else if (event.key === 'Escape') {
       this.isAutocompleteOpen = false;
+      this.isSearchOpen = false;
     }
   }
 
   selectComic(slug: string): void {
     this.isAutocompleteOpen = false;
+    this.isSearchOpen = false;
     this.searchQuery = '';
     this.closeMobileMenu();
     this.router.navigate(['/comic', slug]);
@@ -117,6 +162,20 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.isMobileMenuOpen = false;
     this.isUserDropdownOpen = false;
     this.isAutocompleteOpen = false;
+    this.isCategoryMenuOpen = false;
+    this.isRankMenuOpen = false;
+  }
+
+  toggleCategoryMenu(event?: Event): void {
+    if (event) event.stopPropagation();
+    this.isCategoryMenuOpen = !this.isCategoryMenuOpen;
+    this.isRankMenuOpen = false;
+  }
+
+  toggleRankMenu(event?: Event): void {
+    if (event) event.stopPropagation();
+    this.isRankMenuOpen = !this.isRankMenuOpen;
+    this.isCategoryMenuOpen = false;
   }
 
   toggleUserDropdown(event?: Event): void {
@@ -138,6 +197,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
     if (!this.elementRef.nativeElement.contains(event.target)) {
       this.isUserDropdownOpen = false;
       this.isAutocompleteOpen = false;
+      this.isCategoryMenuOpen = false;
+      this.isRankMenuOpen = false;
     }
   }
 
@@ -151,6 +212,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
       this.router.navigate(['/search'], { queryParams: { q: this.searchQuery.trim() } });
       this.closeMobileMenu();
       this.isAutocompleteOpen = false;
+      this.isSearchOpen = false;
     }
   }
 
@@ -167,5 +229,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
       target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=150&q=80';
     }
   }
-}
 
+  getGenreSlug(genre: string): string {
+    return genre.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[đĐ]/g, 'd')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+}

@@ -1,166 +1,188 @@
-<div class="home-page">
-  <!-- Hero Featured Section (Preserves fixed min-height to eliminate CLS) -->
-  <section class="hero-section">
-    <!-- Real Hero Content -->
-    <div class="hero-banner" *ngIf="currentHero && !isLoadingHero; else heroSkeleton" 
-         [style.background-image]="'linear-gradient(to right, rgba(11, 14, 20, 0.95), rgba(11, 14, 20, 0.4)), url(' + (currentHero.bannerImage || currentHero.coverImage) + ')'">
-      <div class="container hero-content">
-        <span class="badge badge-hot"><i class="fa-solid fa-fire-flame-curved"></i> SIÊU PHẨM NỔI BẬT</span>
-        <h1 class="hero-title">{{ currentHero.title }}</h1>
-        <div class="hero-meta">
-          <span class="rating"><i class="fa-solid fa-star"></i> {{ currentHero.rating }}</span>
-          <span class="views"><i class="fa-solid fa-eye"></i> {{ formatViews(currentHero.views) }} lượt xem</span>
-          <span class="status badge badge-success">{{ currentHero.status === 'Ongoing' ? 'Đang tiến hành' : 'Hoàn thành' }}</span>
-        </div>
-        <p class="hero-description">{{ currentHero.description }}</p>
-        <div class="hero-actions">
-          <a [routerLink]="['/comic', currentHero.slug]" class="btn btn-primary">
-            <i class="fa-solid fa-book-open"></i> Đọc Ngay
-          </a>
-          <a [routerLink]="['/comic', currentHero.slug]" class="btn btn-secondary">
-            <i class="fa-solid fa-circle-info"></i> Chi tiết
-          </a>
-        </div>
-      </div>
-
-      <!-- Hero Indicators -->
-      <div class="hero-indicators" *ngIf="featuredComics.length > 1">
-        <button *ngFor="let c of featuredComics; let i = index" 
-                [class.active]="i === activeHeroIndex" 
-                (click)="selectHero(i)"
-                [attr.aria-label]="'Chọn truyện nổi bật ' + (i + 1)">
-        </button>
-      </div>
+<div class="content">
+  <div class="div_middle">
+    <!-- Top Fixed Alert / Ads Contact -->
+    <div class="alert-note-fix">
+      <p class="alert alert-info">
+        Đăng nhập tài khoản, hệ thống của chúng tôi sẽ tự động đồng bộ theo dõi từ TruyenQQ!
+        <span class="ads-contact">Liên hệ ads: <a target="_blank" rel="nofollow" href="https://t.me/adstruyengg">t.me/adstruyengg</a></span>
+      </p>
     </div>
 
-    <!-- Skeleton Hero Banner Placeholder -->
-    <ng-template #heroSkeleton>
-      <div class="hero-banner skeleton-hero">
-        <div class="container hero-content">
-          <div class="skeleton skeleton-badge" style="margin-bottom: 0.8rem;"></div>
-          <div class="skeleton skeleton-title" style="width: 70%; max-width: 480px; height: 2.5rem;"></div>
-          <div class="skeleton-meta-row">
-            <div class="skeleton" style="width: 60px; height: 1.1rem;"></div>
-            <div class="skeleton" style="width: 100px; height: 1.1rem;"></div>
-            <div class="skeleton" style="width: 90px; height: 1.1rem;"></div>
+    <div class="main_content">
+      <!-- Community Cards Section (Join Community & Partner CTA) -->
+      <div class="community-section">
+        <!-- Join Community Card -->
+        <div class="community-card community-card--join">
+          <div class="community-card__icon">
+            <i class="fa fa-users" aria-hidden="true"></i>
           </div>
-          <div class="skeleton-desc-block">
-            <div class="skeleton skeleton-text" style="width: 95%;"></div>
-            <div class="skeleton skeleton-text" style="width: 85%;"></div>
-            <div class="skeleton skeleton-text" style="width: 55%;"></div>
+          <div class="community-card__body">
+            <div class="community-card__text">
+              <h3 class="community-card__title">THAM GIA CỘNG ĐỒNG</h3>
+            </div>
+            <div class="community-card__divider"></div>
+            <div class="community-card__avatars">
+              <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=60&q=80" alt="reader" />
+              <img src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=60&q=80" alt="reader" />
+              <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&w=60&q=80" alt="reader" />
+              <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=60&q=80" alt="reader" />
+              <span class="community-card__count">+1.2K</span>
+            </div>
           </div>
-          <div class="hero-actions" style="margin-top: 1rem;">
-            <div class="skeleton skeleton-btn"></div>
-            <div class="skeleton skeleton-btn"></div>
+          <div class="community-card__socials">
+            <a href="https://facebook.com" target="_blank" rel="nofollow" class="community-social community-social--fb" title="Facebook">
+              <i class="fa fa-facebook"></i>
+            </a>
+            <a href="https://telegram.org" target="_blank" rel="nofollow" class="community-social community-social--tg" title="Telegram">
+              <i class="fa fa-paper-plane"></i>
+            </a>
           </div>
         </div>
-      </div>
-    </ng-template>
-  </section>
 
-  <!-- Category Bar -->
-  <div class="container category-quick-bar">
-    <span class="label"><i class="fa-solid fa-layer-group text-primary"></i> Thể loại hot:</span>
-    <div class="chips" *ngIf="!isLoadingCategories && categories.length > 0; else categorySkeleton">
-      <a *ngFor="let cat of categories" [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }" class="chip">
-        {{ cat.name }}
-      </a>
-    </div>
-    <ng-template #categorySkeleton>
-      <div class="chips">
-        <div class="skeleton skeleton-chip" *ngFor="let _ of skeletonCategories"></div>
-      </div>
-    </ng-template>
-  </div>
-
-  <!-- Main Content Grid -->
-  <div class="container main-layout">
-    <!-- Left Column: Latest Comics -->
-    <div class="left-content">
-      <div class="section-header">
-        <h2><i class="fa-solid fa-clock-rotate-left text-gradient"></i> Mới Cập Nhật Mới Nhất</h2>
-        <a routerLink="/comics" class="view-all">Xem tất cả <i class="fa-solid fa-chevron-right"></i></a>
-      </div>
-
-      <!-- Real Comics Grid -->
-      <div class="comic-grid" *ngIf="!isLoading; else comicsGridSkeleton">
-        <div class="comic-card card-hover" *ngFor="let comic of latestComics">
-          <a [routerLink]="['/comic', comic.slug]" class="card-cover">
-            <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" decoding="async" (error)="onImgError($event)" />
-            <span class="chapter-badge" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
-            <span class="time-badge" *ngIf="comic.latestChapter">{{ formatTimeAgo(comic.latestChapter.createdAt) }}</span>
-            <div class="card-overlay">
-              <span class="btn-play" title="Đọc truyện"><i class="fa-solid fa-play"></i></span>
+        <!-- Partner Banner Card -->
+        <div class="community-card community-card--partner">
+          <div class="community-card__icon">
+            <i class="fa fa-handshake-o" aria-hidden="true" style="color: #0d9488;"></i>
+          </div>
+          <div class="community-card__body">
+            <div class="community-card__text">
+              <h3 class="community-card__title">HỢP TÁC CÙNG TRUYENGG</h3>
             </div>
-          </a>
-          <div class="card-info">
-            <h3 class="comic-title" [title]="comic.title">
-              <a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
-            </h3>
-            <div class="card-footer">
-              <span class="rating"><i class="fa-solid fa-star"></i> {{ comic.rating }}</span>
-              <span class="views"><i class="fa-solid fa-eye"></i> {{ formatViews(comic.views) }}</span>
-            </div>
+            <div class="community-card__divider"></div>
+            <a href="https://t.me/adstruyengg" target="_blank" rel="nofollow" class="community-card__cta">
+              <i class="fa fa-paper-plane"></i>
+              <span class="cta-text">Liên hệ qua Telegram</span>
+            </a>
           </div>
         </div>
       </div>
 
-      <!-- Skeleton Comics Grid Placeholder -->
-      <ng-template #comicsGridSkeleton>
-        <div class="comic-grid">
-          <div class="comic-card skeleton-card" *ngFor="let _ of skeletonCards">
-            <div class="card-cover skeleton"></div>
-            <div class="card-info">
-              <div class="skeleton skeleton-text" style="width: 85%; margin-bottom: 0.6rem;"></div>
-              <div class="card-footer-skeleton">
-                <div class="skeleton" style="width: 35%; height: 0.8rem;"></div>
-                <div class="skeleton" style="width: 40%; height: 0.8rem;"></div>
+      <!-- Suggested / Hot Comics Carousel Slider -->
+      <div class="homepage_suggest">
+        <div class="section-heading">
+          <h2 class="text_list_hot">
+            <i class="fa fa-fire text-danger" aria-hidden="true"></i> TRUYỆN HOT
+          </h2>
+          <div class="section-heading-right">
+            <a class="section-view-all" [routerLink]="['/comics']" [queryParams]="{ sort: 'hot' }">
+              Xem Tất Cả <i class="fa fa-angle-right"></i>
+            </a>
+          </div>
+        </div>
+
+        <div id="div_suggest" #suggestContainer>
+          <ul class="list_grid" id="list_suggest" *ngIf="!isLoadingHot; else suggestSkeleton">
+            <li class="comic-item" *ngFor="let comic of hotComics">
+              <div class="book_avatar">
+                <a [routerLink]="['/comic', comic.slug]">
+                  <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
+                </a>
+                <div class="top-notice">
+                  <span class="time-ago">{{ formatTimeAgo(comic.updatedAt) }}</span>
+                </div>
+                <div class="top-notice-right">
+                  <span class="type-label hot">Hot</span>
+                </div>
               </div>
-            </div>
-          </div>
+              <div class="book_info">
+                <div class="book_name">
+                  <h3>
+                    <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
+                  </h3>
+                </div>
+                <div class="last_chapter" *ngIf="comic.latestChapter">
+                  <a [routerLink]="['/comic', comic.slug]">Chapter {{ comic.latestChapter.chapterNumber }}</a>
+                </div>
+              </div>
+            </li>
+          </ul>
+
+          <ng-template #suggestSkeleton>
+            <ul class="list_grid" id="list_suggest">
+              <li class="comic-item" *ngFor="let _ of skeletonHotCards">
+                <div class="book_avatar skeleton" style="height: 210px;"></div>
+                <div class="book_info">
+                  <div class="skeleton skeleton-text" style="width: 90%;"></div>
+                  <div class="skeleton skeleton-text" style="width: 50%;"></div>
+                </div>
+              </li>
+            </ul>
+          </ng-template>
         </div>
-      </ng-template>
+
+        <!-- Scroll Left / Right buttons -->
+        <div class="scroll">
+          <div class="left" (click)="scrollSuggest('left')"><i class="fa fa-angle-left"></i></div>
+          <div class="right" (click)="scrollSuggest('right')"><i class="fa fa-angle-right"></i></div>
+        </div>
+      </div>
+
+      <!-- Main Latest Comics List Grid -->
+      <div id="main_homepage">
+        <div class="homepage_tags">
+          <div class="section-heading">
+            <h1 class="text_list_update">
+              <i class="fa fa-bolt" aria-hidden="true"></i> TRUYỆN MỚI CẬP NHẬT
+            </h1>
+            <div class="section-heading-right">
+              <a class="section-view-all" [routerLink]="['/comics']">
+                Xem Tất Cả <i class="fa fa-angle-right"></i>
+              </a>
+            </div>
+          </div>
+          <div class="clear"></div>
+        </div>
+
+        <div class="list_grid_out">
+          <ul class="list_grid grid" id="list_new" *ngIf="!isLoading; else gridSkeleton">
+            <li class="comic-item" *ngFor="let comic of latestComics; let i = index">
+              <div class="book_avatar">
+                <a [routerLink]="['/comic', comic.slug]">
+                  <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
+                </a>
+                <div class="top-notice">
+                  <span class="time-ago">{{ formatTimeAgo(comic.updatedAt) }}</span>
+                </div>
+                <div class="top-notice-right">
+                  <span class="type-label" [ngClass]="i % 3 === 0 ? 'hot' : 'new'">{{ i % 3 === 0 ? 'Hot' : 'New' }}</span>
+                </div>
+              </div>
+              <div class="book_info">
+                <div class="book_name">
+                  <h3>
+                    <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
+                  </h3>
+                </div>
+                <div class="last_chapter" *ngIf="comic.latestChapter">
+                  <a [routerLink]="['/comic', comic.slug]">Chapter {{ comic.latestChapter.chapterNumber }}</a>
+                </div>
+              </div>
+            </li>
+          </ul>
+
+          <ng-template #gridSkeleton>
+            <ul class="list_grid grid">
+              <li class="comic-item" *ngFor="let _ of skeletonCards">
+                <div class="book_avatar skeleton" style="height: 210px;"></div>
+                <div class="book_info">
+                  <div class="skeleton skeleton-text" style="width: 85%;"></div>
+                  <div class="skeleton skeleton-text" style="width: 45%;"></div>
+                </div>
+              </li>
+            </ul>
+          </ng-template>
+        </div>
+
+        <!-- View More Link -->
+        <div class="has-text-centered">
+          <a [routerLink]="['/comics']" class="view-more-btn">Xem thêm nhiều truyện</a>
+        </div>
+      </div>
     </div>
-
-    <!-- Right Sidebar: Top Rankings -->
-    <aside class="sidebar">
-      <div class="section-header">
-        <h2><i class="fa-solid fa-trophy text-gradient"></i> Bảng Xếp Hạng</h2>
-      </div>
-
-      <!-- Ranking Tabs -->
-      <div class="ranking-tabs bg-glass">
-        <button [class.active]="activeRankingTab === 'day'" (click)="switchRankingTab('day')">Top Ngày</button>
-        <button [class.active]="activeRankingTab === 'week'" (click)="switchRankingTab('week')">Top Tuần</button>
-        <button [class.active]="activeRankingTab === 'month'" (click)="switchRankingTab('month')">Top Tháng</button>
-      </div>
-
-      <div class="top-list bg-glass">
-        <!-- Real Top List Items -->
-        <ng-container *ngIf="!isLoading && topViewComics.length > 0; else topListSkeleton">
-          <div class="top-item" *ngFor="let comic of topViewComics; let i = index">
-            <span class="rank-num" [class.top-1]="i === 0" [class.top-2]="i === 1" [class.top-3]="i === 2">{{ i + 1 }}</span>
-            <img [src]="comic.coverImage" [alt]="comic.title" class="thumb" (error)="onImgError($event)" />
-            <div class="info">
-              <a [routerLink]="['/comic', comic.slug]" class="title" [title]="comic.title">{{ comic.title }}</a>
-              <span class="meta"><i class="fa-solid fa-eye text-muted"></i> {{ formatViews(comic.views) }} lượt xem</span>
-            </div>
-          </div>
-        </ng-container>
-
-        <!-- Skeleton Top List Placeholder -->
-        <ng-template #topListSkeleton>
-          <div class="top-item skeleton-top-item" *ngFor="let _ of skeletonTopItems; let i = index">
-            <span class="rank-num" [class.top-1]="i === 0" [class.top-2]="i === 1" [class.top-3]="i === 2">{{ i + 1 }}</span>
-            <div class="thumb skeleton"></div>
-            <div class="info">
-              <div class="skeleton skeleton-text" style="width: 80%; height: 0.9rem; margin-bottom: 0.35rem;"></div>
-              <div class="skeleton skeleton-text" style="width: 50%; height: 0.75rem; margin-bottom: 0;"></div>
-            </div>
-          </div>
-        </ng-template>
-      </div>
-    </aside>
   </div>
 </div>
 
+<!-- Back to Top Button -->
+<a id="back-to-top" (click)="scrollToTop()" title="Lên đầu trang">
+  <i class="fa fa-angle-up"></i>
+</a>

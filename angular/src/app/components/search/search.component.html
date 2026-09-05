@@ -1,236 +1,138 @@
-<div class="container search-page">
-  <!-- Page Header -->
-  <div class="page-header">
-    <h1><i class="fa-solid fa-compass text-gradient"></i> Tìm Kiếm & Khám Phá Truyện</h1>
-    <p>Tìm kiếm truyện tranh tiếng Việt với bộ lọc đa tiêu chí: thể loại, tác giả, quốc gia, số chương và xếp hạng.</p>
-  </div>
+<div class="content search-page">
+  <div class="div_middle">
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+      <li>
+        <a routerLink="/"><i class="fa fa-home"></i> <span>Trang Chủ</span></a>
+      </li>
+      <li>
+        <span class="active">Tìm Kiếm Truyện</span>
+      </li>
+    </ol>
 
-  <!-- Search & Advanced Filter Panel -->
-  <div class="search-panel bg-glass">
-    <!-- Top Search Input Bar -->
-    <form (ngSubmit)="applyFilters(1)" class="search-bar-wrapper">
-      <div class="input-with-icon">
-        <i class="fa-solid fa-magnifying-glass search-icon"></i>
-        <input 
-          type="text" 
-          [(ngModel)]="query" 
-          name="q" 
-          placeholder="Nhập tên truyện, tên tác giả, tên khác (không cần gõ dấu)..." 
-          class="search-input" 
-        />
-        <button type="button" class="clear-btn" *ngIf="query" (click)="query = ''; applyFilters(1)">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <button type="submit" class="btn btn-primary search-submit-btn">
-        <i class="fa-solid fa-search"></i> Tìm kiếm
-      </button>
-      <button type="button" class="btn btn-outline reset-btn" (click)="resetFilters()" title="Đặt lại tất cả bộ lọc">
-        <i class="fa-solid fa-rotate-left"></i> Đặt lại
-      </button>
-    </form>
+    <div class="main_content">
+      <!-- Search & Advanced Filter Panel -->
+      <div class="truyengg-search-panel">
+        <form (ngSubmit)="applyFilters(1)" class="search-input-group">
+          <input 
+            type="text" 
+            [(ngModel)]="query" 
+            name="q" 
+            placeholder="Nhập tên truyện, tác giả muốn tìm..." 
+            class="search-input" 
+          />
+          <button type="submit" class="btn-search-action">
+            <i class="fa fa-search"></i> Tìm Truyện
+          </button>
+        </form>
 
-    <!-- Filter Toggle Header -->
-    <div class="filter-toggle-header" (click)="showAdvancedFilters = !showAdvancedFilters">
-      <div class="title">
-        <i class="fa-solid fa-sliders text-primary"></i>
-        <span>Bộ lọc nâng cao</span>
-        <span class="active-count" *ngIf="(includeCategories.length + excludeCategories.length + (selectedStatus !== 'All' ? 1 : 0) + (selectedCountry !== 'All' ? 1 : 0) + (selectedMinChapters > 0 ? 1 : 0)) as actCount">
-          ({{ actCount }} điều kiện)
-        </span>
-      </div>
-      <i class="fa-solid fa-chevron-down toggle-icon" [class.rotated]="showAdvancedFilters"></i>
-    </div>
+        <!-- Dropdowns Filter Row -->
+        <div class="filter-controls-row">
+          <div class="field">
+            <label><i class="fa fa-th-large"></i> Thể loại:</label>
+            <select [(ngModel)]="selectedCategory" (change)="applyFilters(1)">
+              <option value="">Tất cả thể loại</option>
+              <option *ngFor="let cat of categories" [value]="cat.slug">{{ cat.name }}</option>
+            </select>
+          </div>
 
-    <!-- Collapsible Filter Content -->
-    <div class="advanced-filter-body" *ngIf="showAdvancedFilters">
-      <!-- 1. Category Tag Matrix -->
-      <div class="filter-section categories-section">
-        <div class="section-label">
-          <span><i class="fa-solid fa-tags"></i> Thể loại truyện:</span>
-          <div class="category-legend">
-            <span class="legend-item inc"><i class="fa-solid fa-check"></i> Bao gồm (Click 1)</span>
-            <span class="legend-item exc"><i class="fa-solid fa-xmark"></i> Loại trừ (Click 2)</span>
-            <span class="legend-item neu"><i class="fa-solid fa-minus"></i> Bỏ chọn (Click 3)</span>
+          <div class="field">
+            <label><i class="fa fa-info-circle"></i> Trạng thái:</label>
+            <select [(ngModel)]="selectedStatus" (change)="applyFilters(1)">
+              <option value="All">Tất cả</option>
+              <option value="Ongoing">Đang tiến hành</option>
+              <option value="Completed">Hoàn thành</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label><i class="fa fa-sort-amount-desc"></i> Sắp xếp:</label>
+            <select [(ngModel)]="selectedSort" (change)="applyFilters(1)">
+              <option value="latest">Mới cập nhật</option>
+              <option value="views">Lượt xem nhiều nhất</option>
+              <option value="rating">Đánh giá cao nhất</option>
+              <option value="az">Tên A-Z</option>
+            </select>
           </div>
         </div>
-
-        <div class="category-tags-grid">
-          <button 
-            type="button"
-            *ngFor="let cat of categories" 
-            class="cat-chip"
-            [class.include]="getCategoryState(cat.slug) === 'include'"
-            [class.exclude]="getCategoryState(cat.slug) === 'exclude'"
-            (click)="toggleCategoryState(cat.slug)"
-          >
-            <i class="fa-solid fa-check chip-icon" *ngIf="getCategoryState(cat.slug) === 'include'"></i>
-            <i class="fa-solid fa-xmark chip-icon" *ngIf="getCategoryState(cat.slug) === 'exclude'"></i>
-            <span>{{ cat.name }}</span>
-          </button>
-        </div>
       </div>
 
-      <!-- 2. Dropdown Filter Row -->
-      <div class="filter-row">
-        <div class="field">
-          <label><i class="fa-solid fa-earth-asia"></i> Quốc gia:</label>
-          <select [(ngModel)]="selectedCountry" (change)="applyFilters(1)">
-            <option *ngFor="let c of countries" [value]="c.value">{{ c.label }}</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label><i class="fa-solid fa-list-ol"></i> Số lượng chương:</label>
-          <select [(ngModel)]="selectedMinChapters" (change)="applyFilters(1)">
-            <option *ngFor="let r of chapterRanges" [value]="r.value">{{ r.label }}</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label><i class="fa-solid fa-circle-check"></i> Trạng thái:</label>
-          <select [(ngModel)]="selectedStatus" (change)="applyFilters(1)">
-            <option value="All">Tất cả trạng thái</option>
-            <option value="Ongoing">Đang tiến hành</option>
-            <option value="Completed">Đã hoàn thành</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label><i class="fa-solid fa-arrow-down-wide-short"></i> Sắp xếp:</label>
-          <select [(ngModel)]="selectedSort" (change)="applyFilters(1)">
-            <option value="latest">Mới cập nhật</option>
-            <option value="views">Lượt xem nhiều nhất</option>
-            <option value="rating">Đánh giá cao nhất</option>
-            <option value="az">Tên A ➔ Z</option>
-            <option value="chapters">Nhiều chương nhất</option>
-          </select>
-        </div>
+      <!-- Section Heading -->
+      <div class="section-heading" style="margin-top: 20px;">
+        <h2 class="text_list_update">
+          <i class="fa fa-search"></i> KẾT QUẢ TÌM KIẾM
+        </h2>
+        <span class="text-muted" style="font-size: 13px;">({{ totalCount }} truyện)</span>
       </div>
-    </div>
-  </div>
 
-  <!-- Results Header & Active Filters Bar -->
-  <div class="results-header-bar">
-    <div class="results-counter">
-      <h3>
-        Tìm thấy <span class="highlight">{{ totalCount | number }}</span> truyện phù hợp
-      </h3>
-    </div>
+      <!-- Loading State -->
+      <div class="loading-state" *ngIf="isLoading" style="text-align: center; padding: 40px; color: var(--primary-orange);">
+        <i class="fa fa-spinner fa-spin" style="font-size: 32px; margin-bottom: 10px; display: block;"></i>
+        <p>Đang tìm kiếm...</p>
+      </div>
 
-    <div class="view-mode-controls">
-      <button 
-        class="view-btn" 
-        [class.active]="viewMode === 'grid'" 
-        (click)="viewMode = 'grid'" 
-        title="Xem dạng lưới"
-      >
-        <i class="fa-solid fa-table-cells-large"></i>
-      </button>
-      <button 
-        class="view-btn" 
-        [class.active]="viewMode === 'list'" 
-        (click)="viewMode = 'list'" 
-        title="Xem dạng danh sách"
-      >
-        <i class="fa-solid fa-list"></i>
-      </button>
-    </div>
-  </div>
+      <!-- Result View: GRID MODE -->
+      <div class="list_grid_out" *ngIf="!isLoading && results.length > 0">
+        <ul class="list_grid grid">
+          <li class="comic-item" *ngFor="let comic of results; let i = index">
+            <div class="book_avatar">
+              <a [routerLink]="['/comic', comic.slug]">
+                <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
+              </a>
+              <div class="top-notice">
+                <span class="time-ago">{{ comic.rating ? '★ ' + comic.rating : 'Hot' }}</span>
+              </div>
+              <div class="top-notice-right">
+                <span class="type-label" [ngClass]="comic.status === 'Completed' ? 'new' : 'hot'">
+                  {{ comic.status === 'Completed' ? 'Full' : 'Hot' }}
+                </span>
+              </div>
+            </div>
+            <div class="book_info">
+              <div class="book_name">
+                <h3>
+                  <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
+                </h3>
+              </div>
+              <div class="last_chapter" *ngIf="comic.latestChapter">
+                <a [routerLink]="['/comic', comic.slug]">Chapter {{ comic.latestChapter.chapterNumber }}</a>
+              </div>
+            </div>
+          </li>
+        </ul>
+      </div>
 
-  <!-- Loading State -->
-  <div class="loading-state" *ngIf="isLoading">
-    <i class="fa-solid fa-circle-notch fa-spin spinner"></i>
-    <p>Đang tìm kiếm dữ liệu truyện tranh...</p>
-  </div>
+      <!-- Empty State -->
+      <div class="empty-state" *ngIf="!isLoading && results.length === 0" style="text-align: center; padding: 40px; color: var(--text-muted);">
+        <i class="fa fa-search-minus" style="font-size: 36px; margin-bottom: 12px; display: block;"></i>
+        <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text-main);">Không tìm thấy truyện nào phù hợp!</h3>
+        <p style="font-size: 13px;">Hãy thử tìm bằng từ khóa ngắn hơn hoặc chọn lại bộ lọc.</p>
+      </div>
 
-  <!-- Result View: GRID MODE -->
-  <div class="comic-grid" *ngIf="!isLoading && viewMode === 'grid' && results.length > 0">
-    <div class="comic-card card-hover" *ngFor="let comic of results">
-      <a [routerLink]="['/comic', comic.slug]" class="card-cover">
-        <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" loading="lazy" />
-        <span class="badge badge-primary status-badge" *ngIf="comic.status === 'Completed'">Full</span>
-        <span class="badge badge-accent chapter-badge" *ngIf="comic.latestChapter">
-          Chap {{ comic.latestChapter.chapterNumber }}
+      <!-- Pagination Controls -->
+      <div class="has-text-centered" *ngIf="!isLoading && totalPages > 1" style="display: flex; justify-content: center; gap: 10px; margin-top: 24px;">
+        <button 
+          class="btn-page" 
+          [disabled]="currentPage === 1" 
+          (click)="onPageChange(currentPage - 1)"
+          style="padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-card); color: var(--text-main);"
+        >
+          <i class="fa fa-angle-left"></i> Trang trước
+        </button>
+
+        <span style="display: inline-flex; align-items: center; font-size: 13px; font-weight: 700; padding: 0 10px;">
+          Trang {{ currentPage }} / {{ totalPages }}
         </span>
-      </a>
-      <div class="card-info">
-        <h3 class="comic-title">
-          <a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
-        </h3>
-        <p class="author"><i class="fa-solid fa-user-pen"></i> {{ comic.author || 'Đang cập nhật' }}</p>
-        <div class="card-footer">
-          <span class="rating"><i class="fa-solid fa-star"></i> {{ comic.rating }}</span>
-          <span class="views"><i class="fa-solid fa-eye"></i> {{ comic.views | number }}</span>
-        </div>
+
+        <button 
+          class="btn-page" 
+          [disabled]="currentPage === totalPages" 
+          (click)="onPageChange(currentPage + 1)"
+          style="padding: 8px 16px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--bg-card); color: var(--text-main);"
+        >
+          Trang sau <i class="fa fa-angle-right"></i>
+        </button>
       </div>
     </div>
-  </div>
-
-  <!-- Result View: LIST MODE -->
-  <div class="comic-list-view" *ngIf="!isLoading && viewMode === 'list' && results.length > 0">
-    <div class="comic-list-item card-hover" *ngFor="let comic of results">
-      <a [routerLink]="['/comic', comic.slug]" class="item-cover">
-        <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" loading="lazy" />
-      </a>
-      <div class="item-content">
-        <div class="item-header">
-          <h3 class="comic-title">
-            <a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
-          </h3>
-          <span class="status-pill" [class.completed]="comic.status === 'Completed'">
-            {{ comic.status === 'Completed' ? 'Đã hoàn thành' : 'Đang tiến hành' }}
-          </span>
-        </div>
-        <p class="author"><i class="fa-solid fa-user-pen"></i> {{ comic.author || 'Đang cập nhật' }}</p>
-        <p class="desc" *ngIf="comic.description">{{ comic.description }}</p>
-        <div class="item-tags">
-          <span class="tag-pill" *ngFor="let cat of comic.categories">{{ cat.name }}</span>
-        </div>
-        <div class="item-footer">
-          <span class="meta-item latest" *ngIf="comic.latestChapter">
-            <i class="fa-solid fa-book-bookmark"></i> Chương {{ comic.latestChapter.chapterNumber }}
-          </span>
-          <span class="meta-item rating"><i class="fa-solid fa-star"></i> {{ comic.rating }}</span>
-          <span class="meta-item views"><i class="fa-solid fa-eye"></i> {{ comic.views | number }}</span>
-          <span class="meta-item time"><i class="fa-solid fa-clock"></i> {{ comic.updatedAt | date:'dd/MM/yyyy' }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Empty State -->
-  <div class="empty-state" *ngIf="!isLoading && results.length === 0">
-    <div class="empty-icon-wrap">
-      <i class="fa-solid fa-magnifying-glass-minus empty-icon"></i>
-    </div>
-    <h3>Không tìm thấy truyện nào phù hợp!</h3>
-    <p>Hãy thử từ khóa ngắn hơn, chuyển sang tìm không dấu hoặc bỏ bớt các điều kiện lọc thể loại.</p>
-    <button class="btn btn-primary" (click)="resetFilters()">
-      <i class="fa-solid fa-rotate-left"></i> Đặt lại bộ lọc
-    </button>
-  </div>
-
-  <!-- Pagination Controls -->
-  <div class="pagination-bar" *ngIf="!isLoading && totalPages > 1">
-    <button 
-      class="page-btn nav-btn" 
-      [disabled]="currentPage === 1" 
-      (click)="onPageChange(currentPage - 1)"
-    >
-      <i class="fa-solid fa-chevron-left"></i> Trang trước
-    </button>
-
-    <div class="page-numbers">
-      <span class="page-indicator">Trang <strong>{{ currentPage }}</strong> / {{ totalPages }}</span>
-    </div>
-
-    <button 
-      class="page-btn nav-btn" 
-      [disabled]="currentPage === totalPages" 
-      (click)="onPageChange(currentPage + 1)"
-    >
-      Trang sau <i class="fa-solid fa-chevron-right"></i>
-    </button>
   </div>
 </div>

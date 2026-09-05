@@ -2,16 +2,18 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 200px);
+  min-height: calc(100vh - 220px);
   padding: 2rem 1rem;
 }
 
 .auth-card {
   width: 100%;
   max-width: 440px;
-  border-radius: var(--radius-lg);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
   padding: 2rem;
-  box-shadow: var(--shadow-glow);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
 }
 
 .auth-tabs {
@@ -32,8 +34,8 @@
     transition: var(--transition);
 
     &.active {
-      color: var(--primary);
-      border-bottom-color: var(--primary);
+      color: var(--primary-orange);
+      border-bottom-color: var(--primary-orange);
     }
   }
 }
@@ -80,13 +82,14 @@
       input {
         width: 100%;
         padding: 0.75rem 1rem 0.75rem 2.8rem;
-        background: #181D28;
+        background: var(--bg-page);
         border: 1px solid var(--border-color);
         border-radius: var(--radius-md);
         color: var(--text-main);
         outline: none;
+        font-family: var(--font-family);
 
-        &:focus { border-color: var(--primary); }
+        &:focus { border-color: var(--primary-orange); }
       }
     }
   }
@@ -95,6 +98,14 @@
     width: 100%;
     padding: 0.85rem;
     margin-top: 0.5rem;
+    background-color: var(--primary-orange);
+    color: #fff;
+    font-weight: 700;
+    border-radius: 6px;
+
+    &:hover {
+      background-color: #d96e12;
+    }
   }
 }
 

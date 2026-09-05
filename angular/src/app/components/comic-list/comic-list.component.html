@@ -1,80 +1,99 @@
-<div class="container comic-list-page">
-  <div class="page-header">
-    <h1><i class="fa-solid fa-book-bookmark text-gradient"></i> Danh Sách Truyện Tranh</h1>
-    <p>Khám phá kho truyện phong phú đa dạng thể loại cập nhật liên tục mỗi ngày.</p>
-  </div>
+<div class="content comic-list-page">
+  <div class="div_middle">
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+      <li>
+        <a routerLink="/"><i class="fa fa-home"></i> <span>Trang Chủ</span></a>
+      </li>
+      <li>
+        <span class="active">Danh Sách Truyện</span>
+      </li>
+    </ol>
 
-  <!-- Filter Bar -->
-  <div class="filter-card bg-glass">
-    <div class="filter-group">
-      <label><i class="fa-solid fa-list"></i> Thể loại:</label>
-      <select [(ngModel)]="selectedCategory" (change)="onFilterChange()">
-        <option value="">Tất cả thể loại</option>
-        <option *ngFor="let cat of categories" [value]="cat.slug">{{ cat.name }}</option>
-      </select>
-    </div>
+    <div class="main_content">
+      <!-- Section Heading & Filter -->
+      <div class="section-heading">
+        <h1 class="text_list_update">
+          <i class="fa fa-book-open"></i> DANH SÁCH TRUYỆN TRANH
+        </h1>
+        <span class="text-muted" style="font-size: 13px;">({{ comics.length }} truyện)</span>
+      </div>
 
-    <div class="filter-group">
-      <label><i class="fa-solid fa-spinner"></i> Trạng thái:</label>
-      <select [(ngModel)]="selectedStatus" (change)="onFilterChange()">
-        <option value="All">Tất cả</option>
-        <option value="Ongoing">Đang tiến hành</option>
-        <option value="Completed">Hoàn thành</option>
-      </select>
-    </div>
-
-    <div class="filter-group">
-      <label><i class="fa-solid fa-arrow-down-short-wide"></i> Sắp xếp:</label>
-      <select [(ngModel)]="selectedSort" (change)="onFilterChange()">
-        <option value="latest">Mới cập nhật</option>
-        <option value="views">Lượt xem nhiều nhất</option>
-        <option value="rating">Đánh giá cao nhất</option>
-        <option value="title">Tên A-Z</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Comic Cards Grid -->
-  <div class="comic-grid" *ngIf="!isLoading; else comicsGridSkeleton">
-    <div class="comic-card card-hover" *ngFor="let comic of comics">
-      <a [routerLink]="['/comic', comic.slug]" class="card-cover">
-        <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" />
-        <span class="chapter-badge" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
-      </a>
-      <div class="card-info">
-        <h3 class="comic-title" [title]="comic.title">
-          <a [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
-        </h3>
-        <div class="tags">
-          <a *ngFor="let cat of comic.categories.slice(0, 2)" [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }" class="tag">{{ cat.name }}</a>
+      <!-- Filter Controls Bar -->
+      <div class="truyengg-filter-box">
+        <div class="filter-item">
+          <label><i class="fa fa-th-large"></i> Thể loại:</label>
+          <select [(ngModel)]="selectedCategory" (change)="onFilterChange()" class="filter-select">
+            <option value="">Tất cả thể loại</option>
+            <option *ngFor="let cat of categories" [value]="cat.slug">{{ cat.name }}</option>
+          </select>
         </div>
-        <div class="card-footer">
-          <span class="rating"><i class="fa-solid fa-star"></i> {{ comic.rating }}</span>
-          <span class="views"><i class="fa-solid fa-eye"></i> {{ comic.views | number }}</span>
+
+        <div class="filter-item">
+          <label><i class="fa fa-info-circle"></i> Trạng thái:</label>
+          <select [(ngModel)]="selectedStatus" (change)="onFilterChange()" class="filter-select">
+            <option value="All">Tất cả</option>
+            <option value="Ongoing">Đang tiến hành</option>
+            <option value="Completed">Hoàn thành</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label><i class="fa fa-sort-amount-desc"></i> Sắp xếp:</label>
+          <select [(ngModel)]="selectedSort" (change)="onFilterChange()" class="filter-select">
+            <option value="latest">Mới cập nhật</option>
+            <option value="views">Lượt xem nhiều nhất</option>
+            <option value="rating">Đánh giá cao nhất</option>
+            <option value="title">Tên A-Z</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Comic Item Cards Grid -->
+      <div class="list_grid_out">
+        <ul class="list_grid grid" *ngIf="!isLoading; else gridSkeleton">
+          <li class="comic-item" *ngFor="let comic of comics; let i = index">
+            <div class="book_avatar">
+              <a [routerLink]="['/comic', comic.slug]">
+                <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
+              </a>
+              <div class="top-notice">
+                <span class="time-ago">{{ formatTimeAgo(comic.updatedAt) }}</span>
+              </div>
+              <div class="top-notice-right">
+                <span class="type-label" [ngClass]="i % 2 === 0 ? 'hot' : 'new'">{{ i % 2 === 0 ? 'Hot' : 'New' }}</span>
+              </div>
+            </div>
+            <div class="book_info">
+              <div class="book_name">
+                <h3>
+                  <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
+                </h3>
+              </div>
+              <div class="last_chapter" *ngIf="comic.latestChapter">
+                <a [routerLink]="['/comic', comic.slug]">Chapter {{ comic.latestChapter.chapterNumber }}</a>
+              </div>
+            </div>
+          </li>
+        </ul>
+
+        <ng-template #gridSkeleton>
+          <ul class="list_grid grid">
+            <li class="comic-item" *ngFor="let _ of skeletonCards">
+              <div class="book_avatar skeleton" style="height: 210px;"></div>
+              <div class="book_info">
+                <div class="skeleton skeleton-text" style="width: 85%;"></div>
+                <div class="skeleton skeleton-text" style="width: 45%;"></div>
+              </div>
+            </li>
+          </ul>
+        </ng-template>
+
+        <div class="empty-state" *ngIf="!isLoading && comics.length === 0" style="text-align: center; padding: 40px; color: var(--text-muted);">
+          <i class="fa fa-folder-open-o" style="font-size: 36px; margin-bottom: 10px; display: block;"></i>
+          <p>Không tìm thấy truyện phù hợp với bộ lọc hiện tại.</p>
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Skeleton Comic Cards Grid Placeholder -->
-  <ng-template #comicsGridSkeleton>
-    <div class="comic-grid">
-      <div class="comic-card skeleton-card" *ngFor="let _ of skeletonCards">
-        <div class="card-cover skeleton"></div>
-        <div class="card-info">
-          <div class="skeleton skeleton-text" style="width: 85%; margin-bottom: 0.6rem;"></div>
-          <div class="skeleton skeleton-text" style="width: 50%; height: 0.75rem; margin-bottom: 0.6rem;"></div>
-          <div class="card-footer-skeleton">
-            <div class="skeleton" style="width: 35%; height: 0.8rem;"></div>
-            <div class="skeleton" style="width: 40%; height: 0.8rem;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </ng-template>
-
-  <div class="empty-state" *ngIf="!isLoading && comics.length === 0">
-    <i class="fa-solid fa-folder-open empty-icon"></i>
-    <p>Không tìm thấy truyện phù hợp với bộ lọc hiện tại.</p>
   </div>
 </div>

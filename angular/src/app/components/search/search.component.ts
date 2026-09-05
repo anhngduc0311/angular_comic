@@ -15,6 +15,7 @@ import { Comic, Category, SearchFilter } from '../../models/comic.model';
 })
 export class SearchComponent implements OnInit {
   query: string = '';
+  selectedCategory: string = '';
   includeCategories: string[] = [];
   excludeCategories: string[] = [];
   selectedStatus: string = 'All';
@@ -67,6 +68,7 @@ export class SearchComponent implements OnInit {
       
       const inc = params['includeCategories'] || params['category'] || '';
       this.includeCategories = inc ? inc.split(',') : [];
+      this.selectedCategory = this.includeCategories.length > 0 ? this.includeCategories[0] : '';
 
       const exc = params['excludeCategories'] || '';
       this.excludeCategories = exc ? exc.split(',') : [];
@@ -74,7 +76,7 @@ export class SearchComponent implements OnInit {
       this.selectedStatus = params['status'] || 'All';
       this.selectedCountry = params['country'] || 'All';
       this.selectedMinChapters = params['minChapters'] ? parseInt(params['minChapters'], 10) : 0;
-      this.selectedSort = params['sortBy'] || 'latest';
+      this.selectedSort = params['sortBy'] || params['sort'] || 'latest';
       this.currentPage = params['page'] ? parseInt(params['page'], 10) : 1;
 
       this.executeSearch();
@@ -87,15 +89,15 @@ export class SearchComponent implements OnInit {
     // Set SEO
     const searchLabel = this.query ? `Tìm kiếm: "${this.query}"` : 'Bộ Lọc & Tìm Kiếm Truyện Tranh Nâng Cao';
     this.seoService.setGeneralSeo(
-      `${searchLabel} - MangaFlux`,
-      'Tìm kiếm và lọc truyện tranh tiếng Việt theo nhiều thể loại, tác giả, quốc gia, số chương và xếp hạng tại MangaFlux.',
+      `${searchLabel} - TruyenGG`,
+      'Tìm kiếm và lọc truyện tranh tiếng Việt theo nhiều thể loại, tác giả, quốc gia, số chương và xếp hạng tại TruyenGG.',
       undefined,
       '/search'
     );
 
     const filter: SearchFilter = {
       query: this.query,
-      includeCategories: this.includeCategories,
+      includeCategories: this.selectedCategory ? [this.selectedCategory] : this.includeCategories,
       excludeCategories: this.excludeCategories,
       status: this.selectedStatus,
       country: this.selectedCountry,
@@ -116,6 +118,24 @@ export class SearchComponent implements OnInit {
       error: () => {
         this.results = [];
         this.isLoading = false;
+      }
+    });
+  }
+
+  applyFilters(page: number = 1): void {
+    this.currentPage = page;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: {
+        q: this.query ? this.query.trim() : null,
+        category: this.selectedCategory || null,
+        includeCategories: this.includeCategories.length > 0 ? this.includeCategories.join(',') : null,
+        excludeCategories: this.excludeCategories.length > 0 ? this.excludeCategories.join(',') : null,
+        status: this.selectedStatus === 'All' ? null : this.selectedStatus,
+        country: this.selectedCountry === 'All' ? null : this.selectedCountry,
+        minChapters: this.selectedMinChapters > 0 ? this.selectedMinChapters : null,
+        sortBy: this.selectedSort,
+        page: this.currentPage > 1 ? this.currentPage : null
       }
     });
   }
@@ -143,6 +163,7 @@ export class SearchComponent implements OnInit {
 
   resetFilters(): void {
     this.query = '';
+    this.selectedCategory = '';
     this.includeCategories = [];
     this.excludeCategories = [];
     this.selectedStatus = 'All';
@@ -150,23 +171,6 @@ export class SearchComponent implements OnInit {
     this.selectedMinChapters = 0;
     this.selectedSort = 'latest';
     this.applyFilters(1);
-  }
-
-  applyFilters(page: number = 1): void {
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: {
-        q: this.query ? this.query.trim() : null,
-        includeCategories: this.includeCategories.length > 0 ? this.includeCategories.join(',') : null,
-        excludeCategories: this.excludeCategories.length > 0 ? this.excludeCategories.join(',') : null,
-        category: null, // Clear legacy param
-        status: this.selectedStatus === 'All' ? null : this.selectedStatus,
-        country: this.selectedCountry === 'All' ? null : this.selectedCountry,
-        minChapters: this.selectedMinChapters > 0 ? this.selectedMinChapters : null,
-        sortBy: this.selectedSort,
-        page: page > 1 ? page : null
-      }
-    });
   }
 
   onPageChange(newPage: number): void {

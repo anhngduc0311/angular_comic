@@ -20,7 +20,7 @@ export class ComicListComponent implements OnInit {
   selectedStatus: string = 'All';
   selectedSort: string = 'latest';
   isLoading: boolean = true;
-  skeletonCards: number[] = Array(12).fill(0);
+  skeletonCards: number[] = Array(18).fill(0);
 
   constructor(
     private comicService: ComicService,
@@ -34,7 +34,7 @@ export class ComicListComponent implements OnInit {
     this.route.queryParams.subscribe(params => {
       this.selectedCategory = params['category'] || '';
       this.selectedStatus = params['status'] || 'All';
-      this.selectedSort = params['sortBy'] || 'latest';
+      this.selectedSort = params['sort'] || params['sortBy'] || 'latest';
       this.fetchComics();
     });
   }
@@ -57,16 +57,32 @@ export class ComicListComponent implements OnInit {
       queryParams: {
         category: this.selectedCategory || null,
         status: this.selectedStatus === 'All' ? null : this.selectedStatus,
-        sortBy: this.selectedSort
+        sort: this.selectedSort
       },
       queryParamsHandling: 'merge'
     });
   }
 
+  formatTimeAgo(dateStr?: string): string {
+    if (!dateStr) return 'Vừa xong';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 5) return 'Vừa xong';
+    if (diffMins < 60) return `${diffMins} Phút Trước`;
+    if (diffHours < 24) return `${diffHours} Giờ Trước`;
+    if (diffDays < 30) return `${diffDays} Ngày Trước`;
+    return date.toLocaleDateString('vi-VN');
+  }
+
   onImgError(event: Event): void {
     const target = event.target as HTMLImageElement;
     if (target) {
-      target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80';
+      target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=190&q=80';
     }
   }
 }

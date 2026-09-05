@@ -1,34 +1,51 @@
-<div class="container history-page">
-  <div class="page-header">
-    <h1><i class="fa-solid fa-clock-rotate-left text-gradient"></i> Lịch Sử Đọc Truyện</h1>
-    <p>Danh sách các bộ truyện bạn vừa đọc gần đây và tiến độ từng chương.</p>
-  </div>
+<div class="content history-page">
+  <div class="div_middle">
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+      <li>
+        <a routerLink="/"><i class="fa fa-home"></i> <span>Trang Chủ</span></a>
+      </li>
+      <li>
+        <span class="active">Lịch Sử Đọc</span>
+      </li>
+    </ol>
 
-  <div class="history-list" *ngIf="!isLoading && historyItems.length > 0">
-    <div class="history-card bg-glass card-hover" *ngFor="let item of historyItems">
-      <a [routerLink]="['/comic', item.comic.slug]" class="thumb-wrapper">
-        <img [src]="item.comic.coverImage" [alt]="item.comic.title" class="thumb" />
-        <span class="chap-tag">Chap {{ item.chapter.chapterNumber }}</span>
-      </a>
-      <div class="info">
-        <h3 class="title">
-          <a [routerLink]="['/comic', item.comic.slug]" [title]="item.comic.title">{{ item.comic.title }}</a>
-        </h3>
-        <p class="last-chapter">
-          Đang đọc: <a [routerLink]="['/read', item.chapterId]" class="chapter-link">{{ item.chapter.title }}</a>
-        </p>
-        <span class="read-time"><i class="fa-regular fa-clock"></i> {{ item.lastReadAt | date:'dd/MM/yyyy HH:mm' }}</span>
+    <div class="main_content">
+      <div class="section-heading">
+        <h1 class="text_list_update">
+          <i class="fa fa-history"></i> LỊCH SỬ ĐỌC TRUYỆN
+        </h1>
+        <span class="text-muted" style="font-size: 13px;">({{ historyItems.length }} truyện)</span>
       </div>
-      <div class="action-wrapper">
-        <a [routerLink]="['/read', item.chapterId]" class="btn btn-primary btn-continue">
-          <span>Đọc Tiếp</span> <i class="fa-solid fa-play"></i>
-        </a>
+
+      <div class="history-list-box" *ngIf="!isLoading && historyItems.length > 0">
+        <div class="history-item-row" *ngFor="let item of historyItems">
+          <a [routerLink]="['/comic', item.comic.slug]" class="thumb">
+            <img [src]="item.comic.coverImage" [alt]="item.comic.title" />
+          </a>
+          <div class="details">
+            <h3 class="title">
+              <a [routerLink]="['/comic', item.comic.slug]">{{ item.comic.title }}</a>
+            </h3>
+            <p class="current-chapter" *ngIf="item.chapter">
+              Đang đọc: <a [routerLink]="['/read', item.chapterId]">Chapter {{ item.chapter.chapterNumber }} - {{ item.chapter.title }}</a>
+            </p>
+            <span class="read-date"><i class="fa fa-clock-o"></i> {{ item.lastReadAt | date:'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <div class="action">
+            <a [routerLink]="['/read', item.chapterId]" class="btn-read-continue">
+              Đọc Tiếp <i class="fa fa-angle-right"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="!isLoading && historyItems.length === 0" style="text-align: center; padding: 50px 20px; color: var(--text-muted);">
+        <i class="fa fa-history" style="font-size: 42px; margin-bottom: 12px; display: block;"></i>
+        <h3 style="font-size: 16px; font-weight: 700; color: var(--text-main); margin-bottom: 6px;">Lịch sử đọc của bạn đang trống</h3>
+        <p style="font-size: 13px;">Khi bạn đọc truyện, hệ thống sẽ tự động lưu lại vị trí chương để bạn có thể tiếp tục bất cứ lúc nào.</p>
+        <a routerLink="/" class="view-more-btn" style="margin-top: 16px;">Về Trang Chủ Đọc Truyện</a>
       </div>
     </div>
-  </div>
-
-  <div class="empty-state" *ngIf="!isLoading && historyItems.length === 0">
-    <i class="fa-solid fa-clock-rotate-left empty-icon"></i>
-    <p>Lịch sử đọc truyện của bạn đang trống.</p>
   </div>
 </div>

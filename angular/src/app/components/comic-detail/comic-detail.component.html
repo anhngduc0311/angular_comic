@@ -1,136 +1,197 @@
-<div class="comic-detail-page">
-  <!-- Real Detail Content -->
-  <ng-container *ngIf="comic && !isLoading; else detailSkeleton">
-    <!-- Banner Header -->
-    <div class="detail-banner" [style.background-image]="'linear-gradient(to bottom, rgba(11, 14, 20, 0.75), #0B0E14), url(' + (comic.bannerImage || comic.coverImage) + ')'">
-      <div class="container banner-content">
-        <div class="cover-wrapper">
-          <img [src]="comic.coverImage" [alt]="comic.title" class="cover-img" />
-        </div>
-        <div class="info-wrapper">
-          <div class="category-tags">
-            <span class="tag" *ngFor="let cat of comic.categories">{{ cat.name }}</span>
-          </div>
-          <p class="other-names" *ngIf="comic.otherNames"><i class="fa-solid fa-tags text-muted"></i> Tên khác: <span>{{ comic.otherNames }}</span></p>
-          <p class="author">
-            <i class="fa-solid fa-pen-nib text-primary"></i> Tác giả: <strong>{{ comic.author || 'Đang cập nhật' }}</strong>
-            <span *ngIf="comic.artist" style="margin-left: 1rem;"><i class="fa-solid fa-palette text-secondary"></i> Họa sĩ: <strong>{{ comic.artist }}</strong></span>
-          </p>
-          <p class="meta-origin" *ngIf="comic.country || comic.releaseYear">
-            <span *ngIf="comic.country"><i class="fa-solid fa-earth-asia text-info"></i> Quốc gia: <strong>{{ comic.country }}</strong></span>
-            <span *ngIf="comic.releaseYear" style="margin-left: 1rem;"><i class="fa-solid fa-calendar-alt text-warning"></i> Năm phát hành: <strong>{{ comic.releaseYear }}</strong></span>
-          </p>
-
-          <div class="stats-row bg-glass">
-            <div class="stat"><i class="fa-solid fa-star text-warning"></i> <span>{{ comic.rating }}</span> <label>Đánh giá</label></div>
-            <div class="stat"><i class="fa-solid fa-eye text-primary"></i> <span>{{ formatViews(comic.views) }}</span> <label>Lượt xem</label></div>
-            <div class="stat"><i class="fa-solid fa-list text-muted"></i> <span>{{ comic.chapters.length }}</span> <label>Chương</label></div>
-            <div class="stat status-stat"><span class="badge badge-success">{{ comic.status === 'Ongoing' ? 'Đang tiến hành' : 'Hoàn thành' }}</span></div>
-          </div>
-
-          <div class="action-buttons">
-            <a [routerLink]="['/', comic.slug, 'chuong-' + firstChapterNumber]" *ngIf="firstChapterNumber" class="btn btn-primary btn-read">
-              <i class="fa-solid fa-book-open"></i> Đọc Từ Đầu
-            </a>
-            <button (click)="toggleBookmark()" class="btn btn-follow" [class.btn-secondary]="!isBookmarked" [class.btn-primary]="isBookmarked">
-              <i class="fa-solid" [class.fa-bookmark]="isBookmarked" [class.fa-regular]="!isBookmarked" [class.fa-bookmark-slash]="isBookmarked"></i>
-              {{ isBookmarked ? 'Đã Theo Dõi' : 'Theo Dõi' }}
-            </button>
-          </div>
-        </div>
-      </div>
+<div class="content detail-page">
+  <div class="div_middle">
+    <!-- Top Alert -->
+    <div class="alert-note-fix">
+      <p class="alert alert-info">
+        Đăng nhập tài khoản, hệ thống của chúng tôi sẽ tự động đồng bộ theo dõi từ TruyenQQ!
+        <span class="ads-contact">Liên hệ ads: <a target="_blank" rel="nofollow" href="https://t.me/adstruyengg">t.me/adstruyengg</a></span>
+      </p>
     </div>
 
-    <div class="container main-content">
-      <!-- Synopsis -->
-      <div class="section bg-glass">
-        <h2><i class="fa-solid fa-align-left text-gradient"></i> Tóm Tắt Nội Dung</h2>
-        <p class="synopsis">{{ comic.description || 'Chưa có mô tả cho bộ truyện này.' }}</p>
-      </div>
+    <div class="main_content" *ngIf="comic && !isLoading; else detailSkeleton">
+      <div class="book_detail">
+        <!-- Dark Book Hero Banner -->
+        <div class="book-hero" [style.--book-hero-img]="'url(' + (comic.bannerImage || comic.coverImage) + ')'">
+          <!-- Breadcrumb -->
+          <ol class="breadcrumb">
+            <li>
+              <a routerLink="/"><i class="fa fa-home"></i> <span>Trang Chủ</span></a>
+            </li>
+            <li>
+              <span class="active">{{ comic.title }}</span>
+            </li>
+          </ol>
 
-      <!-- Chapter List -->
-      <div class="section bg-glass">
-        <h2><i class="fa-solid fa-list-ol text-gradient"></i> Danh Sách Chương ({{ comic.chapters.length }})</h2>
-        <div class="chapter-list">
-          <div class="chapter-item" *ngFor="let ch of comic.chapters">
-            <a [routerLink]="['/', comic.slug, 'chuong-' + ch.chapterNumber]" class="ch-title">Chapter {{ ch.chapterNumber }}: {{ ch.title }}</a>
-            <span class="ch-date">{{ ch.createdAt | date:'dd/MM/yyyy' }}</span>
-          </div>
-        </div>
-      </div>
+          <!-- Book Info: 2-Column Cover & Meta Details -->
+          <div class="book_info">
+            <!-- Cover Avatar -->
+            <div class="book_avatar">
+              <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" />
+            </div>
 
-      <!-- Comments Section -->
-      <div class="section bg-glass">
-        <h2><i class="fa-solid fa-comments text-gradient"></i> Bình Luận ({{ comic.comments.length }})</h2>
+            <!-- Meta Details -->
+            <div class="book_other">
+              <h1>{{ comic.title }}</h1>
+              <h2 class="book-othername" *ngIf="comic.otherNames">{{ comic.otherNames }}</h2>
 
-        <!-- Comment Form -->
-        <div class="comment-form">
-          <textarea [(ngModel)]="commentContent" placeholder="Viết bình luận của bạn về truyện..."></textarea>
-          <button (click)="submitComment()" class="btn btn-primary">Gửi Bình Luận</button>
-        </div>
-
-        <!-- Comment List -->
-        <div class="comment-list">
-          <div class="comment-item" *ngFor="let cm of visibleComments">
-            <img [src]="cm.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar" loading="lazy" decoding="async" />
-            <div class="comment-body">
-              <div class="cm-header">
-                <span class="username">{{ cm.username }}</span>
-                <span class="time">{{ cm.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+              <!-- Genres List Pills -->
+              <div class="book-genres" *ngIf="comic.categories && comic.categories.length > 0">
+                <ul class="list01">
+                  <li class="li03" *ngFor="let cat of comic.categories">
+                    <a [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }">{{ cat.name }}</a>
+                  </li>
+                </ul>
               </div>
-              <p class="content">{{ cm.content }}</p>
+
+              <!-- Stats & Counts Row -->
+              <ul class="book-counts">
+                <li>
+                  <span class="book-counts__label"><i class="fa fa-user"></i> Tác giả</span>
+                  <span class="book-counts__value">{{ comic.author || 'Đang Cập Nhật' }}</span>
+                </li>
+                <li>
+                  <span class="book-counts__label"><i class="fa fa-info-circle"></i> Tình trạng</span>
+                  <span class="book-counts__value">{{ comic.status === 'Ongoing' ? 'Đang Tiến Hành' : 'Hoàn Thành' }}</span>
+                </li>
+                <li>
+                  <span class="book-counts__label"><i class="fa fa-eye"></i> Lượt xem</span>
+                  <span class="book-counts__value">{{ formatViews(comic.views) }}</span>
+                </li>
+                <li>
+                  <span class="book-counts__label"><i class="fa fa-thumbs-up"></i> Lượt thích</span>
+                  <span class="book-counts__value number-like">{{ likesCount }}</span>
+                </li>
+                <li>
+                  <span class="book-counts__label"><i class="fa fa-heart"></i> Theo dõi</span>
+                  <span class="book-counts__value">{{ (comic.views ? Math.floor(comic.views * 0.08) : 512) }}</span>
+                </li>
+              </ul>
+
+              <!-- Action Buttons -->
+              <ul class="story-detail-menu">
+                <li class="li01" *ngIf="firstChapterNumber !== null">
+                  <a [routerLink]="['/', comic.slug, 'chuong-' + firstChapterNumber]">
+                    <i class="fa fa-book"></i> Đọc từ đầu
+                  </a>
+                </li>
+                <li class="li04" *ngIf="latestChapterNumber !== null">
+                  <a [routerLink]="['/', comic.slug, 'chuong-' + latestChapterNumber]">
+                    <i class="fa fa-fast-forward"></i> Đọc Chap Mới
+                  </a>
+                </li>
+                <li class="li02">
+                  <a href="javascript:void(0);" (click)="toggleBookmark()" class="btn-subscribe" [class.subscribed]="isBookmarked">
+                    <i class="fa" [class.fa-heart]="isBookmarked" [class.fa-heart-o]="!isBookmarked"></i>
+                    {{ isBookmarked ? 'Đã Theo Dõi' : 'Theo Dõi' }}
+                  </a>
+                </li>
+                <li class="li03">
+                  <a href="javascript:void(0);" (click)="toggleLike()" class="btn-like" [class.liked]="isLiked">
+                    <i class="fa" [class.fa-thumbs-up]="isLiked" [class.fa-thumbs-o-up]="!isLiked"></i>
+                    {{ isLiked ? 'Đã Thích' : 'Thích' }}
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
 
-        <div class="text-center mt-3" *ngIf="comic.comments.length > visibleCommentsCount">
-          <button (click)="loadMoreComments()" class="btn btn-secondary btn-sm" style="margin-top: 1rem;">
-            <i class="fa-solid fa-angles-down"></i> Xem thêm bình luận (còn {{ comic.comments.length - visibleCommentsCount }} bình luận)
-          </button>
+        <!-- Synopsis / Description Section -->
+        <div class="detail-section-block">
+          <div class="pl-2">
+            <h3><i class="fa fa-info-circle"></i> Giới thiệu</h3>
+          </div>
+          <div class="story-detail-info detail-content">
+            <p>{{ comic.description || 'Chưa có thông tin giới thiệu chi tiết cho bộ truyện này.' }}</p>
+          </div>
+        </div>
+
+        <!-- Chapter List Section -->
+        <div class="detail-section-block">
+          <div class="pl-2">
+            <h3><i class="fa fa-database" aria-hidden="true"></i> Danh sách chương</h3>
+          </div>
+          <div class="list_chapter">
+            <div class="works-chapter-list" *ngIf="comic.chapters && comic.chapters.length > 0; else noChapters">
+              <div class="works-chapter-item" *ngFor="let ch of comic.chapters">
+                <div class="name-chap">
+                  <a [routerLink]="['/', comic.slug, 'chuong-' + ch.chapterNumber]">
+                    Chapter {{ ch.chapterNumber }}{{ ch.title ? ': ' + ch.title : '' }}
+                  </a>
+                </div>
+                <div class="time-chap">
+                  {{ ch.createdAt | date:'dd/MM/yyyy' }}
+                </div>
+              </div>
+            </div>
+            <ng-template #noChapters>
+              <div style="padding: 20px; text-align: center; color: var(--text-muted);">
+                Chưa có chương nào được cập nhật.
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="detail-section-block comments-block">
+          <div class="pl-2">
+            <h3><i class="fa fa-comments" aria-hidden="true"></i> Bình luận ({{ comic.comments ? comic.comments.length : 0 }})</h3>
+          </div>
+
+          <!-- Add Comment Box -->
+          <div class="comment-input-box">
+            <textarea 
+              [(ngModel)]="commentContent" 
+              placeholder="Thảo luận, chia sẻ cảm nghĩ về bộ truyện này..." 
+              rows="3"
+            ></textarea>
+            <div class="comment-actions">
+              <button (click)="submitComment()" class="btn-comment-submit">
+                <i class="fa fa-paper-plane"></i> Gửi Bình Luận
+              </button>
+            </div>
+          </div>
+
+          <!-- Comments List -->
+          <div class="comments-list" *ngIf="comic.comments && comic.comments.length > 0">
+            <div class="comment-item" *ngFor="let cm of visibleComments">
+              <img [src]="cm.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80'" alt="Avatar" class="avatar" />
+              <div class="comment-body">
+                <div class="comment-header">
+                  <span class="author-name">{{ cm.username }}</span>
+                  <span class="comment-time"><i class="fa fa-clock-o"></i> {{ cm.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+                </div>
+                <div class="comment-text">
+                  {{ cm.content }}
+                </div>
+              </div>
+            </div>
+
+            <div class="load-more-comments" *ngIf="comic.comments.length > visibleCommentsCount">
+              <button (click)="loadMoreComments()" class="btn-load-more">
+                Xem thêm bình luận <i class="fa fa-angle-down"></i>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </ng-container>
 
-  <!-- Skeleton Detail Placeholder -->
-  <ng-template #detailSkeleton>
-    <div class="detail-banner skeleton-detail-banner">
-      <div class="container banner-content">
-        <div class="cover-wrapper skeleton"></div>
-        <div class="info-wrapper">
-          <div class="category-tags" style="display: flex; gap: 0.5rem; margin-bottom: 0.8rem;">
-            <div class="skeleton" style="width: 70px; height: 1.5rem; border-radius: 4px;"></div>
-            <div class="skeleton" style="width: 85px; height: 1.5rem; border-radius: 4px;"></div>
-          </div>
-          <div class="skeleton skeleton-title" style="width: 60%; height: 2.2rem;"></div>
-          <div class="skeleton skeleton-text" style="width: 40%; margin-bottom: 1.2rem;"></div>
-          <div class="skeleton" style="width: 320px; height: 60px; border-radius: 12px; margin-bottom: 1.5rem;"></div>
-          <div class="action-buttons" style="display: flex; gap: 0.8rem;">
-            <div class="skeleton skeleton-btn" style="width: 140px;"></div>
-            <div class="skeleton skeleton-btn" style="width: 120px;"></div>
+    <!-- Skeleton Loading Placeholder -->
+    <ng-template #detailSkeleton>
+      <div class="book_detail skeleton-detail">
+        <div class="book-hero" style="background-color: #1a1b35;">
+          <div class="book_info">
+            <div class="book_avatar skeleton" style="width: 200px; height: 280px;"></div>
+            <div class="book_other" style="flex: 1;">
+              <div class="skeleton" style="width: 60%; height: 28px; margin-bottom: 12px;"></div>
+              <div class="skeleton" style="width: 40%; height: 18px; margin-bottom: 16px;"></div>
+              <div class="skeleton" style="width: 90%; height: 60px; margin-bottom: 20px;"></div>
+              <div class="skeleton" style="width: 260px; height: 40px; border-radius: 20px;"></div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-
-    <div class="container main-content">
-      <div class="section bg-glass" style="margin-bottom: 2rem;">
-        <div class="skeleton skeleton-title" style="width: 220px; height: 1.5rem; margin-bottom: 1rem;"></div>
-        <div class="skeleton skeleton-text" style="width: 100%;"></div>
-        <div class="skeleton skeleton-text" style="width: 90%;"></div>
-        <div class="skeleton skeleton-text" style="width: 60%;"></div>
-      </div>
-
-      <div class="section bg-glass">
-        <div class="skeleton skeleton-title" style="width: 240px; height: 1.5rem; margin-bottom: 1rem;"></div>
-        <div class="chapter-list">
-          <div class="chapter-item" *ngFor="let _ of skeletonChapters" style="display: flex; justify-content: space-between; align-items: center;">
-            <div class="skeleton skeleton-text" style="width: 40%; height: 1rem; margin-bottom: 0;"></div>
-            <div class="skeleton skeleton-text" style="width: 80px; height: 0.8rem; margin-bottom: 0;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </ng-template>
+    </ng-template>
+  </div>
 </div>
-
