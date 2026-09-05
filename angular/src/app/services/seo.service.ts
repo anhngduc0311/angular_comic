@@ -7,9 +7,9 @@ import { ComicDetail } from '../models/comic.model';
   providedIn: 'root'
 })
 export class SeoService {
-  private defaultSiteName = 'MangaFlux - Đọc Truyện Tranh Online Miễn Phí';
+  private defaultSiteName = 'TruyenKomi - Đọc Truyện Tranh Online Miễn Phí';
   private defaultImage = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80';
-  private defaultDescription = 'MangaFlux - Nền tảng đọc truyện tranh Manga, Manhwa, Manhua sắc nét chuẩn 4K, tốc độ tải siêu tốc, cập nhật chương mới nhất liên tục.';
+  private defaultDescription = 'TruyenKomi - Nền tảng đọc truyện tranh Manga, Manhwa, Manhua sắc nét chuẩn HD, tốc độ tải siêu tốc, cập nhật chương mới nhất liên tục.';
 
   constructor(
     private titleService: Title,
@@ -18,10 +18,10 @@ export class SeoService {
   ) {}
 
   setComicDetailSeo(comic: ComicDetail): void {
-    const fullTitle = `${comic.title} [Tới Chapter ${comic.latestChapter?.chapterNumber || 'Mới Nhất'}] Tiếng Việt - MangaFlux`;
+    const fullTitle = `${comic.title} [Tới Chapter ${comic.latestChapter?.chapterNumber || 'Mới Nhất'}] Tiếng Việt - TruyenKomi`;
     const cleanDesc = comic.description 
       ? comic.description.substring(0, 200).replace(/\n/g, ' ') + '...'
-      : `Đọc truyện tranh ${comic.title} Tiếng Việt bản dịch đẹp nét căng tại MangaFlux. Cập nhật nhanh nhất và sớm nhất.`;
+      : `Đọc truyện tranh ${comic.title} Tiếng Việt bản dịch đẹp nét căng tại TruyenKomi. Cập nhật nhanh nhất và sớm nhất.`;
     const cover = comic.coverImage || this.defaultImage;
     const path = `/comic/${comic.slug}`;
 
@@ -55,8 +55,8 @@ export class SeoService {
   }
 
   setChapterReadSeo(comicTitle: string, comicSlug: string, chapterTitle: string, chapterNumber: number, coverImage?: string): void {
-    const fullTitle = `Đọc Truyện ${comicTitle} Chương ${chapterNumber} [${chapterTitle}] Tiếng Việt - MangaFlux`;
-    const cleanDesc = `Đọc chương ${chapterNumber} truyện tranh ${comicTitle} bản dịch chất lượng cao full HD tại MangaFlux. Không giật lag, tải cực nhanh.`;
+    const fullTitle = `Đọc Truyện ${comicTitle} Chương ${chapterNumber} [${chapterTitle}] Tiếng Việt - TruyenKomi`;
+    const cleanDesc = `Đọc chương ${chapterNumber} truyện tranh ${comicTitle} bản dịch chất lượng cao full HD tại TruyenKomi. Không giật lag, tải cực nhanh.`;
     const path = `/read/${comicSlug}/chuong-${chapterNumber}`;
     const cover = coverImage || this.defaultImage;
 
@@ -68,13 +68,13 @@ export class SeoService {
   }
 
   setGeneralSeo(title: string, description?: string, image?: string, path?: string): void {
-    const fullTitle = title.includes('MangaFlux') ? title : `${title} - MangaFlux`;
+    const fullTitle = title.includes('TruyenKomi') ? title : `${title} - TruyenKomi`;
     const desc = description || this.defaultDescription;
     const cover = image || this.defaultImage;
     const currentPath = path || '';
 
     this.titleService.setTitle(fullTitle);
-    this.updateBasicMeta(desc, 'mangaflux, doc truyen tranh, truyen tranh online, manhwa, manhua, manga');
+    this.updateBasicMeta(desc, 'truyenkomi, doc truyen tranh, truyen tranh online, manhwa, manhua, manga');
     this.updateOpenGraph(fullTitle, desc, cover, currentPath, 'website');
     this.updateTwitterCard(fullTitle, desc, cover);
     if (path) this.setCanonicalUrl(path);
@@ -87,10 +87,10 @@ export class SeoService {
   }
 
   private updateOpenGraph(title: string, description: string, image: string, path: string, type = 'website'): void {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://mangaflux.com';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://truyenkomi.com';
     const fullUrl = `${origin}${path}`;
 
-    this.metaService.updateTag({ property: 'og:site_name', content: 'MangaFlux' });
+    this.metaService.updateTag({ property: 'og:site_name', content: 'TruyenKomi' });
     this.metaService.updateTag({ property: 'og:title', content: title });
     this.metaService.updateTag({ property: 'og:description', content: description });
     this.metaService.updateTag({ property: 'og:image', content: image });

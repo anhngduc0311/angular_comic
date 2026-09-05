@@ -12,8 +12,8 @@ import { RouterModule } from '@angular/router';
         <!-- Left Column: Logo & Disclaimer -->
         <div class="left footer-col-left">
           <div class="footer-logo">
-            <a routerLink="/" title="TruyenGG - Truyện tranh Online">
-              <span class="logo-t-orange">Truyen</span><span class="logo-t-blue">GG</span>
+            <a routerLink="/" title="TruyenKomi - Truyện tranh Online">
+              <span class="logo-t-orange">Truyen</span><span class="logo-t-blue">Komi</span>
               <span class="logo-dot">.com</span>
             </a>
           </div>
@@ -30,7 +30,7 @@ import { RouterModule } from '@angular/router';
             <li><a routerLink="/comics" [queryParams]="{ sort: 'new' }">Truyện Tranh Mới</a></li>
             <li><a routerLink="/comics" [queryParams]="{ sort: 'hot' }">Truyện Tranh Hay</a></li>
             <li><a routerLink="/comics">Đọc Truyện Tranh</a></li>
-            <li><a routerLink="/">TruyenGG</a></li>
+            <li><a routerLink="/">TruyenKomi</a></li>
             <li><a routerLink="/comics" [queryParams]="{ category: 'manhwa' }">Manhwa</a></li>
             <li><a routerLink="/comics" [queryParams]="{ category: 'manhua' }">Manhua</a></li>
             <li><a routerLink="/comics" [queryParams]="{ category: 'manga' }">Manga</a></li>
