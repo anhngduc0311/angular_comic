@@ -331,6 +331,75 @@ using (var scope = app.Services.CreateScope())
             db.SaveChanges();
             Console.WriteLine("Admin user 'admin' password synced to 'admin123'.");
         }
+
+        // Seed default categories
+        var defaultGenres = new string[]
+        {
+            "Action", "Adventure", "Anime", "Chuyển Sinh", "Cổ Đại", "Comedy", "Comic",
+            "Demons", "Detective", "Doujinshi", "Drama", "Fantasy", "Gender Bender",
+            "Harem", "Historical", "Horror", "Huyền Huyễn", "Isekai", "Josei", "Mafia",
+            "Magic", "Manga", "Manhua", "Manhwa", "Martial Arts", "Military", "Mystery",
+            "Ngôn Tình", "One shot", "Psychological", "Romance", "School Life", "Sci-fi",
+            "Seinen", "Shoujo", "Shoujo Ai", "Shounen", "Shounen Ai", "Slice of life",
+            "Sports", "Supernatural", "Tragedy", "Trọng Sinh", "Truyện Màu", "Tu Tiên", "Webtoon", "Xuyên Không"
+        };
+
+        var allCats = db.Categories.ToList();
+        foreach (var gName in defaultGenres)
+        {
+            var rawSlug = gName.ToLower().Trim()
+                .Normalize(System.Text.NormalizationForm.FormD);
+            var cleanSlug = System.Text.RegularExpressions.Regex.Replace(rawSlug, @"[\u0300-\u036f]", "")
+                .Replace("đ", "d").Replace("Đ", "d");
+            cleanSlug = System.Text.RegularExpressions.Regex.Replace(cleanSlug, @"[^a-z0-9\s-]", "");
+            cleanSlug = System.Text.RegularExpressions.Regex.Replace(cleanSlug, @"\s+", "-").Trim('-');
+
+            if (!allCats.Any(c => c.Name.Equals(gName, StringComparison.OrdinalIgnoreCase) || c.Slug.Equals(cleanSlug, StringComparison.OrdinalIgnoreCase)))
+            {
+                var newCat = new Category
+                {
+                    Name = gName,
+                    Slug = cleanSlug,
+                    Description = $"Thể loại {gName} trên TruyenKomi"
+                };
+                db.Categories.Add(newCat);
+                allCats.Add(newCat);
+            }
+        }
+        db.SaveChanges();
+
+        // Link categories for existing comics without categories
+        var comicsWithoutCategories = db.Comics.Include(c => c.ComicCategories).Where(c => !c.ComicCategories.Any()).ToList();
+        foreach (var comic in comicsWithoutCategories)
+        {
+            var catNames = new List<string>();
+            if (comic.Slug.Contains("nhiem-vu-cua-ke-manh-nhat"))
+            {
+                catNames.AddRange(new[] { "Action", "Manga", "Comedy", "Romance" });
+            }
+            else if (comic.Slug.Contains("bo-tron-ba-nam"))
+            {
+                catNames.AddRange(new[] { "Manhua", "Ngôn Tình" });
+            }
+            else if (comic.Slug.Contains("dai-quan-gia"))
+            {
+                catNames.AddRange(new[] { "Action", "Manhua", "Adventure", "Comedy", "Fantasy", "Truyện Màu", "Tu Tiên" });
+            }
+            else
+            {
+                catNames.AddRange(new[] { "Action", "Manhwa", "Adventure" });
+            }
+
+            foreach (var cName in catNames)
+            {
+                var targetCat = allCats.FirstOrDefault(c => c.Name.Equals(cName, StringComparison.OrdinalIgnoreCase));
+                if (targetCat != null && !comic.ComicCategories.Any(cc => cc.CategoryId == targetCat.Id))
+                {
+                    comic.ComicCategories.Add(new ComicCategory { ComicId = comic.Id, CategoryId = targetCat.Id });
+                }
+            }
+        }
+        db.SaveChanges();
     }
     catch (Exception ex)
     {

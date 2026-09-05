@@ -110,7 +110,8 @@ namespace TruyenKomi.API.Controllers
             [FromQuery] string? ageLimit = "13+",
             [FromQuery] int? comicViews = null,
             [FromQuery] DateTime? comicCreatedAt = null,
-            [FromQuery] DateTime? comicUpdatedAt = null)
+            [FromQuery] DateTime? comicUpdatedAt = null,
+            [FromQuery] string? categories = null)
         {
             if (!string.IsNullOrWhiteSpace(author) && (author.Trim().Equals("ZETTRUYEN", StringComparison.OrdinalIgnoreCase) || author.Trim().Equals("ZET TRUYEN", StringComparison.OrdinalIgnoreCase)))
             {
@@ -150,9 +151,49 @@ namespace TruyenKomi.API.Controllers
                 await _comicService.UpdateComicMetadataAsync(comicId, author, translatorGroup, otherNames, ageLimit, coverImage, comicViews, comicCreatedAt, comicUpdatedAt);
             }
 
+            if (!string.IsNullOrWhiteSpace(categories))
+            {
+                var catList = categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+                if (catList.Any())
+                {
+                    await _comicService.SyncComicCategoriesAsync(comicId, catList);
+                }
+            }
+
             dto.ComicId = comicId;
             var chapter = await _comicService.AddChapterAsync(dto);
             return Ok(new { comicId, comicSlug, chapterId = chapter.Id });
+        }
+
+        [HttpPost("{slug}/sync-metadata")]
+        public async Task<IActionResult> SyncMetadata(
+            string slug,
+            [FromQuery] string? author = null,
+            [FromQuery] string? translatorGroup = null,
+            [FromQuery] string? otherNames = null,
+            [FromQuery] string? ageLimit = null,
+            [FromQuery] string? coverImage = null,
+            [FromQuery] int? comicViews = null,
+            [FromQuery] DateTime? comicCreatedAt = null,
+            [FromQuery] DateTime? comicUpdatedAt = null,
+            [FromQuery] string? categories = null)
+        {
+            var comic = await _comicService.GetComicBySlugAsync(slug);
+            if (comic == null) return NotFound();
+
+            await _comicService.UpdateComicMetadataAsync(comic.Id, author, translatorGroup, otherNames, ageLimit, coverImage, comicViews, comicCreatedAt, comicUpdatedAt);
+
+            if (!string.IsNullOrWhiteSpace(categories))
+            {
+                var catList = categories.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+                if (catList.Any())
+                {
+                    await _comicService.SyncComicCategoriesAsync(comic.Id, catList);
+                }
+            }
+
+            var updated = await _comicService.GetComicBySlugAsync(slug);
+            return Ok(updated);
         }
 
         [Authorize]

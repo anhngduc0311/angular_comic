@@ -28,6 +28,7 @@ namespace TruyenKomi.API.Services
         Task<ComicDto> CreateComicAsync(ComicCreateUpdateDto dto);
         Task<ComicDto?> UpdateComicAsync(int id, ComicCreateUpdateDto dto);
         Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage, int? views = null, DateTime? createdAt = null, DateTime? updatedAt = null);
+        Task SyncComicCategoriesAsync(int comicId, List<string> categoryNames);
         Task<bool> ToggleComicVisibilityAsync(int id);
         Task<bool> DeleteComicAsync(int id);
         Task<List<ChapterDetailDto>> GetAdminChaptersByComicIdAsync(int comicId);
@@ -612,6 +613,68 @@ namespace TruyenKomi.API.Services
                 await InvalidateComicCacheAsync(comic.Slug);
             }
             return true;
+        }
+
+        public async Task SyncComicCategoriesAsync(int comicId, List<string> categoryNames)
+        {
+            if (categoryNames == null || !categoryNames.Any()) return;
+
+            var comic = await _context.Comics
+                .Include(c => c.ComicCategories)
+                .FirstOrDefaultAsync(c => c.Id == comicId);
+            if (comic == null) return;
+
+            var allCategories = await _context.Categories.ToListAsync();
+            bool changed = false;
+
+            foreach (var rawName in categoryNames)
+            {
+                var name = rawName.Trim();
+                if (string.IsNullOrWhiteSpace(name)) continue;
+
+                // Normalize slug: remove accents and symbols
+                var rawSlug = name.ToLower().Trim()
+                    .Normalize(System.Text.NormalizationForm.FormD);
+                var cleanSlug = System.Text.RegularExpressions.Regex.Replace(rawSlug, @"[\u0300-\u036f]", "")
+                    .Replace("đ", "d").Replace("Đ", "d");
+                cleanSlug = System.Text.RegularExpressions.Regex.Replace(cleanSlug, @"[^a-z0-9\s-]", "");
+                cleanSlug = System.Text.RegularExpressions.Regex.Replace(cleanSlug, @"\s+", "-").Trim('-');
+
+                var category = allCategories.FirstOrDefault(c => 
+                    c.Name.Equals(name, StringComparison.OrdinalIgnoreCase) || 
+                    (!string.IsNullOrEmpty(cleanSlug) && c.Slug.Equals(cleanSlug, StringComparison.OrdinalIgnoreCase)));
+
+                if (category == null)
+                {
+                    category = new Category
+                    {
+                        Name = name,
+                        Slug = string.IsNullOrWhiteSpace(cleanSlug) ? "genre-" + Guid.NewGuid().ToString("N")[..6] : cleanSlug,
+                        Description = $"Thể loại {name} trên TruyenKomi"
+                    };
+                    _context.Categories.Add(category);
+                    await _context.SaveChangesAsync();
+                    allCategories.Add(category);
+                    changed = true;
+                }
+
+                if (!comic.ComicCategories.Any(cc => cc.CategoryId == category.Id))
+                {
+                    comic.ComicCategories.Add(new ComicCategory
+                    {
+                        ComicId = comic.Id,
+                        CategoryId = category.Id
+                    });
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                await _context.SaveChangesAsync();
+                await _cache.RemoveAsync("all_categories_cache");
+                await InvalidateComicCacheAsync(comic.Slug);
+            }
         }
 
         public async Task<bool> ToggleComicVisibilityAsync(int id)

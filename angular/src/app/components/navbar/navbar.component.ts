@@ -150,6 +150,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.router.navigate(['/comic', slug]);
   }
 
+  private categoryTimeout: any = null;
+  private rankTimeout: any = null;
+
   toggleMobileMenu(): void {
     this.isMobileMenuOpen = !this.isMobileMenuOpen;
     if (this.isMobileMenuOpen) {
@@ -164,16 +167,50 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.isAutocompleteOpen = false;
     this.isCategoryMenuOpen = false;
     this.isRankMenuOpen = false;
+    if (this.categoryTimeout) clearTimeout(this.categoryTimeout);
+    if (this.rankTimeout) clearTimeout(this.rankTimeout);
+  }
+
+  onCategoryMouseEnter(): void {
+    if (this.categoryTimeout) {
+      clearTimeout(this.categoryTimeout);
+      this.categoryTimeout = null;
+    }
+    this.isCategoryMenuOpen = true;
+    this.isRankMenuOpen = false;
+  }
+
+  onCategoryMouseLeave(): void {
+    this.categoryTimeout = setTimeout(() => {
+      this.isCategoryMenuOpen = false;
+    }, 250);
+  }
+
+  onRankMouseEnter(): void {
+    if (this.rankTimeout) {
+      clearTimeout(this.rankTimeout);
+      this.rankTimeout = null;
+    }
+    this.isRankMenuOpen = true;
+    this.isCategoryMenuOpen = false;
+  }
+
+  onRankMouseLeave(): void {
+    this.rankTimeout = setTimeout(() => {
+      this.isRankMenuOpen = false;
+    }, 250);
   }
 
   toggleCategoryMenu(event?: Event): void {
     if (event) event.stopPropagation();
+    if (this.categoryTimeout) clearTimeout(this.categoryTimeout);
     this.isCategoryMenuOpen = !this.isCategoryMenuOpen;
     this.isRankMenuOpen = false;
   }
 
   toggleRankMenu(event?: Event): void {
     if (event) event.stopPropagation();
+    if (this.rankTimeout) clearTimeout(this.rankTimeout);
     this.isRankMenuOpen = !this.isRankMenuOpen;
     this.isCategoryMenuOpen = false;
   }

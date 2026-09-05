@@ -15,7 +15,7 @@
       </a>
 
       <!-- Category Mega Menu Trigger -->
-      <div class="nav-dropdown-wrapper" (mouseenter)="isCategoryMenuOpen = true" (mouseleave)="isCategoryMenuOpen = false">
+      <div class="nav-dropdown-wrapper" (mouseenter)="onCategoryMouseEnter()" (mouseleave)="onCategoryMouseLeave()">
         <button class="nav-tab" [class.active]="isCategoryMenuOpen" (click)="toggleCategoryMenu($event)">
           <i class="fa fa-th-large"></i>
           <span>Thể Loại</span>
@@ -38,7 +38,7 @@
       </div>
 
       <!-- Rankings Menu Trigger -->
-      <div class="nav-dropdown-wrapper" (mouseenter)="isRankMenuOpen = true" (mouseleave)="isRankMenuOpen = false">
+      <div class="nav-dropdown-wrapper" (mouseenter)="onRankMouseEnter()" (mouseleave)="onRankMouseLeave()">
         <button class="nav-tab" [class.active]="isRankMenuOpen" (click)="toggleRankMenu($event)">
           <i class="fa fa-trophy"></i>
           <span>Xếp Hạng</span>

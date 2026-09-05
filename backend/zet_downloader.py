@@ -147,7 +147,8 @@ def sync_chapter_to_web_api(
     created_at: str = None,
     comic_views: int = None,
     comic_created_at: str = None,
-    comic_updated_at: str = None
+    comic_updated_at: str = None,
+    categories: list = None
 ) -> bool:
     """Đồng bộ truyện và chapter lên TruyenKomi Web API"""
     import urllib.parse
@@ -166,6 +167,11 @@ def sync_chapter_to_web_api(
     if comic_views is not None and comic_views > 0: params["comicViews"] = str(comic_views)
     if comic_created_at: params["comicCreatedAt"] = parse_date_to_iso(comic_created_at)
     if comic_updated_at: params["comicUpdatedAt"] = parse_date_to_iso(comic_updated_at)
+    if categories:
+        if isinstance(categories, (list, tuple, set)):
+            params["categories"] = ",".join(str(c) for c in categories if c)
+        else:
+            params["categories"] = str(categories)
 
     query_str = urllib.parse.urlencode(params)
     url = f"{api_base_url.rstrip('/')}/comics/import-scraped?{query_str}"
@@ -356,6 +362,30 @@ class ZetMangaDownloader:
         self.created_date_str = created_date_str
         self.updated_date_str = updated_date_str
 
+        # 3.4 Thể loại truyện (Categories / Genres)
+        genres = []
+        if title_elem:
+            card = title_elem
+            for _ in range(6):
+                card = card.parent
+                if not card: break
+            for a in card.find_all('a', href=True):
+                href = a.get('href', '')
+                if '/the-loai/' in href and not href.endswith('/the-loai'):
+                    txt = a.get_text(strip=True)
+                    if txt and txt not in genres and not txt.lower().startswith('truyện tranh') and not txt.lower().startswith('đọc truyện'):
+                        genres.append(txt)
+
+        if not genres:
+            for a in soup.find_all('a', href=True):
+                href = a.get('href', '')
+                if '/the-loai/' in href and not href.endswith('/the-loai'):
+                    txt = a.get_text(strip=True)
+                    if txt and txt not in genres and not txt.lower().startswith('truyện tranh') and not txt.lower().startswith('đọc truyện'):
+                        genres.append(txt)
+
+        self.genres = genres
+
         # 4. Lấy danh sách toàn bộ Chapter qua ZetTruyen API
         chapters = []
         api_url = f"https://www.zettruyen1.com/api/comics/{self.slug}/chapters?per_page=-1"
@@ -422,6 +452,8 @@ class ZetMangaDownloader:
             "other_names": self.other_names,
             "age_limit": self.age_limit,
             "views": self.views,
+            "genres": self.genres,
+            "categories": self.genres,
             "created_date_str": self.created_date_str,
             "updated_date_str": self.updated_date_str,
             "created_at_iso": parse_date_to_iso(self.created_date_str),
@@ -683,7 +715,8 @@ class ZetMangaDownloader:
                     created_at=chapter.get("updated_at"),
                     comic_views=self.views,
                     comic_created_at=self.created_date_str,
-                    comic_updated_at=self.updated_date_str
+                    comic_updated_at=self.updated_date_str,
+                    categories=getattr(self, 'genres', [])
                 )
                 if synced:
                     if HAS_RICH and console:

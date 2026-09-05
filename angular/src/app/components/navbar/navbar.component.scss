@@ -122,25 +122,54 @@
 
     .nav-dropdown-wrapper {
       position: relative;
+      height: 100%;
+      display: flex;
+      align-items: center;
 
       /* MEGA MENU POPOVER */
       .mega-menu-panel {
         position: absolute;
-        top: calc(100% + 12px);
-        left: -100px;
-        width: 620px;
+        top: calc(100% + 6px);
+        left: -80px;
+        width: 640px;
+        max-height: calc(85vh - 80px);
+        overflow-y: auto;
         padding: 20px;
         box-shadow: var(--shadow-xl);
+        border: 1px solid var(--border-color);
         display: none;
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(6px);
         transition: opacity 0.2s ease, transform 0.2s ease;
-        z-index: 100;
+        z-index: 1050;
+
+        /* Hover bridge: ensures mouse never leaves trigger/menu hitbox */
+        &::before {
+          content: '';
+          position: absolute;
+          top: -14px;
+          left: 0;
+          right: 0;
+          height: 14px;
+          background: transparent;
+        }
+
+        &::-webkit-scrollbar {
+          width: 5px;
+        }
+        &::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.2);
+          border-radius: 4px;
+        }
+        &::-webkit-scrollbar-thumb:hover {
+          background: var(--primary-orange);
+        }
 
         &.is-visible {
           display: block;
           opacity: 1;
           transform: translateY(0);
+          pointer-events: auto;
         }
 
         .mega-menu-header {
@@ -173,7 +202,7 @@
         .mega-menu-grid {
           display: grid;
           grid-template-columns: repeat(4, 1fr);
-          gap: 6px 10px;
+          gap: 6px 8px;
 
           .genre-item {
             display: flex;
@@ -192,6 +221,7 @@
               border-radius: 50%;
               background: var(--border-subtle);
               transition: var(--transition-fast);
+              flex-shrink: 0;
             }
 
             &:hover {
@@ -210,21 +240,34 @@
       /* RANK MENU POPOVER */
       .rank-menu-panel {
         position: absolute;
-        top: calc(100% + 12px);
+        top: calc(100% + 6px);
         left: 0;
         width: 240px;
         padding: 10px;
         box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border-color);
         display: none;
         opacity: 0;
-        transform: translateY(8px);
+        transform: translateY(6px);
         transition: opacity 0.2s ease, transform 0.2s ease;
-        z-index: 100;
+        z-index: 1050;
+
+        /* Hover bridge */
+        &::before {
+          content: '';
+          position: absolute;
+          top: -14px;
+          left: 0;
+          right: 0;
+          height: 14px;
+          background: transparent;
+        }
 
         &.is-visible {
           display: block;
           opacity: 1;
           transform: translateY(0);
+          pointer-events: auto;
         }
 
         .rank-menu-item {
@@ -512,13 +555,24 @@
 
       .user-dropdown-panel {
         position: absolute;
-        top: calc(100% + 10px);
+        top: calc(100% + 8px);
         right: 0;
         width: 230px;
         padding: 12px;
         box-shadow: var(--shadow-xl);
+        border: 1px solid var(--border-color);
         display: none;
-        z-index: 1000;
+        z-index: 1050;
+
+        &::before {
+          content: '';
+          position: absolute;
+          top: -14px;
+          left: 0;
+          right: 0;
+          height: 14px;
+          background: transparent;
+        }
 
         &.is-visible {
           display: block;

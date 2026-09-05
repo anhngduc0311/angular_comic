@@ -142,7 +142,8 @@ def sync_chapter_to_web_api(
     created_at: str = None,
     comic_views: int = None,
     comic_created_at: str = None,
-    comic_updated_at: str = None
+    comic_updated_at: str = None,
+    categories: list = None
 ) -> bool:
     """Đồng bộ truyện và chapter lên TruyenKomi Web API"""
     params = {
@@ -160,6 +161,11 @@ def sync_chapter_to_web_api(
     if comic_views is not None and comic_views > 0: params["comicViews"] = str(comic_views)
     if comic_created_at: params["comicCreatedAt"] = parse_date_to_iso(comic_created_at)
     if comic_updated_at: params["comicUpdatedAt"] = parse_date_to_iso(comic_updated_at)
+    if categories:
+        if isinstance(categories, (list, tuple, set)):
+            params["categories"] = ",".join(str(c) for c in categories if c)
+        else:
+            params["categories"] = str(categories)
 
     query_str = urllib.parse.urlencode(params)
     url = f"{api_base_url.rstrip('/')}/comics/import-scraped?{query_str}"
@@ -572,6 +578,28 @@ class MangaDownloaderGUI(ctk.CTk):
             if not created_date_str and updated_date_str:
                 created_date_str = updated_date_str
 
+            # 3.4 Thể loại truyện (Categories / Genres)
+            genres = []
+            if title_elem:
+                card = title_elem
+                for _ in range(6):
+                    card = card.parent
+                    if not card: break
+                for a in card.find_all('a', href=True):
+                    href = a.get('href', '')
+                    if '/the-loai/' in href and not href.endswith('/the-loai'):
+                        txt = a.get_text(strip=True)
+                        if txt and txt not in genres and not txt.lower().startswith('truyện tranh') and not txt.lower().startswith('đọc truyện'):
+                            genres.append(txt)
+
+            if not genres:
+                for a in soup.find_all('a', href=True):
+                    href = a.get('href', '')
+                    if '/the-loai/' in href and not href.endswith('/the-loai'):
+                        txt = a.get_text(strip=True)
+                        if txt and txt not in genres and not txt.lower().startswith('truyện tranh') and not txt.lower().startswith('đọc truyện'):
+                            genres.append(txt)
+
             # Chapters from API
             chapters = []
             api_url = f"https://www.zettruyen1.com/api/comics/{slug}/chapters?per_page=-1"
@@ -629,6 +657,8 @@ class MangaDownloaderGUI(ctk.CTk):
                 "other_names": other_names,
                 "age_limit": age_limit,
                 "views": views,
+                "genres": genres,
+                "categories": genres,
                 "created_date_str": created_date_str,
                 "updated_date_str": updated_date_str,
                 "created_at_iso": parse_date_to_iso(created_date_str),
@@ -1009,7 +1039,8 @@ class MangaDownloaderGUI(ctk.CTk):
                         created_at=chap.get("updated_at"),
                         comic_views=info.get("views", 0),
                         comic_created_at=info.get("created_at_iso") or info.get("created_date_str"),
-                        comic_updated_at=info.get("updated_at_iso") or info.get("updated_date_str")
+                        comic_updated_at=info.get("updated_at_iso") or info.get("updated_date_str"),
+                        categories=info.get("genres", [])
                     )
                     if synced:
                         self.after(0, lambda t=chap_title, cnt=len(valid_cdn_urls): self.log(
