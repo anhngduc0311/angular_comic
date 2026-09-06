@@ -44,10 +44,91 @@ namespace TruyenKomi.API.Data
                 .HasIndex(b => new { b.UserId, b.ComicId })
                 .IsUnique();
 
+            modelBuilder.Entity<Bookmark>()
+                .HasOne(b => b.Comic)
+                .WithMany()
+                .HasForeignKey(b => b.ComicId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Bookmark>()
+                .HasOne(b => b.User)
+                .WithMany()
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Unique CommentLike Constraint per User and Comment
             modelBuilder.Entity<CommentLike>()
                 .HasIndex(cl => new { cl.UserId, cl.CommentId })
                 .IsUnique();
+
+            modelBuilder.Entity<CommentLike>()
+                .HasOne(cl => cl.User)
+                .WithMany()
+                .HasForeignKey(cl => cl.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ReadingHistory Relationships (Prevent SQL Server multiple cascade path cycle)
+            modelBuilder.Entity<ReadingHistory>()
+                .HasOne(rh => rh.Comic)
+                .WithMany()
+                .HasForeignKey(rh => rh.ComicId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ReadingHistory>()
+                .HasOne(rh => rh.Chapter)
+                .WithMany()
+                .HasForeignKey(rh => rh.ChapterId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ReadingHistory>()
+                .HasOne(rh => rh.User)
+                .WithMany()
+                .HasForeignKey(rh => rh.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Comment Relationships
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.Comic)
+                .WithMany()
+                .HasForeignKey(c => c.ComicId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.Chapter)
+                .WithMany()
+                .HasForeignKey(c => c.ChapterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Comment>()
+                .HasOne(c => c.ParentComment)
+                .WithMany()
+                .HasForeignKey(c => c.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Report Relationships
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.Comic)
+                .WithMany()
+                .HasForeignKey(r => r.ComicId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.Chapter)
+                .WithMany()
+                .HasForeignKey(r => r.ChapterId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Unique Indexes for Search & Routing Performance
             modelBuilder.Entity<Comic>().HasIndex(c => c.Slug).IsUnique();
