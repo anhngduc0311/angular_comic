@@ -58,7 +58,8 @@ var defaultConn = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING")
                   ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<MangaDbContext>(options =>
-    options.UseSqlServer(defaultConn));
+    options.UseSqlServer(defaultConn, sqlOptions =>
+        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
 // 2. Register Application Services, Distributed Caching & Exception Handling
 var redisConnectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING") 
