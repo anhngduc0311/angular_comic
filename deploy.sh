@@ -212,18 +212,12 @@ else
     CHECK_DB=$(docker exec -i truyenkomi-sqlserver $SQLCMD_BIN -S localhost -U sa -P 'TruyenKomiDbPassword2026!' -Q "IF OBJECT_ID('TruyenKomiDb.dbo.Users', 'U') IS NOT NULL PRINT 'DB_EXISTS'" 2>/dev/null || echo "")
 
     if [[ "$CHECK_DB" != *"DB_EXISTS"* ]]; then
-        log_info "Phát hiện Database mới (chưa có bảng): Đang tự động nạp cấu trúc Database và dữ liệu mẫu..."
+        log_info "Phát hiện Database mới (chưa có bảng): Đang tự động nạp cấu trúc Database sạch (01_CreateDatabase.sql)..."
         
         if [ -f "database/01_CreateDatabase.sql" ]; then
             log_info "-> Đang thực thi /database/01_CreateDatabase.sql (Tạo các bảng & Index)..."
             docker exec -i truyenkomi-sqlserver $SQLCMD_BIN -S localhost -U sa -P 'TruyenKomiDbPassword2026!' -i /database/01_CreateDatabase.sql
-            log_success "Đã tạo toàn bộ bảng Database TruyenKomiDb thành công!"
-        fi
-
-        if [ -f "database/02_SeedData.sql" ]; then
-            log_info "-> Đang thực thi /database/02_SeedData.sql (Nạp danh mục thể loại truyện & tài khoản admin)..."
-            docker exec -i truyenkomi-sqlserver $SQLCMD_BIN -S localhost -U sa -P 'TruyenKomiDbPassword2026!' -i /database/02_SeedData.sql
-            log_success "Đã nạp danh mục thể loại truyện mẫu thành công!"
+            log_success "Đã tạo toàn bộ cấu trúc bảng Database TruyenKomiDb thành công (Sạch 100%, sẵn sàng nhận dữ liệu)!"
         fi
 
         # Khởi động lại API sau khi tạo database để kết nối ngay lập tức
