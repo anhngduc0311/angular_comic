@@ -26,22 +26,7 @@ services:
     volumes:
       - redis_data:/data
 
-  # 3. Object Storage - MinIO
-  minio:
-    image: minio/minio:latest
-    container_name: truyenkomi-minio
-    environment:
-      MINIO_ROOT_USER: "truyenkomi_admin"
-      MINIO_ROOT_PASSWORD: "TruyenKomiSecretPassword2026!"
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    restart: always
-    volumes:
-      - minio_data:/data
-
-  # 4. Search Engine - Meilisearch
+  # 3. Search Engine - Meilisearch
   meilisearch:
     image: getmeili/meilisearch:v1.10
     container_name: truyenkomi-meilisearch
@@ -55,7 +40,7 @@ services:
     volumes:
       - meili_data:/meili_data
 
-  # 5. Backend .NET Web API
+  # 4. Backend .NET Web API
   api:
     build:
       context: ./backend/MangaFlux.API
@@ -87,7 +72,7 @@ services:
       - redis
       - meilisearch
 
-  # 6. Frontend Angular SPA
+  # 5. Frontend Angular SPA
   frontend:
     build:
       context: ./angular
@@ -97,7 +82,7 @@ services:
     ports:
       - "4200:80"
 
-  # 7. Gateway / Reverse Proxy - Nginx
+  # 6. Gateway / Reverse Proxy - Nginx
   nginx:
     image: nginx:alpine
     container_name: truyenkomi-nginx
@@ -111,48 +96,8 @@ services:
       - api
       - frontend
       - redis
-      - minio
-
-  # 8. Monitoring - Prometheus
-  prometheus:
-    image: prom/prometheus:v2.54.1
-    container_name: truyenkomi-prometheus
-    restart: always
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./monitoring/prometheus/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-
-  # 9. Monitoring - Grafana
-  grafana:
-    image: grafana/grafana:11.2.0
-    container_name: truyenkomi-grafana
-    restart: always
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
-      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
-      - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
 
 volumes:
   sqlserver_data:
   redis_data:
-  minio_data:
-  prometheus_data:
-  grafana_data:
   meili_data:

@@ -7,7 +7,7 @@
 # 2. Tạo 4GB Swap Memory (chống tràn RAM khi build .NET 9 & Angular 17)
 # 3. Cài đặt Docker & Docker Compose mới nhất
 # 4. Kiểm tra & khởi tạo file cấu hình môi trường .env
-# 5. Build và khởi chạy toàn bộ Container (API .NET, Angular UI, Nginx, SQL Server, Redis, Meilisearch, MinIO)
+# 5. Build và khởi chạy toàn bộ Container (API .NET, Angular UI, Nginx, SQL Server, Redis, Meilisearch)
 # 6. Kiểm tra Healthcheck & dọn dẹp Docker images rác
 # ==============================================================================
 
@@ -172,7 +172,7 @@ fi
 # BƯỚC 5: BUILD VÀ KHỞI CHẠY TẤT CẢ CONTAINERS
 # ==============================================================================
 log_step "BƯỚC 5/6: Build và khởi chạy toàn bộ dịch vụ TruyenKomi bằng Docker Compose"
-log_info "Đang thực thi: $DOCKER_COMPOSE_CMD up -d --build (sqlserver, redis, minio, meilisearch, api, frontend, nginx)..."
+log_info "Đang thực thi: $DOCKER_COMPOSE_CMD up -d --build (sqlserver, redis, meilisearch, api, frontend, nginx)..."
 
 $DOCKER_COMPOSE_CMD up -d --build
 
@@ -209,8 +209,6 @@ echo -e "  • ${CYAN}Website Truyện Tranh (Angular UI):${NC} ${BOLD}http://${
 echo -e "  • ${CYAN}Tài liệu Swagger Web API (.NET):${NC}  ${BOLD}http://${PUBLIC_IP}/swagger${NC} (hoặc http://${PUBLIC_IP}:5000/swagger)"
 echo -e "  • ${CYAN}Kiểm tra Healthcheck API:${NC}        ${BOLD}http://${PUBLIC_IP}/health${NC}"
 echo -e "  • ${CYAN}Trình tìm kiếm Meilisearch:${NC}       ${BOLD}http://${PUBLIC_IP}:7700${NC}"
-echo -e "  • ${CYAN}MinIO Storage Console:${NC}            ${BOLD}http://${PUBLIC_IP}:9001${NC}"
-echo -e "  • ${CYAN}Grafana Dashboard APM:${NC}            ${BOLD}http://${PUBLIC_IP}:3000${NC}"
 
 echo -e "\n${BOLD}🛠️ CÁC LỆNH HỮU ÍCH QUẢN TRỊ DOCKER:${NC}"
 echo -e "  • ${YELLOW}Xem log realtime toàn bộ:${NC}         cd $TARGET_DIR && $DOCKER_COMPOSE_CMD logs -f"
