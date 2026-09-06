@@ -196,6 +196,34 @@ namespace TruyenKomi.API.Controllers
             return Ok(updated);
         }
 
+        [HttpGet("{id:int}/comments")]
+        public async Task<IActionResult> GetComicComments(int id, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            int? currentUserId = null;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim != null && int.TryParse(userIdClaim, out int uid))
+            {
+                currentUserId = uid;
+            }
+
+            var result = await _comicService.GetComicCommentsAsync(id, page, pageSize, currentUserId);
+            return Ok(result);
+        }
+
+        [HttpGet("{slug}/comments")]
+        public async Task<IActionResult> GetComicCommentsBySlug(string slug, [FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            int? currentUserId = null;
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (userIdClaim != null && int.TryParse(userIdClaim, out int uid))
+            {
+                currentUserId = uid;
+            }
+
+            var result = await _comicService.GetComicCommentsBySlugAsync(slug, page, pageSize, currentUserId);
+            return Ok(result);
+        }
+
         [Authorize]
         [EnableRateLimiting("comment-limiter")]
         [HttpPost("comments")]

@@ -7,32 +7,32 @@ Tài liệu chi tiết phân loại các tác vụ cải thiện hiệu năng, t
 ## 🎯 Giai Đoạn 1: Tối Ưu Hóa Hiệu Năng & Điểm Nghẽn Cấp Bách (P0 - Critical Bottlenecks)
 
 ### 1.1 Khắc Phục Xử Lý Tìm Kiếm In-Memory Trong `SearchEngineService.cs`
-- [ ] **Tích hợp tìm kiếm Meilisearch API container thực tế:**
+- [x] **Tích hợp tìm kiếm Meilisearch API container thực tế:**
   - Kết nối service `meilisearch` từ `docker-compose.yml` qua HTTP client.
   - Tự động đẩy / đồng bộ dữ liệu truyện sang Meilisearch khi truyện được tạo mới hoặc cập nhật (`SyncIndexAsync`).
   - Gửi truy vấn trực tiếp đến Meilisearch với Typo-tolerance, Vietnamese accent-insensitive và nhận kết quả tức thì (< 10ms).
-- [ ] **Tối ưu hóa Fallback SQL Server:**
+- [x] **Tối ưu hóa Fallback SQL Server:**
   - Loại bỏ hoàn toàn `await query.ToListAsync()` kéo toàn bộ bảng Comics vào RAM của C#.
   - Đẩy bộ lọc `Status`, `Country`, `Categories` và phân trang `Skip((page-1)*pageSize).Take(pageSize)` trực tiếp xuống câu truy vấn SQL Server.
   - Thêm cột `TitleUnaccent` (hoặc SQL Server Full-Text Index) để tìm kiếm không dấu tốc độ cao mà không ngốn RAM backend.
 
 ### 1.2 Tách API Phân Trang Bình Luận (Comments Pagination)
-- [ ] **Tối ưu hóa Payload Chi Tiết Truyện (`ComicService.cs`):**
+- [x] **Tối ưu hóa Payload Chi Tiết Truyện (`ComicService.cs`):**
   - Loại bỏ `.Include(c => c.Comments)` khỏi `GetComicByIdAsync` và `GetComicBySlugAsync` để giảm kích thước payload từ vài MB xuống vài KB.
-- [ ] **Xây dựng Endpoint Phân Trang Riêng:**
+- [x] **Xây dựng Endpoint Phân Trang Riêng:**
   - `GET /api/comics/{comicId}/comments?page=1&pageSize=20&sortBy=newest|top` hỗ trợ phân trang hoặc Infinite Scroll.
-- [ ] **Cập nhật Frontend Angular (`comic-detail.component.ts`):**
+- [x] **Cập nhật Frontend Angular (`comic-detail.component.ts`):**
   - Tải danh sách bình luận bất đồng bộ theo trang, hiển thị skeleton loading mượt mà.
 
 ### 1.3 Chống Chặn Luồng Redis (Blocking KEYS) & Quản Lý Khóa Trong `CacheService.cs`
-- [ ] **Chuyển đổi `server.Keys()` sang SCAN Cursor:**
+- [x] **Chuyển đổi `server.Keys()` sang SCAN Cursor:**
   - Thay thế lệnh blocking `server.Keys(...)` trong `RemoveByPatternAsync` và `GetKeysAsync` bằng `server.KeysAsync(...)` hoặc cơ chế `SCAN` không làm gián đoạn Redis Server.
   - Quản lý xóa cache theo Cache Prefix / Tags thay vì quét toàn bộ database Redis.
-- [ ] **Giải phóng Bộ nhớ Khóa Stampede (`_locks`):**
+- [x] **Giải phóng Bộ nhớ Khóa Stampede (`_locks`):**
   - Bổ sung cơ chế tự động dọn dẹp hoặc giới hạn vòng đời của `SemaphoreSlim` trong `ConcurrentDictionary` chống rò rỉ bộ nhớ (Memory Leak).
 
 ### 1.4 Tối Ưu Batching Worker Đồng Bộ Lượt Xem (`ViewSyncWorker.cs`)
-- [ ] **Gộp Thao Tác Cập Nhật (Batch Update):**
+- [x] **Gộp Thao Tác Cập Nhật (Batch Update):**
   - Thay thế vòng lặp tuần tự `foreach ExecuteUpdateAsync` bằng một câu lệnh Batch SQL duy nhất (hoặc Table-Valued Parameter / MERGE SQL) để cập nhật hàng trăm bộ truyện trong 1 database roundtrip.
 
 ---

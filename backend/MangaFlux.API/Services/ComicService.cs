@@ -22,6 +22,8 @@ namespace TruyenKomi.API.Services
         Task<List<CategoryDto>> GetAllCategoriesAsync();
         Task<CommentDto> AddCommentAsync(int userId, CreateCommentDto dto);
         Task<bool> LikeCommentAsync(int userId, int commentId);
+        Task<PagedSearchResultDto<CommentDto>> GetComicCommentsAsync(int comicId, int page = 1, int pageSize = 20, int? currentUserId = null);
+        Task<PagedSearchResultDto<CommentDto>> GetComicCommentsBySlugAsync(string slug, int page = 1, int pageSize = 20, int? currentUserId = null);
 
         // Admin operations
         Task<DashboardStatsDto> GetDashboardStatsAsync();
@@ -140,8 +142,6 @@ namespace TruyenKomi.API.Services
                     .AsNoTracking()
                     .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                     .Include(c => c.Chapters)
-                    .Include(c => c.Comments).ThenInclude(cm => cm.User)
-                    .Include(c => c.Comments).ThenInclude(cm => cm.Likes)
                     .FirstOrDefaultAsync(c => c.Slug == slug);
 
                 if (comic == null) return null;
@@ -162,8 +162,6 @@ namespace TruyenKomi.API.Services
                 .AsNoTracking()
                 .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                 .Include(c => c.Chapters)
-                .Include(c => c.Comments).ThenInclude(cm => cm.User)
-                .Include(c => c.Comments).ThenInclude(cm => cm.Likes)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (comic == null) return null;
@@ -216,26 +214,29 @@ namespace TruyenKomi.API.Services
                         PublishedAt = ch.PublishedAt,
                         CreatedAt = ch.CreatedAt
                     }).ToList(),
-                Comments = comic.Comments
-                    .Where(cm => !cm.IsHidden)
-                    .OrderByDescending(cm => cm.CreatedAt)
-                    .Select(cm => new CommentDto
-                    {
-                        Id = cm.Id,
-                        UserId = cm.UserId,
-                        Username = cm.User != null ? cm.User.Username : "Ẩn danh",
-                        UserAvatar = cm.User != null ? cm.User.Avatar : null,
-                        ComicId = cm.ComicId,
-                        ChapterId = cm.ChapterId,
-                        ParentCommentId = cm.ParentCommentId,
-                        Content = cm.Content,
-                        IsHidden = cm.IsHidden,
-                        ReportCount = cm.ReportCount,
-                        ReportReason = cm.ReportReason,
-                        LikesCount = cm.Likes.Count,
-                        IsLiked = false,
-                        CreatedAt = cm.CreatedAt
-                    }).ToList()
+                Comments = comic.Comments != null
+                    ? comic.Comments
+                        .Where(cm => !cm.IsHidden)
+                        .OrderByDescending(cm => cm.CreatedAt)
+                        .Take(10)
+                        .Select(cm => new CommentDto
+                        {
+                            Id = cm.Id,
+                            UserId = cm.UserId,
+                            Username = cm.User != null ? cm.User.Username : "Ẩn danh",
+                            UserAvatar = cm.User != null ? cm.User.Avatar : null,
+                            ComicId = cm.ComicId,
+                            ChapterId = cm.ChapterId,
+                            ParentCommentId = cm.ParentCommentId,
+                            Content = cm.Content,
+                            IsHidden = cm.IsHidden,
+                            ReportCount = cm.ReportCount,
+                            ReportReason = cm.ReportReason,
+                            LikesCount = cm.Likes != null ? cm.Likes.Count : 0,
+                            IsLiked = false,
+                            CreatedAt = cm.CreatedAt
+                        }).ToList()
+                    : new List<CommentDto>()
             };
         }
 
@@ -424,6 +425,61 @@ namespace TruyenKomi.API.Services
             }
 
             return true;
+        }
+
+        public async Task<PagedSearchResultDto<CommentDto>> GetComicCommentsAsync(int comicId, int page = 1, int pageSize = 20, int? currentUserId = null)
+        {
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 20 : (pageSize > 100 ? 100 : pageSize);
+
+            var query = _context.Comments
+                .AsNoTracking()
+                .Where(c => c.ComicId == comicId && !c.IsHidden);
+
+            int totalCount = await query.CountAsync();
+
+            var comments = await query
+                .OrderByDescending(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(c => c.User)
+                .Include(c => c.Likes)
+                .Select(cm => new CommentDto
+                {
+                    Id = cm.Id,
+                    UserId = cm.UserId,
+                    Username = cm.User != null ? cm.User.Username : "Ẩn danh",
+                    UserAvatar = cm.User != null ? cm.User.Avatar : null,
+                    ComicId = cm.ComicId,
+                    ChapterId = cm.ChapterId,
+                    ParentCommentId = cm.ParentCommentId,
+                    Content = cm.Content,
+                    IsHidden = cm.IsHidden,
+                    ReportCount = cm.ReportCount,
+                    ReportReason = cm.ReportReason,
+                    LikesCount = cm.Likes.Count,
+                    IsLiked = currentUserId.HasValue && cm.Likes.Any(l => l.UserId == currentUserId.Value),
+                    CreatedAt = cm.CreatedAt
+                })
+                .ToListAsync();
+
+            return new PagedSearchResultDto<CommentDto>
+            {
+                Items = comments,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+        }
+
+        public async Task<PagedSearchResultDto<CommentDto>> GetComicCommentsBySlugAsync(string slug, int page = 1, int pageSize = 20, int? currentUserId = null)
+        {
+            var comic = await _context.Comics.AsNoTracking().FirstOrDefaultAsync(c => c.Slug == slug);
+            if (comic == null)
+            {
+                return new PagedSearchResultDto<CommentDto> { Items = new(), TotalCount = 0, Page = page, PageSize = pageSize };
+            }
+            return await GetComicCommentsAsync(comic.Id, page, pageSize, currentUserId);
         }
 
         private async Task InvalidateComicCacheAsync(string? slug = null, int? chapterId = null)

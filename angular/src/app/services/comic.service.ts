@@ -87,6 +87,14 @@ export class ComicService {
     return this.api.get<Category[]>('categories');
   }
 
+  getComicComments(comicId: number, page = 1, pageSize = 20): Observable<PagedResult<Comment>> {
+    return this.api.get<PagedResult<Comment>>(`comics/${comicId}/comments?page=${page}&pageSize=${pageSize}`);
+  }
+
+  getComicCommentsBySlug(slug: string, page = 1, pageSize = 20): Observable<PagedResult<Comment>> {
+    return this.api.get<PagedResult<Comment>>(`comics/slug/${encodeURIComponent(slug)}/comments?page=${page}&pageSize=${pageSize}`);
+  }
+
   addComment(data: { comicId: number; chapterId?: number; content: string }): Observable<Comment> {
     return this.api.post<Comment>('comics/comments', data);
   }

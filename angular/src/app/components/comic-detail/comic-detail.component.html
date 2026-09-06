@@ -203,7 +203,7 @@
       <section class="section-block glass-card comments-section">
         <div class="block-header">
           <i class="fa fa-comments icon-orange"></i>
-          <h3>Bình Luận ({{ comic.comments ? comic.comments.length : 0 }})</h3>
+          <h3>Bình Luận ({{ totalComments }})</h3>
         </div>
 
         <!-- Add Comment Input Box -->
@@ -221,8 +221,8 @@
         </div>
 
         <!-- Comments List -->
-        <div class="comments-list" *ngIf="comic.comments && comic.comments.length > 0">
-          <div class="comment-card" *ngFor="let cm of visibleComments">
+        <div class="comments-list" *ngIf="comments && comments.length > 0">
+          <div class="comment-card" *ngFor="let cm of comments">
             <img [src]="cm.userAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80'" alt="Avatar" class="user-avatar" />
             <div class="comment-body">
               <div class="comment-user-row">
@@ -233,9 +233,16 @@
             </div>
           </div>
 
-          <div class="load-more-comments" *ngIf="comic.comments.length > visibleCommentsCount">
-            <button (click)="loadMoreComments()" class="btn-load-more">Xem Thêm Bình Luận</button>
+          <div class="load-more-comments" *ngIf="hasMoreComments">
+            <button (click)="loadMoreComments()" class="btn-load-more" [disabled]="isLoadingComments">
+              <span *ngIf="!isLoadingComments">Xem Thêm Bình Luận</span>
+              <span *ngIf="isLoadingComments"><i class="fa fa-spinner fa-spin"></i> Đang tải...</span>
+            </button>
           </div>
+        </div>
+
+        <div class="no-comments-box" *ngIf="comments.length === 0 && !isLoadingComments">
+          <p class="text-muted text-center" style="padding: 1.5rem 0;">Chưa có bình luận nào. Hãy là người đầu tiên chia sẻ cảm nghĩ!</p>
         </div>
       </section>
     </div>

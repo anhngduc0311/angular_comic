@@ -55,11 +55,9 @@ namespace TruyenKomi.API.Services
             var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
             var dbContext = scope.ServiceProvider.GetRequiredService<MangaDbContext>();
 
-            // Sync Comic Views
+            // 1. Collect Comic Views
             var comicKeys = await cacheService.GetKeysAsync("*comic_views_count_*");
-            int comicSyncCount = 0;
-            long totalViewsSynced = 0;
-
+            var comicUpdates = new Dictionary<int, long>();
             foreach (var key in comicKeys)
             {
                 var lastUnderscore = key.LastIndexOf('_');
@@ -67,6 +65,35 @@ namespace TruyenKomi.API.Services
                 {
                     long delta = await cacheService.GetAndResetCountAsync(key);
                     if (delta > 0)
+                    {
+                        comicUpdates[comicId] = comicUpdates.TryGetValue(comicId, out var existing) ? existing + delta : delta;
+                    }
+                }
+            }
+
+            int comicSyncCount = 0;
+            long totalViewsSynced = 0;
+
+            if (comicUpdates.Count > 0)
+            {
+                if (dbContext.Database.IsSqlServer())
+                {
+                    foreach (var batch in comicUpdates.Chunk(100))
+                    {
+                        var valuesClauses = string.Join(",", batch.Select(b => $"({b.Key}, {b.Value})"));
+                        var sql = $@"
+                            UPDATE c
+                            SET c.Views = c.Views + v.ViewsDelta
+                            FROM Comics c
+                            INNER JOIN (VALUES {valuesClauses}) AS v(Id, ViewsDelta) ON c.Id = v.Id;";
+                        await dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                        comicSyncCount += batch.Length;
+                        totalViewsSynced += batch.Sum(b => b.Value);
+                    }
+                }
+                else
+                {
+                    foreach (var (comicId, delta) in comicUpdates)
                     {
                         await dbContext.Comics
                             .Where(c => c.Id == comicId)
@@ -77,10 +104,9 @@ namespace TruyenKomi.API.Services
                 }
             }
 
-            // Sync Chapter Views
+            // 2. Collect Chapter Views
             var chapterKeys = await cacheService.GetKeysAsync("*chapter_views_count_*");
-            int chapterSyncCount = 0;
-
+            var chapterUpdates = new Dictionary<int, long>();
             foreach (var key in chapterKeys)
             {
                 var lastUnderscore = key.LastIndexOf('_');
@@ -88,6 +114,33 @@ namespace TruyenKomi.API.Services
                 {
                     long delta = await cacheService.GetAndResetCountAsync(key);
                     if (delta > 0)
+                    {
+                        chapterUpdates[chapterId] = chapterUpdates.TryGetValue(chapterId, out var existing) ? existing + delta : delta;
+                    }
+                }
+            }
+
+            int chapterSyncCount = 0;
+            if (chapterUpdates.Count > 0)
+            {
+                if (dbContext.Database.IsSqlServer())
+                {
+                    foreach (var batch in chapterUpdates.Chunk(100))
+                    {
+                        var valuesClauses = string.Join(",", batch.Select(b => $"({b.Key}, {b.Value})"));
+                        var sql = $@"
+                            UPDATE ch
+                            SET ch.Views = ch.Views + v.ViewsDelta
+                            FROM Chapters ch
+                            INNER JOIN (VALUES {valuesClauses}) AS v(Id, ViewsDelta) ON ch.Id = v.Id;";
+                        await dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
+                        chapterSyncCount += batch.Length;
+                        totalViewsSynced += batch.Sum(b => b.Value);
+                    }
+                }
+                else
+                {
+                    foreach (var (chapterId, delta) in chapterUpdates)
                     {
                         await dbContext.Chapters
                             .Where(ch => ch.Id == chapterId)

@@ -81,7 +81,19 @@ namespace TruyenKomi.API.Services
             }
         }
 
-        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, System.Threading.SemaphoreSlim> _locks = new();
+        private const int LockStripesCount = 256;
+        private static readonly System.Threading.SemaphoreSlim[] _stripedLocks = 
+            Enumerable.Range(0, LockStripesCount).Select(_ => new System.Threading.SemaphoreSlim(1, 1)).ToArray();
+
+        private static System.Threading.SemaphoreSlim GetLockForKey(string key)
+        {
+            uint hash = 2166136261;
+            foreach (char c in key)
+            {
+                hash = (hash ^ c) * 16777619;
+            }
+            return _stripedLocks[hash % LockStripesCount];
+        }
 
         public async Task<T?> GetOrSetAsync<T>(string key, Func<Task<T>> getItemCallback, TimeSpan? absoluteExpireTime = null)
         {
@@ -91,7 +103,7 @@ namespace TruyenKomi.API.Services
                 return cached;
             }
 
-            var semaphore = _locks.GetOrAdd(key, _ => new System.Threading.SemaphoreSlim(1, 1));
+            var semaphore = GetLockForKey(key);
             await semaphore.WaitAsync();
             try
             {
@@ -131,10 +143,19 @@ namespace TruyenKomi.API.Services
                         var server = _redisConnection.GetServer(endpoint);
                         if (server.IsConnected)
                         {
-                            var redisKeys = server.Keys(pattern: searchPattern).ToArray();
-                            if (redisKeys.Length > 0)
+                            var keysToDelete = new List<RedisKey>();
+                            await foreach (var redisKey in server.KeysAsync(pattern: searchPattern, pageSize: 250))
                             {
-                                await db.KeyDeleteAsync(redisKeys);
+                                keysToDelete.Add(redisKey);
+                                if (keysToDelete.Count >= 250)
+                                {
+                                    await db.KeyDeleteAsync(keysToDelete.ToArray());
+                                    keysToDelete.Clear();
+                                }
+                            }
+                            if (keysToDelete.Count > 0)
+                            {
+                                await db.KeyDeleteAsync(keysToDelete.ToArray());
                             }
                         }
                     }
@@ -199,8 +220,10 @@ namespace TruyenKomi.API.Services
                         var server = _redisConnection.GetServer(endpoint);
                         if (server.IsConnected)
                         {
-                            var redisKeys = server.Keys(pattern: pattern).Select(k => k.ToString());
-                            keys.AddRange(redisKeys);
+                            await foreach (var redisKey in server.KeysAsync(pattern: pattern, pageSize: 250))
+                            {
+                                keys.Add(redisKey.ToString());
+                            }
                         }
                     }
                 }
@@ -209,7 +232,7 @@ namespace TruyenKomi.API.Services
             {
                 _logger.LogWarning($"Cache GetKeysAsync notice for pattern '{pattern}': {ex.Message}");
             }
-            return await Task.FromResult(keys.Distinct().ToList());
+            return keys.Distinct().ToList();
         }
 
         public async Task<long> GetAndResetCountAsync(string key)

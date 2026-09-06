@@ -23,20 +23,16 @@ export class ComicDetailComponent implements OnInit {
   likesCount: number = 524;
   commentContent: string = '';
   isLoading: boolean = true;
-  visibleCommentsCount: number = 10;
+  comments: any[] = [];
+  commentsPage: number = 1;
+  commentsPageSize: number = 10;
+  totalComments: number = 0;
+  hasMoreComments: boolean = false;
+  isLoadingComments: boolean = false;
   skeletonChapters: number[] = Array(8).fill(0);
 
   chapterSearchQuery: string = '';
   sortOrder: 'desc' | 'asc' = 'desc';
-
-  get visibleComments(): any[] {
-    if (!this.comic || !this.comic.comments) return [];
-    return this.comic.comments.slice(0, this.visibleCommentsCount);
-  }
-
-  loadMoreComments(): void {
-    this.visibleCommentsCount += 10;
-  }
 
   constructor(
     private route: ActivatedRoute,
@@ -70,12 +66,43 @@ export class ComicDetailComponent implements OnInit {
         this.isLoading = false;
         this.seoService.setComicDetailSeo(detail);
         this.checkBookmarkStatus();
+        this.loadComments(true);
       },
       error: () => {
         this.isLoading = false;
         this.router.navigate(['/404']);
       }
     });
+  }
+
+  loadComments(reset = false): void {
+    if (!this.comic) return;
+    if (reset) {
+      this.commentsPage = 1;
+      this.comments = [];
+    }
+    this.isLoadingComments = true;
+    this.comicService.getComicComments(this.comic.id, this.commentsPage, this.commentsPageSize).subscribe({
+      next: (res) => {
+        if (reset) {
+          this.comments = res.items || [];
+        } else {
+          this.comments = [...this.comments, ...(res.items || [])];
+        }
+        this.totalComments = res.totalCount;
+        this.hasMoreComments = this.comments.length < res.totalCount;
+        this.isLoadingComments = false;
+      },
+      error: () => {
+        this.isLoadingComments = false;
+      }
+    });
+  }
+
+  loadMoreComments(): void {
+    if (this.isLoadingComments || !this.hasMoreComments) return;
+    this.commentsPage++;
+    this.loadComments(false);
   }
 
   get filteredChapters(): Chapter[] {
@@ -167,7 +194,8 @@ export class ComicDetailComponent implements OnInit {
       comicId: this.comic.id,
       content: this.commentContent.trim()
     }).subscribe(comment => {
-      this.comic?.comments.unshift(comment);
+      this.comments.unshift(comment);
+      this.totalComments++;
       this.commentContent = '';
     });
   }
