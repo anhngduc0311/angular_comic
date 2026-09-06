@@ -1,96 +1,161 @@
-# 📋 Lộ Trình Tối Ưu Hệ Thống TruyenKomi Cho 1 Triệu Người Dùng (Optimization Roadmap)
+# 📋 Kế Hoạch & Lộ Trình Cải Thiện Toàn Diện Hệ Thống TruyenKomi
 
-Tài liệu hướng dẫn triển khai lần lượt các tác vụ tối ưu hóa hiệu năng, băng thông và khả năng chịu tải cho hệ thống **TruyenKomi** (Angular + .NET 10 + MS SQL Server + Redis + MinIO).
-
----
-
-## 🎯 Giai Đoạn 1: Giải Quyết Các Điểm Nghẽn Cấp Bách (Urgent Bottlenecks)
-
-### 1.1 Tách Bỏ Luồng Ghi Lượt Xem (View Counter) Đồng Bộ
-- [x] **Tạo Redis View Counter Key:** Định dạng key `comic_views_count_{id}` và `chapter_views_count_{id}`.
-- [x] **Cập nhật `ComicService.cs` & `CacheService.cs`:** Chuyển thao tác tăng view sang `IConnectionMultiplexer` Redis (`StringIncrementAsync`).
-- [x] **Xây dựng Background Worker (.NET `IHostedService`):**
-  - Chạy định kỳ 3 phút/lần (`ViewSyncWorker.cs`).
-  - Lấy tổng số view từ Redis và thực hiện Batch Update xuống SQL Server bằng EF Core 9 `ExecuteUpdateAsync`.
-  - Xóa/Reset counter trên Redis sau khi đồng bộ thành công.
-
-### 1.2 Thiết Lập Cloudflare CDN & Cache Headers Cho Ảnh Truyện (MinIO / S3 / R2)
-- [x] **Cấu hình Cache-Control Headers & Dynamic CDN Base URL:**
-  - Thiết lập `ImageCacheMiddleware.cs` với `Cache-Control: public, max-age=31536000, immutable`.
-  - Cập nhật `MinioStorageService.cs` & `appsettings.json` động theo cấu hình `CdnBaseUrl` (Cloudflare CDN / Cloudflare R2).
-- [x] **Kết Nối Cloudflare Edge CDN & Cloudflare Tunnel (`cloudflared`):**
-  - Cấu hình Edge Cache Rules, Page Rules, WAF Rate Limiting & Zero Egress Fee trong tài liệu [cloudflare.md](file:///c:/Users/ADMIN/Desktop/angular_comic/cloudflare.md).
-  - Tích hợp service `cloudflared` vào `docker-compose.yml` để tạo đường truyền bảo mật tới Cloudflare Edge.
+Tài liệu chi tiết phân loại các tác vụ cải thiện hiệu năng, tính năng người dùng, trải nghiệm đọc truyện, bảo mật, thời gian thực và vận hành tự động cho hệ thống **TruyenKomi** (Angular 18/19 + .NET 10 + MS SQL Server + Redis + MinIO / Cloudflare R2).
 
 ---
 
-## ⚡ Giai Đoạn 2: Tối Ưu Caching & Backend API (.NET 10 & Redis)
+## 🎯 Giai Đoạn 1: Tối Ưu Hóa Hiệu Năng & Điểm Nghẽn Cấp Bách (P0 - Critical Bottlenecks)
 
-### 2.1 Mở Rộng Redis Caching Layer (Cache-Aside Pattern)
-- [x] **Cache API Metadata Trang Chủ:**
-  - Cache danh sách truyện nổi bật (`Hot`), mới cập nhật (`Latest`), thể loại (`Categories`) (TTL: 15 phút) sử dụng `GetOrSetAsync`.
-- [x] **Cache Chi Tiết Chapter & Danh Sách Trang Ảnh:**
-  - Cache JSON danh sách trang ảnh của từng Chapter (`chapter:pages:{chapterId}`) (TTL: 24 giờ).
-- [x] **Chống Cache Stampede (Thundering Herd):**
-  - Áp dụng `ConcurrentDictionary` + `SemaphoreSlim` (Double-Check Locking) trong `GetOrSetAsync` và hỗ trợ xóa theo pattern `RemoveByPatternAsync`.
+### 1.1 Khắc Phục Xử Lý Tìm Kiếm In-Memory Trong `SearchEngineService.cs`
+- [ ] **Tích hợp tìm kiếm Meilisearch API container thực tế:**
+  - Kết nối service `meilisearch` từ `docker-compose.yml` qua HTTP client.
+  - Tự động đẩy / đồng bộ dữ liệu truyện sang Meilisearch khi truyện được tạo mới hoặc cập nhật (`SyncIndexAsync`).
+  - Gửi truy vấn trực tiếp đến Meilisearch với Typo-tolerance, Vietnamese accent-insensitive và nhận kết quả tức thì (< 10ms).
+- [ ] **Tối ưu hóa Fallback SQL Server:**
+  - Loại bỏ hoàn toàn `await query.ToListAsync()` kéo toàn bộ bảng Comics vào RAM của C#.
+  - Đẩy bộ lọc `Status`, `Country`, `Categories` và phân trang `Skip((page-1)*pageSize).Take(pageSize)` trực tiếp xuống câu truy vấn SQL Server.
+  - Thêm cột `TitleUnaccent` (hoặc SQL Server Full-Text Index) để tìm kiếm không dấu tốc độ cao mà không ngốn RAM backend.
 
-### 2.2 Tối Ưu Hóa Query Entity Framework Core 9
-- [x] **Rà soát Query:** Chuyển tất cả truy vấn chỉ đọc (Read-only queries) sang `.AsNoTracking()`.
-- [x] **Đánh Index SQL Server:**
-  - Kiểm tra và bổ sung Index cho các cột thường xuyên `WHERE` / `JOIN` / `ORDER BY`: `Comics(Slug)`, `Chapters(ComicId, ChapterNumber)`, `ChapterPages(ChapterId, PageNumber)`, `ReadingHistories(UserId, LastReadAt)`.
+### 1.2 Tách API Phân Trang Bình Luận (Comments Pagination)
+- [ ] **Tối ưu hóa Payload Chi Tiết Truyện (`ComicService.cs`):**
+  - Loại bỏ `.Include(c => c.Comments)` khỏi `GetComicByIdAsync` và `GetComicBySlugAsync` để giảm kích thước payload từ vài MB xuống vài KB.
+- [ ] **Xây dựng Endpoint Phân Trang Riêng:**
+  - `GET /api/comics/{comicId}/comments?page=1&pageSize=20&sortBy=newest|top` hỗ trợ phân trang hoặc Infinite Scroll.
+- [ ] **Cập nhật Frontend Angular (`comic-detail.component.ts`):**
+  - Tải danh sách bình luận bất đồng bộ theo trang, hiển thị skeleton loading mượt mà.
 
----
+### 1.3 Chống Chặn Luồng Redis (Blocking KEYS) & Quản Lý Khóa Trong `CacheService.cs`
+- [ ] **Chuyển đổi `server.Keys()` sang SCAN Cursor:**
+  - Thay thế lệnh blocking `server.Keys(...)` trong `RemoveByPatternAsync` và `GetKeysAsync` bằng `server.KeysAsync(...)` hoặc cơ chế `SCAN` không làm gián đoạn Redis Server.
+  - Quản lý xóa cache theo Cache Prefix / Tags thay vì quét toàn bộ database Redis.
+- [ ] **Giải phóng Bộ nhớ Khóa Stampede (`_locks`):**
+  - Bổ sung cơ chế tự động dọn dẹp hoặc giới hạn vòng đời của `SemaphoreSlim` trong `ConcurrentDictionary` chống rò rỉ bộ nhớ (Memory Leak).
 
-## 🖼️ Giai Đoạn 3: Tối Ưu Frontend Angular & Trải Nghiệm Đọc
-
-### 3.1 Tối Ưu Hóa Tải Ảnh Trong Component Đọc Truyện (`chapter-read`)
-- [x] **Áp Dụng Eager/Lazy Loading, `decoding="async"` & `fetchpriority`:**
-  - Thiết lập `eager` + `fetchpriority="high"` cho 2 trang đầu (LCP optimization) và `loading="lazy"` cho các trang tiếp theo.
-- [x] **Tải Trước Trang Ảnh (Prefetching):**
-  - Tự động prefetch 5 trang ảnh đầu tiên khi load chapter (`prefetchCurrentChapterPages`) và tự động prefetch chapter tiếp theo khi cuộn qua 70% chiều dài trang.
-
-### 3.2 Tối Ưu Băng Thông Ảnh Tại Engine Crawler
-- [x] **Cấu hình `sharp` trong Node.js Crawler (`crawler.js`):**
-  - Tự động convert và nén tất cả trang ảnh về định dạng **WebP chất lượng cao (Quality 90, Near-Lossless, Smart Subsampling, Effort 6)** - giữ trọn vẹn 100% độ sắc nét, màu sắc và đường nét văn bản như ảnh gốc.
-  - Tự động giữ nguyên độ phân giải chuẩn cao lên tới **1920px** (chuẩn đọc truyện nét căng cho màn hình PC 2K/4K và Mobile).
-
-### 3.3 Tối Ưu Bundle & Phân Trang (Angular SPA)
-- [x] **Phân Trang / Lazy Rendering Bình Luận & Chapter:**
-  - Áp dụng `visibleCommentsCount` và nút "Xem thêm bình luận" tại `comic-detail` tránh render DOM quá tải.
-- [x] **Tối Ưu Hóa Production Bundle Build:**
-  - Cấu hình `angular.json` với `optimization: true`, `outputHashing: "all"`, `buildOptimizer: true` giúp nén bundle còn 105 kB gzipped.
+### 1.4 Tối Ưu Batching Worker Đồng Bộ Lượt Xem (`ViewSyncWorker.cs`)
+- [ ] **Gộp Thao Tác Cập Nhật (Batch Update):**
+  - Thay thế vòng lặp tuần tự `foreach ExecuteUpdateAsync` bằng một câu lệnh Batch SQL duy nhất (hoặc Table-Valued Parameter / MERGE SQL) để cập nhật hàng trăm bộ truyện trong 1 database roundtrip.
 
 ---
 
-## 🏗️ Giai Đoạn 4: Hạ Tầng & Khả Năng Mở Rộng (Scalability & Infrastructure)
+## 📱 Giai Đoạn 2: Nâng Cấp Trải Nghiệm Độc Giả & Mobile PWA Đọc Offline (P1 - Reader UX & PWA)
 
-### 4.1 Bảo Mật & Chống Bot Cào Truyện (Anti-Scraper)
-- [x] **Cấu hình Rate Limiting & Anti-Scraper (Nginx, Cloudflare WAF & API Middleware):**
-  - Giới hạn request/giây từ 1 IP đối với các endpoint API đọc truyện (10r/s), API chung (30r/s) và tải ảnh CDN (50r/s) trong [nginx.conf](file:///c:/Users/ADMIN/Desktop/angular_comic/nginx.conf).
-  - Bổ sung `AntiScraperMiddleware` và `chapter-limiter` policy trong .NET 10 Web API chặn đứng các bot cào tự động (`Scrapy`, `Python-requests`, `Bytespider`, `Sqlmap`,...).
-  - Thiết lập Cloudflare Edge Rate Limiting Rules, Super Bot Fight Mode và Hotlink Protection trong tài liệu [cloudflare.md](file:///c:/Users/ADMIN/Desktop/angular_comic/cloudflare.md).
-- [x] **Bảo vệ JWT Token & Session:**
-  - Cấu hình HttpOnly Cookie cho Refresh Token (`truyenkomi_refresh_token`) với các cờ `HttpOnly=true`, `SameSite=Lax`, `Path=/api/auth`, và dynamic `Secure=Request.IsHttps` chống triệt để tấn công XSS.
-  - Triển khai cơ chế Refresh Token Rotation và Token Revocation an toàn khi đăng xuất trong `AuthController.cs` & `AuthService.cs`.
+### 2.1 PWA & Đọc Truyện Offline (Service Worker & IndexedDB)
+- [ ] **Cấu hình Angular PWA (`@angular/pwa`):**
+  - Cài đặt Service Worker, tạo `manifest.webmanifest` với đầy đủ icons, splash screen và theme color.
+  - Cho phép người dùng cài đặt ứng dụng TruyenKomi trực tiếp lên màn hình chính Android, iOS và Desktop.
+- [ ] **Lưu Trữ Ảnh & Dữ Liệu Offline Với IndexedDB:**
+  - Xây dựng `OfflineStorageService` (sử dụng `idb` hoặc `dexie.js`) quản lý IndexedDB tại trình duyệt.
+  - Thêm nút **"Tải chương này"** hoặc **"Tải toàn bộ truyện"** để lưu trữ Blob ảnh cục bộ.
+  - Tự động nhận diện mất mạng (Offline Mode) và chuyển nguồn đọc sang IndexedDB mượt mà không bị ngắt quãng.
+- [ ] **Giao Diện "Tủ Truyện Offline":**
+  - Trang xem danh sách truyện đã tải về thiết bị, dung lượng bộ nhớ đã sử dụng và nút xóa giải phóng dung lượng.
+
+### 2.2 Nâng Cấp Bộ Đọc Truyện Đa Chế Độ (Multi-Mode Reader Engine)
+- [ ] **Hỗ Trợ Đa Chế Độ Đọc:**
+  - **Chế độ cuộn dọc (Webtoon Mode):** Đọc liền mạch tối ưu cho Webtoon / Manhwa / Mobile.
+  - **Chế độ lật từng trang (Single Page Flip):** Đọc từng trang với hiệu ứng chuyển trang mượt mà.
+  - **Chế độ trang đôi (Double Page RTL):** Đọc lật trang từ phải sang trái chuẩn Manga Nhật Bản trên PC/Tablet.
+- [ ] **Hệ Thống Phím Tắt Điều Hướng (Keyboard Navigation):**
+  - Phím `A` / `←`: Trang hoặc chương trước.
+  - Phím `D` / `→`: Trang hoặc chương kế tiếp.
+  - Phím `F`: Bật / Tắt chế độ toàn màn hình (Fullscreen).
+  - Phím `M`: Chuyển đổi nhanh chế độ đọc.
+- [ ] **Tùy Chỉnh Giao Diện & Bảo Vệ Mắt (Eye-Care Mode):**
+  - Tùy chọn màu nền: Vàng ấm (Sepia ban đêm), Đen tuyền (AMOLED Black), Xám tối, Trắng sáng.
+  - Thanh trượt điều chỉnh độ sáng (Brightness) và độ tương phản của trang truyện.
+
+### 2.3 Cải Tiến Tương Tác Bình Luận & Chống Spoiler
+- [ ] **Hỗ Trợ Thẻ Che Spoiler:**
+  - Cú pháp `[spoil]nội dung tiết lộ[/spoil]`: Mặc định bị làm mờ, độc giả nhấp chuột vào mới hiển thị.
+- [ ] **Bình Luận Phân Cấp (Nested Comments / Reply Tree):**
+  - Hỗ trợ trả lời trực tiếp bình luận của người khác theo dạng cây phân cấp trực quan.
 
 ---
 
-## 📈 Giai Đoạn 5: Kiểm Thử Tải & Giám Sát (Load Testing & Monitoring)
+## ⚡ Giai Đoạn 3: Hệ Thống Thời Gian Thực Với SignalR (P2 - Real-Time Engagement)
 
-### 5.1 Kiểm Thử Chịu Tải (Load Testing)
-- [x] **Xây dựng kịch bản kiểm thử tải đa tầng (k6 & Autocannon):**
-  - Giả lập 1.000 đến 10.000 Virtual Users (VUs) đọc truyện, tìm kiếm và truy xuất trang chủ đồng thời (`loadtests/k6-load-test.js`, `k6-stress-test.js`, `k6-spike-test.js`).
-  - Xây dựng công cụ benchmark Node.js tức thì (`loadtests/autocannon-benchmark.js`) đo đạc Latency (P50/P95/P99), Throughput (RPS), Error rate và SLA compliance.
-- [x] **Phát hiện & Tối Ưu Bottleneck:** Đo đạc khả năng chịu tải của Redis Cache-Aside, Connection Multiplexer, và Background View Sync Worker.
+### 3.1 Hạ Tầng SignalR Hub & Redis Backplane
+- [ ] **Tích hợp SignalR trong .NET 10 Web API:**
+  - Xây dựng `MangaHub.cs` hỗ trợ xác thực người dùng qua JWT Query Token.
+  - Kết nối SignalR với **Redis Backplane** (`Microsoft.AspNetCore.SignalR.StackExchangeRedis`) để đồng bộ kết nối đa instance server.
+- [ ] **Quản Lý Kênh Nhóm (Groups):**
+  - Kênh người dùng: `User_{userId}` (nhận thông báo cá nhân).
+  - Kênh truyện: `Comic_{comicId}` (nhận thông báo phát hành chương mới).
+  - Kênh phòng đọc: `Chapter_{chapterId}` (đồng bộ bình luận trực tiếp và đếm độc giả).
 
-### 5.2 Giám Sát Hệ Thống (APM, Metrics & Health Checks)
-- [x] **Tích hợp Prometheus Metrics & ASP.NET Core Health Checks:**
-  - Tích hợp `prometheus-net.AspNetCore` tạo endpoint `/metrics` thu thập Request Duration, Throughput, GC/Memory, ThreadPool, và Custom Business Metrics (`MangaMetrics.cs`).
-  - Xây dựng Probes `/health`, `/health/ready`, `/health/live` giám sát trạng thái SQL Server, Redis Cache và MinIO Storage.
-- [x] **Thiết lập Stack Prometheus + Grafana APM Dashboard:**
-  - Tích hợp Prometheus và Grafana vào `docker-compose.yml` với cấu hình tự động kết nối Datasource.
-  - Cung cấp sẵn Dashboard APM trực quan (`truyenkomi-apm.json`) theo dõi Response time, RPS, Redis Cache Hit Ratio, Views traffic và hệ thống cảnh báo Alerting Rules (`alert.rules.yml`).
-  - Tài liệu chi tiết hướng dẫn kiểm thử tải & vận hành APM trong [loadtest_monitoring.md](file:///c:/Users/ADMIN/Desktop/angular_comic/loadtest_monitoring.md).
+### 3.2 Trải Nghiệm Tương Tác Thời Gian Thực
+- [ ] **Thông Báo Chương Mới Tức Thì (Instant Notification):**
+  - Khi có chương mới được xuất bản, tự động bắn thông báo nổi (Toast Notification) tới tất cả độc giả đang online theo dõi truyện đó.
+- [ ] **Luồng Bình Luận Trực Tiếp (Live Comments Stream):**
+  - Bình luận mới và lượt thả tim hiển thị ngay lập tức trong chương đang đọc mà không cần tải lại trang.
+- [ ] **Bộ Đếm Độc Giả Trực Tiếp (Live Readers Counter):**
+  - Hiển thị badge: *"🔥 Có X người đang cùng đọc chương này"* cập nhật thời gian thực.
 
 ---
-*Tài liệu tác vụ tối ưu hóa TruyenKomi cho 1M users - Cập nhật hoàn tất 2026.*
+
+## 🔐 Giai Đoạn 4: Chuẩn Hóa CSDL, Bảo Mật & Xác Thực (P2 - Security & Database Lifecycle)
+
+### 4.1 Quản Lý Vòng Đời CSDL Chuẩn Hóa Với EF Core Migrations
+- [ ] **Chuyển Đổi Sang EF Core Migrations:**
+  - Xóa bỏ các lệnh `ExecuteSqlRaw` ALTER TABLE thủ công trong `Program.cs`.
+  - Khởi tạo và quản lý toàn bộ cấu trúc bảng thông qua lệnh `dotnet ef migrations add Initial_Schema_Sync`.
+  - Tự động chạy `db.Database.Migrate()` an toàn khi triển khai production.
+
+### 4.2 Kiểm Tra Dữ Liệu Đầu Vào & Chống XSS (Input Sanitization)
+- [ ] **Tích hợp FluentValidation & Anti-XSS:**
+  - Đăng ký bộ validator tự động kiểm tra định dạng dữ liệu cho tất cả DTOs.
+  - Làm sạch các trường văn bản đầu vào (bình luận, tên tài khoản, nội dung báo cáo lỗi) tránh tấn công Stored XSS.
+- [ ] **Siết Chặt Phân Quyền Quản Trị (Admin RBAC):**
+  - Rà soát toàn bộ các endpoint trong `UserAndAdminControllers.cs` đảm bảo gắn đúng `[Authorize(Roles = "Admin")]`.
+
+---
+
+## 🤖 Giai Đoạn 5: Tự Động Hóa Crawler, Giám Sát & DevOps (P3 - Automation & Operations)
+
+### 5.1 Quản Lý Tự Động Hóa Crawler Với Hangfire
+- [ ] **Tích Hợp Hangfire Dashboard:**
+  - Tích hợp Hangfire vào backend .NET, bảo vệ đường dẫn `/hangfire` chỉ cho phép Admin truy cập.
+- [ ] **Lên Lịch Tự Động Quét Chương Mới (Auto-Crawler Recurring Jobs):**
+  - Thiết lập Cron Job định kỳ 30 - 60 phút tự động kiểm tra và tải các chương mới từ các đầu truyện đang theo dõi, nén WebP và đẩy lên MinIO / Cloudflare R2.
+
+### 5.2 Quản Lý Log Tập Trung (Structured Logging)
+- [ ] **Cấu Hình Serilog Structured Logging:**
+  - Thay thế toàn bộ `Console.WriteLine` bằng `ILogger` ghi log định dạng JSON có cấu trúc kèm `CorrelationId`, `UserId` và `ExecutionTimeMs`.
+  - Kết nối log tập trung tới Grafana Loki hoặc Seq.
+
+### 5.3 Tự Động Hóa CI/CD Với GitHub Actions
+- [ ] **Thiết Lập GitHub Actions Workflow:**
+  - Tự động chạy Unit Tests (`dotnet test`, `ng test`) khi tạo Pull Request hoặc Push code.
+  - Tự động build Docker Image cho Angular Frontend và .NET Backend, đẩy lên Docker Hub hoặc GitHub Container Registry.
+
+---
+
+## 🏆 Giai Đoạn 6: Gamification, Cộng Đồng & Đánh Giá Truyện (P3 - Community & Gamification)
+
+### 6.1 Hệ Thống Cấp Bậc Độc Giả (User Leveling & EXP)
+- [ ] **Tính Điểm Kinh Nghiệm (EXP) & Cảnh Giới:**
+  - Cộng EXP khi đọc hết 1 chương (+10 EXP), bình luận (+5 EXP), điểm danh hàng ngày (+20 EXP).
+  - Hệ thống cấp bậc: *Luyện Khí ➔ Trúc Cơ ➔ Kim Đan ➔ Nguyên Anh ➔ Hóa Thần ➔ Độ Kiếp* (hoặc *Tân Thủ ➔ Đồng ➔ Bạc ➔ Vàng ➔ Kim Cương ➔ Tinh Anh*).
+- [ ] **Khung Avatar Phát Sáng & Huy Hiệu Độc Quyền:**
+  - Mở khóa khung viền avatar động theo cấp bậc hoặc danh hiệu Top Độc Giả của tháng.
+
+### 6.2 Hệ Thống Đánh Giá & Review Truyện (Rating & Reviews)
+- [ ] **Chấm Điểm Sao & Viết Nhận Xét:**
+  - Cho phép người dùng chấm điểm (1 - 5 sao) và viết bài cảm nhận chi tiết cho truyện.
+  - Điều kiện chống spam vote: Yêu cầu tài khoản đã đọc tối thiểu 3 chương mới được đánh giá.
+
+---
+
+## 📊 Bảng Tổng Hợp Thứ Tự Ưu Tiên Triển Khai (Priority Matrix)
+
+| Giai Đoạn | Hạng Mục Công Việc | Mức Độ Ưu Tiên | Độ Phức Tạp | Lợi Ích Trọng Tâm |
+| :--- | :--- | :--- | :--- | :--- |
+| **Giai Đoạn 1** | Tối ưu tìm kiếm In-Memory, phân trang Comments, Redis non-blocking | ⭐⭐⭐⭐⭐ (P0) | Vừa phải | Giảm 80% tải RAM/CPU, ngăn chặn server sập khi đông truy cập |
+| **Giai Đoạn 2** | PWA Đọc Offline (IndexedDB), Reader Engine đa chế độ (Webtoon/RTL) | ⭐⭐⭐⭐⭐ (P1) | Cao | Đột phá trải nghiệm người dùng trên Mobile & PC |
+| **Giai Đoạn 3** | SignalR Hub Realtime, Live Comments, Thông báo chương mới | ⭐⭐⭐⭐ (P2) | Vừa phải | Tăng tương tác trực tiếp và giữ chân người dùng |
+| **Giai Đoạn 4** | Chuẩn hóa EF Core Migrations, FluentValidation, chống XSS | ⭐⭐⭐⭐ (P2) | Thấp | Tăng độ an toàn dữ liệu và tính ổn định hạ tầng |
+| **Giai Đoạn 5** | Hangfire Auto-Crawler, Serilog Structured Logging, CI/CD | ⭐⭐⭐ (P3) | Vừa phải | Tự động hóa vận hành 24/7 và giám sát lỗi chuyên nghiệp |
+| **Giai Đoạn 6** | Gamification (Cấp bậc tu tiên), Đánh giá & Reviews 5 sao | ⭐⭐⭐ (P3) | Vừa phải | Thúc đẩy tính cộng đồng và thời gian on-site của độc giả |
+
+---
+*Kế hoạch cải thiện hệ thống TruyenKomi - Cập nhật 2026.*
