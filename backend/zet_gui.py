@@ -184,10 +184,14 @@ def sync_chapter_to_web_api(
         "Content-Type": "application/json"
     }
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=20)
-        return res.status_code in (200, 201)
+        res = requests.post(url, json=payload, headers=headers, timeout=25)
+        if res.status_code in (200, 201):
+            return True
+        else:
+            print(f"[Sync API] Lỗi HTTP {res.status_code}: {res.text[:300]}")
+            return False
     except Exception as e:
-        print(f"Sync API error: {e}")
+        print(f"[Sync API] Exception: {e}")
         return False
 
 
@@ -1052,7 +1056,8 @@ class MangaDownloaderGUI(ctk.CTk):
                         ))
 
         elapsed = time.time() - start_time
-        web_link = f"http://localhost:4200/comic/{slug}"
+        public_domain = os.getenv("PUBLIC_DOMAIN", "https://truyenkomi.site").rstrip("/")
+        web_link = f"{public_domain}/comic/{slug}"
         self.after(0, lambda: self.progress_bar.set(1.0))
         self.after(0, lambda: self.log(f"\n=========================================="))
         self.after(0, lambda: self.log(f"🎉 HOÀN TẤT! Tải {total_images_all} ảnh trong {elapsed:.1f}s."))

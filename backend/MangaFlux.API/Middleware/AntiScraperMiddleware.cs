@@ -32,9 +32,10 @@ namespace TruyenKomi.API.Middleware
 
             var path = context.Request.Path.Value ?? string.Empty;
 
-            // Allow Health checks & Prometheus metrics to pass without restriction
+            // Allow Health checks, metrics, and internal crawler import API to pass without restriction
             if (path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase))
+                path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/api/comics/import-scraped", StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);
                 return;
