@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using TruyenKomi.API.Data;
@@ -230,10 +232,28 @@ app.UseMiddleware<AntiScraperMiddleware>();
 app.UseRateLimiter();
 app.UseMiddleware<ImageCacheMiddleware>();
 
-// Auto EF Core Database Migration / Schema sync
+// Auto Database Creation and Schema Sync
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<MangaDbContext>();
+    try
+    {
+        var databaseCreator = db.Database.GetService<IRelationalDatabaseCreator>();
+        if (!databaseCreator.Exists())
+        {
+            databaseCreator.Create();
+        }
+        if (!databaseCreator.HasTables())
+        {
+            databaseCreator.CreateTables();
+            Console.WriteLine("Database tables created successfully.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"DB Creation notice: {ex.Message}");
+    }
+
     try
     {
         db.Database.EnsureCreated();
@@ -241,15 +261,6 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"DB EnsureCreated notice: {ex.Message}");
-    }
-
-    try
-    {
-        db.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"DB Migration notice: {ex.Message}");
     }
 
     try
