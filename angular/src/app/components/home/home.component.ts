@@ -17,7 +17,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   featuredComics: Comic[] = [];
   latestComics: Comic[] = [];
   hotComics: Comic[] = [];
-  topRankComics: Comic[] = [];
   categories: Category[] = [];
 
   activeSpotlightIndex: number = 0;
@@ -62,7 +61,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       next: (data) => {
         this.hotComics = data;
         this.featuredComics = data.slice(0, 5);
-        this.topRankComics = [...data].sort((a, b) => b.views - a.views).slice(0, 8);
         this.isLoadingHot = false;
       },
       error: () => {

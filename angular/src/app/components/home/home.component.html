@@ -148,125 +148,87 @@
       </div>
     </section>
 
-    <!-- ==================== 4. MAIN LAYOUT (LATEST GRID + RANKING SIDEBAR) ==================== -->
-    <div class="main-split-layout">
-      <!-- LEFT MAIN CONTENT (75%) -->
-      <main class="main-left-column">
-        <!-- Section Header with Quick Filter Chips -->
-        <div class="section-header-modern">
-          <div class="header-left">
-            <div class="icon-circle icon-cyan"><i class="fa fa-bolt"></i></div>
-            <h2 class="section-title">Mới Cập Nhật Hôm Nay</h2>
+    <!-- ==================== 4. MAIN LATEST COMICS SECTION ==================== -->
+    <section class="main-latest-section">
+      <!-- Section Header with Quick Filter Chips -->
+      <div class="section-header-modern">
+        <div class="header-left">
+          <div class="icon-circle icon-cyan"><i class="fa fa-bolt"></i></div>
+          <h2 class="section-title">Mới Cập Nhật Hôm Nay</h2>
+        </div>
+        <a [routerLink]="['/comics']" class="view-all-text">Xem tất cả <i class="fa fa-angle-right"></i></a>
+      </div>
+
+      <!-- Quick Filter Chips Bar -->
+      <div class="filter-chips-bar">
+        <button 
+          *ngFor="let chip of filterChips"
+          class="chip-btn" 
+          [class.active]="selectedFilter === chip.key"
+          (click)="setFilter(chip.key)"
+        >
+          <i class="fa" [ngClass]="chip.icon"></i>
+          <span>{{ chip.label }}</span>
+        </button>
+      </div>
+
+      <!-- Latest Comics Grid -->
+      <div class="comics-grid-modern" *ngIf="!isLoading; else gridSkeleton">
+        <div class="comic-card-v3" *ngFor="let comic of filteredComics; let i = index">
+          <div class="book_avatar">
+            <a [routerLink]="['/comic', comic.slug]">
+              <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
+            </a>
+            <div class="top-notice">
+              <span class="time-ago">{{ formatTimeAgo(comic.updatedAt) }}</span>
+            </div>
+            <div class="top-notice-right">
+              <span class="type-label" [ngClass]="i % 3 === 0 ? 'hot' : 'new'">{{ i % 3 === 0 ? 'HOT' : 'NEW' }}</span>
+            </div>
+            <div class="cover-stats-overlay">
+              <span class="stat-rating"><i class="fa fa-star"></i> {{ comic.rating || '5.0' }}</span>
+              <span class="stat-views"><i class="fa fa-eye"></i> {{ formatNumber(comic.views) }}</span>
+            </div>
           </div>
-          <a [routerLink]="['/comics']" class="view-all-text">Xem tất cả <i class="fa fa-angle-right"></i></a>
-        </div>
 
-        <!-- Quick Filter Chips Bar -->
-        <div class="filter-chips-bar">
-          <button 
-            *ngFor="let chip of filterChips"
-            class="chip-btn" 
-            [class.active]="selectedFilter === chip.key"
-            (click)="setFilter(chip.key)"
-          >
-            <i class="fa" [ngClass]="chip.icon"></i>
-            <span>{{ chip.label }}</span>
-          </button>
-        </div>
+          <div class="book_info">
+            <div class="book_name">
+              <h3>
+                <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
+              </h3>
+            </div>
 
-        <!-- Latest Comics Grid -->
-        <div class="comics-grid-modern" *ngIf="!isLoading; else gridSkeleton">
-          <div class="comic-card-v3" *ngFor="let comic of filteredComics; let i = index">
-            <div class="book_avatar">
-              <a [routerLink]="['/comic', comic.slug]">
-                <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
+            <div class="chapters-preview" *ngIf="comic.latestChapter">
+              <a [routerLink]="['/comic', comic.slug]" class="chapter-pill">
+                <span class="chapter-num">Chapter {{ comic.latestChapter.chapterNumber }}</span>
+                <span class="chapter-date">{{ formatTimeAgo(comic.latestChapter.createdAt || comic.updatedAt) }}</span>
               </a>
-              <div class="top-notice">
-                <span class="time-ago">{{ formatTimeAgo(comic.updatedAt) }}</span>
-              </div>
-              <div class="top-notice-right">
-                <span class="type-label" [ngClass]="i % 3 === 0 ? 'hot' : 'new'">{{ i % 3 === 0 ? 'HOT' : 'NEW' }}</span>
-              </div>
-              <div class="cover-stats-overlay">
-                <span class="stat-rating"><i class="fa fa-star"></i> {{ comic.rating || '5.0' }}</span>
-                <span class="stat-views"><i class="fa fa-eye"></i> {{ formatNumber(comic.views) }}</span>
-              </div>
-            </div>
-
-            <div class="book_info">
-              <div class="book_name">
-                <h3>
-                  <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
-                </h3>
-              </div>
-
-              <div class="chapters-preview" *ngIf="comic.latestChapter">
-                <a [routerLink]="['/comic', comic.slug]" class="chapter-pill">
-                  <span class="chapter-num">Chapter {{ comic.latestChapter.chapterNumber }}</span>
-                  <span class="chapter-date">{{ formatTimeAgo(comic.latestChapter.createdAt || comic.updatedAt) }}</span>
-                </a>
-              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Loading Skeleton -->
-        <ng-template #gridSkeleton>
-          <div class="comics-grid-modern">
-            <div class="comic-card-v3 skeleton-card" *ngFor="let _ of skeletonCards">
-              <div class="skeleton" style="aspect-ratio: 3 / 4.2; width: 100%;"></div>
-              <div style="padding: 12px;">
-                <div class="skeleton skeleton-text" style="width: 85%;"></div>
-                <div class="skeleton skeleton-text" style="width: 50%;"></div>
-              </div>
-            </div>
-          </div>
-        </ng-template>
-
-        <!-- View More CTA -->
-        <div class="view-more-container" *ngIf="!isLoading">
-          <a [routerLink]="['/comics']" class="btn-view-more-modern">
-            <span>Xem Thêm Hàng Ngàn Bộ Truyện Khác</span>
-            <i class="fa fa-arrow-right"></i>
-          </a>
-        </div>
-      </main>
-
-      <!-- RIGHT SIDEBAR: TOP 10 RANKING & TRENDING (25%) -->
-      <aside class="main-right-sidebar">
-        <div class="ranking-widget glass-card">
-          <div class="ranking-header">
-            <div class="ranking-title-group">
-              <i class="fa fa-trophy text-amber"></i>
-              <h3>Bảng Xếp Hạng</h3>
-            </div>
-            <span class="ranking-badge-top">Top Views</span>
-          </div>
-
-          <div class="ranking-list" *ngIf="!isLoadingHot">
-            <div class="ranking-item" *ngFor="let comic of topRankComics; let i = index">
-              <div class="rank-number" [ngClass]="'rank-' + (i + 1)">
-                {{ i + 1 < 10 ? '0' + (i + 1) : i + 1 }}
-              </div>
-
-              <a [routerLink]="['/comic', comic.slug]" class="rank-thumb-link">
-                <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" class="rank-thumb" />
-              </a>
-
-              <div class="rank-meta">
-                <h4 class="rank-comic-title">
-                  <a [routerLink]="['/comic', comic.slug]" [title]="comic.title">{{ comic.title }}</a>
-                </h4>
-                <div class="rank-sub">
-                  <span class="rank-chap" *ngIf="comic.latestChapter">Chap {{ comic.latestChapter.chapterNumber }}</span>
-                  <span class="rank-views"><i class="fa fa-eye"></i> {{ formatNumber(comic.views) }}</span>
-                </div>
-              </div>
+      <!-- Loading Skeleton -->
+      <ng-template #gridSkeleton>
+        <div class="comics-grid-modern">
+          <div class="comic-card-v3 skeleton-card" *ngFor="let _ of skeletonCards">
+            <div class="skeleton" style="aspect-ratio: 3 / 4.2; width: 100%;"></div>
+            <div style="padding: 12px;">
+              <div class="skeleton skeleton-text" style="width: 85%;"></div>
+              <div class="skeleton skeleton-text" style="width: 50%;"></div>
             </div>
           </div>
         </div>
-      </aside>
-    </div>
+      </ng-template>
+
+      <!-- View More CTA -->
+      <div class="view-more-container" *ngIf="!isLoading">
+        <a [routerLink]="['/comics']" class="btn-view-more-modern">
+          <span>Xem Thêm Hàng Ngàn Bộ Truyện Khác</span>
+          <i class="fa fa-arrow-right"></i>
+        </a>
+      </div>
+    </section>
   </div>
 
   <!-- FLOATING BACK TO TOP BUTTON -->
