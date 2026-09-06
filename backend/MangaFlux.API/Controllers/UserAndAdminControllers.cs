@@ -287,11 +287,10 @@ namespace TruyenKomi.API.Controllers
             return Ok(new { success = true, isHidden });
         }
 
-        [AllowAnonymous]
         [HttpPost("comments/{id}/report")]
         public async Task<IActionResult> ReportComment(int id, [FromBody] ReportCommentDto dto)
         {
-            var result = await _comicService.ReportCommentAsync(id, dto.Reason);
+            var result = await _comicService.ReportCommentAsync(id, InputSanitizer.SanitizePlainText(dto.Reason));
             return Ok(new { success = result });
         }
 

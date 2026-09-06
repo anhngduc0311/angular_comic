@@ -214,10 +214,10 @@ namespace TruyenKomi.API.Services
             if (user == null) return null;
 
             if (!string.IsNullOrWhiteSpace(dto.FullName))
-                user.FullName = dto.FullName.Trim();
+                user.FullName = InputSanitizer.SanitizePlainText(dto.FullName);
 
             if (dto.Avatar != null)
-                user.Avatar = dto.Avatar.Trim();
+                user.Avatar = InputSanitizer.SanitizePlainText(dto.Avatar);
 
             if (!string.IsNullOrWhiteSpace(dto.Email) && dto.Email != user.Email)
             {

@@ -96,16 +96,16 @@ Tài liệu chi tiết phân loại các tác vụ cải thiện hiệu năng, t
 ## 🔐 Giai Đoạn 4: Chuẩn Hóa CSDL, Bảo Mật & Xác Thực (P2 - Security & Database Lifecycle)
 
 ### 4.1 Quản Lý Vòng Đời CSDL Chuẩn Hóa Với EF Core Migrations
-- [ ] **Chuyển Đổi Sang EF Core Migrations:**
+- [x] **Chuyển Đổi Sang EF Core Migrations:**
   - Xóa bỏ các lệnh `ExecuteSqlRaw` ALTER TABLE thủ công trong `Program.cs`.
   - Khởi tạo và quản lý toàn bộ cấu trúc bảng thông qua lệnh `dotnet ef migrations add Initial_Schema_Sync`.
   - Tự động chạy `db.Database.Migrate()` an toàn khi triển khai production.
 
 ### 4.2 Kiểm Tra Dữ Liệu Đầu Vào & Chống XSS (Input Sanitization)
-- [ ] **Tích hợp FluentValidation & Anti-XSS:**
+- [x] **Tích hợp FluentValidation & Anti-XSS:**
   - Đăng ký bộ validator tự động kiểm tra định dạng dữ liệu cho tất cả DTOs.
   - Làm sạch các trường văn bản đầu vào (bình luận, tên tài khoản, nội dung báo cáo lỗi) tránh tấn công Stored XSS.
-- [ ] **Siết Chặt Phân Quyền Quản Trị (Admin RBAC):**
+- [x] **Siết Chặt Phân Quyền Quản Trị (Admin RBAC):**
   - Rà soát toàn bộ các endpoint trong `UserAndAdminControllers.cs` đảm bảo gắn đúng `[Authorize(Roles = "Admin")]`.
 
 ---
@@ -138,11 +138,6 @@ Tài liệu chi tiết phân loại các tác vụ cải thiện hiệu năng, t
   - Hệ thống cấp bậc: *Luyện Khí ➔ Trúc Cơ ➔ Kim Đan ➔ Nguyên Anh ➔ Hóa Thần ➔ Độ Kiếp* (hoặc *Tân Thủ ➔ Đồng ➔ Bạc ➔ Vàng ➔ Kim Cương ➔ Tinh Anh*).
 - [ ] **Khung Avatar Phát Sáng & Huy Hiệu Độc Quyền:**
   - Mở khóa khung viền avatar động theo cấp bậc hoặc danh hiệu Top Độc Giả của tháng.
-
-### 6.2 Hệ Thống Đánh Giá & Review Truyện (Rating & Reviews)
-- [ ] **Chấm Điểm Sao & Viết Nhận Xét:**
-  - Cho phép người dùng chấm điểm (1 - 5 sao) và viết bài cảm nhận chi tiết cho truyện.
-  - Điều kiện chống spam vote: Yêu cầu tài khoản đã đọc tối thiểu 3 chương mới được đánh giá.
 
 ---
 

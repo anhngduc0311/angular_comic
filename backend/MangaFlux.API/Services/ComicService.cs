@@ -352,7 +352,7 @@ namespace TruyenKomi.API.Services
                 ComicId = dto.ComicId,
                 ChapterId = dto.ChapterId,
                 ParentCommentId = dto.ParentCommentId,
-                Content = dto.Content,
+                Content = InputSanitizer.SanitizeComment(dto.Content),
                 CreatedAt = DateTime.UtcNow
             };
 

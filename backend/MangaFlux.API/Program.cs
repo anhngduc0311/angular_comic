@@ -16,6 +16,9 @@ using TruyenKomi.API.Middleware;
 using TruyenKomi.API.Models;
 using TruyenKomi.API.Services;
 using TruyenKomi.API.Services.HealthChecks;
+using TruyenKomi.API.Validators;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Prometheus;
 
 // 0. Auto-load .env file if present in current or parent directories
@@ -106,7 +109,11 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IStorageService, MinioStorageService>();
 builder.Services.AddScoped<ISearchEngineService, SearchEngineService>();
 
-// 2b. Add Rate Limiting Policies for Anti-Spam & Anti-BruteForce
+// 2b. Register FluentValidation
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterDtoValidator>();
+
+// 2c. Add Rate Limiting Policies for Anti-Spam & Anti-BruteForce
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -257,118 +264,63 @@ using (var scope = app.Services.CreateScope())
     {
         try
         {
-            var databaseCreator = db.Database.GetService<IRelationalDatabaseCreator>();
-            if (!databaseCreator.Exists())
+            if (db.Database.IsRelational())
             {
-                databaseCreator.Create();
+                db.Database.Migrate();
+                Console.WriteLine("[EF Core] Migrations applied successfully.");
             }
-            if (!databaseCreator.HasTables())
+            else
             {
-                databaseCreator.CreateTables();
-                Console.WriteLine("Database tables created successfully.");
+                db.Database.EnsureCreated();
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"DB Creation notice: {ex.Message}");
+            Console.WriteLine($"[EF Core] Migration notice: {ex.Message}");
+            try
+            {
+                db.Database.EnsureCreated();
+            }
+            catch { }
         }
 
         try
         {
-            db.Database.EnsureCreated();
+            var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin" || u.Email == "admin@truyenkomi.com");
+            if (adminUser == null)
+            {
+                db.Users.Add(new User
+                {
+                    Username = "admin",
+                    Email = "admin@truyenkomi.com",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
+                    FullName = "Quản Trị Viên",
+                    Role = "Admin",
+                    IsLocked = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+                db.SaveChanges();
+                Console.WriteLine("Admin user 'admin' created with password 'admin123'.");
+            }
+            else
+            {
+                adminUser.Username = "admin";
+                adminUser.Email = "admin@truyenkomi.com";
+                adminUser.Role = "Admin";
+                adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
+                adminUser.IsLocked = false;
+                db.SaveChanges();
+                Console.WriteLine("Admin user 'admin' password synced to 'admin123'.");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"DB EnsureCreated notice: {ex.Message}");
+            Console.WriteLine($"Admin Seed notice: {ex.Message}");
         }
     }
     else
     {
         Console.WriteLine("[SQL Server] Could not connect to database after 12 retries.");
-    }
-
-    try
-    {
-        db.Database.ExecuteSqlRaw(@"
-            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'RefreshToken')
-            BEGIN
-                ALTER TABLE [Users] ADD [RefreshToken] NVARCHAR(MAX) NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'RefreshTokenExpiryTime')
-            BEGIN
-                ALTER TABLE [Users] ADD [RefreshTokenExpiryTime] DATETIME2 NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'GoogleId')
-            BEGIN
-                ALTER TABLE [Users] ADD [GoogleId] NVARCHAR(255) NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Users' AND COLUMN_NAME = 'AuthProvider')
-            BEGIN
-                ALTER TABLE [Users] ADD [AuthProvider] NVARCHAR(50) NOT NULL CONSTRAINT DF_Users_AuthProvider DEFAULT 'Local';
-            END;
-
-            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Comics' AND COLUMN_NAME = 'TranslatorGroup')
-            BEGIN
-                ALTER TABLE [Comics] ADD [TranslatorGroup] NVARCHAR(255) NULL;
-            END;
-
-            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Comics' AND COLUMN_NAME = 'AgeLimit')
-            BEGIN
-                ALTER TABLE [Comics] ADD [AgeLimit] NVARCHAR(50) NULL;
-            END;
-
-            DELETE FROM ChapterPages WHERE ChapterId IN (
-                SELECT Id FROM (
-                    SELECT Id, ComicId, ChapterNumber,
-                           ROW_NUMBER() OVER(PARTITION BY ComicId, ChapterNumber ORDER BY Id DESC) as rn
-                    FROM Chapters
-                ) t WHERE t.rn > 1
-            );
-
-            DELETE FROM Chapters WHERE Id IN (
-                SELECT Id FROM (
-                    SELECT Id, ComicId, ChapterNumber,
-                           ROW_NUMBER() OVER(PARTITION BY ComicId, ChapterNumber ORDER BY Id DESC) as rn
-                    FROM Chapters
-                ) t WHERE t.rn > 1
-            );
-        ");
-
-        var adminUser = db.Users.FirstOrDefault(u => u.Username == "admin" || u.Email == "admin@truyenkomi.com");
-        if (adminUser == null)
-        {
-            db.Users.Add(new User
-            {
-                Username = "admin",
-                Email = "admin@truyenkomi.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"),
-                FullName = "Quản Trị Viên",
-                Role = "Admin",
-                IsLocked = false,
-                CreatedAt = DateTime.UtcNow
-            });
-            db.SaveChanges();
-            Console.WriteLine("Admin user 'admin' created with password 'admin123'.");
-        }
-        else
-        {
-            adminUser.Username = "admin";
-            adminUser.Email = "admin@truyenkomi.com";
-            adminUser.Role = "Admin";
-            adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
-            adminUser.IsLocked = false;
-            db.SaveChanges();
-            Console.WriteLine("Admin user 'admin' password synced to 'admin123'.");
-        }
-
-        // Lưu ý: Thể loại (Categories) sẽ được tạo tự động và đồng bộ trực tiếp khi người dùng tải/cào truyện (SyncComicCategoriesAsync)
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"DB Column / Admin Sync notice: {ex.Message}");
     }
 }
 

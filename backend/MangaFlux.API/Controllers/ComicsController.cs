@@ -253,5 +253,13 @@ namespace TruyenKomi.API.Controllers
             var result = await _comicService.LikeCommentAsync(userId, id);
             return Ok(new { success = result });
         }
+
+        [EnableRateLimiting("report-limiter")]
+        [HttpPost("comments/{id}/report")]
+        public async Task<IActionResult> ReportComment(int id, [FromBody] ReportCommentDto dto)
+        {
+            var result = await _comicService.ReportCommentAsync(id, InputSanitizer.SanitizePlainText(dto.Reason));
+            return Ok(new { success = result });
+        }
     }
 }

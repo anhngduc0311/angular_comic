@@ -64,10 +64,10 @@ namespace TruyenKomi.API.Services
                 ChapterId = dto.ChapterId,
                 UserId = userId,
                 ReporterName = !string.IsNullOrWhiteSpace(dto.ReporterName) 
-                    ? dto.ReporterName 
+                    ? InputSanitizer.SanitizePlainText(dto.ReporterName) 
                     : (user != null ? (user.FullName ?? user.Username) : "Độc giả ẩn danh"),
-                ErrorType = dto.ErrorType,
-                Description = dto.Description,
+                ErrorType = InputSanitizer.SanitizePlainText(dto.ErrorType),
+                Description = InputSanitizer.SanitizePlainText(dto.Description),
                 Status = "Pending",
                 CreatedAt = DateTime.UtcNow
             };
