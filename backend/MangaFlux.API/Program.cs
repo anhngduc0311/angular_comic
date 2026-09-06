@@ -221,12 +221,9 @@ var app = builder.Build();
 // Global Exception Handling Middleware
 app.UseExceptionHandler();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TruyenKomi API v1"));
-}
+// Enable Swagger for API documentation & testing
+app.UseSwagger();
+app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TruyenKomi API v1"));
 
 app.UseCors("AllowAngularApp");
 app.UseMiddleware<AntiScraperMiddleware>();
