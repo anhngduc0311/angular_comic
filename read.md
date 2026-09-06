@@ -1,11 +1,3 @@
-npm run start:prod
-dotnet run --environment Production
-C:\cloudflare\cloudflared.exe --config "C:\Users\ADMIN\.cloudflared\config.yml" tunnel run local-hypermmo
-
-
-node crawler.js https://truyencanh3.org/su-tro-lai-cua-quyen-vuong-3582 1 5
-
-
 Client ID
 510177815251-88f3mqoiatfct4jj0bhnuhmol985ae0s.apps.googleusercontent.com
 Client secret
@@ -20,3 +12,24 @@ Nguyenducanh2003@
 
 GOOGQHRXVRS7YCR24JBLB33S
 3Iamo8whmuUeT2B+CMtRnfW6qdIsmwXVec47tF52
+
+
+deploy vps ubuntu 22.04
+
+sudo su -
+usermod -aG sudo akzan0311
+passwd akzan0311
+sudo apt update && sudo apt install -y git
+git clone https://github.com/anhngduc0311/angular_comic.git
+
+cd ~/angular_comic
+chmod +x deploy.sh
+./deploy.sh
+
+
+docker compose down -v
+./deploy.sh
+
+git config --global credential.helper store
+Username: anhngduc0311
+Password: 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
