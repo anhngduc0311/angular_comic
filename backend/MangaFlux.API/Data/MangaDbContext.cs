@@ -46,13 +46,13 @@ namespace TruyenKomi.API.Data
 
             modelBuilder.Entity<Bookmark>()
                 .HasOne(b => b.Comic)
-                .WithMany()
+                .WithMany(c => c.Bookmarks)
                 .HasForeignKey(b => b.ComicId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Bookmark>()
                 .HasOne(b => b.User)
-                .WithMany()
+                .WithMany(u => u.Bookmarks)
                 .HasForeignKey(b => b.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -60,6 +60,12 @@ namespace TruyenKomi.API.Data
             modelBuilder.Entity<CommentLike>()
                 .HasIndex(cl => new { cl.UserId, cl.CommentId })
                 .IsUnique();
+
+            modelBuilder.Entity<CommentLike>()
+                .HasOne(cl => cl.Comment)
+                .WithMany(c => c.Likes)
+                .HasForeignKey(cl => cl.CommentId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<CommentLike>()
                 .HasOne(cl => cl.User)
@@ -70,7 +76,7 @@ namespace TruyenKomi.API.Data
             // ReadingHistory Relationships (Prevent SQL Server multiple cascade path cycle)
             modelBuilder.Entity<ReadingHistory>()
                 .HasOne(rh => rh.Comic)
-                .WithMany()
+                .WithMany(c => c.ReadingHistories)
                 .HasForeignKey(rh => rh.ComicId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -82,14 +88,14 @@ namespace TruyenKomi.API.Data
 
             modelBuilder.Entity<ReadingHistory>()
                 .HasOne(rh => rh.User)
-                .WithMany()
+                .WithMany(u => u.ReadingHistories)
                 .HasForeignKey(rh => rh.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // Comment Relationships
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Comic)
-                .WithMany()
+                .WithMany(cm => cm.Comments)
                 .HasForeignKey(c => c.ComicId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -101,7 +107,7 @@ namespace TruyenKomi.API.Data
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.User)
-                .WithMany()
+                .WithMany(u => u.Comments)
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 

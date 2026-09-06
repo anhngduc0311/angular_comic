@@ -232,35 +232,58 @@ app.UseMiddleware<AntiScraperMiddleware>();
 app.UseRateLimiter();
 app.UseMiddleware<ImageCacheMiddleware>();
 
-// Auto Database Creation and Schema Sync
+// Auto Database Creation and Schema Sync with Connection Retry
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<MangaDbContext>();
-    try
+    var connected = false;
+    for (int retry = 1; retry <= 12; retry++)
     {
-        var databaseCreator = db.Database.GetService<IRelationalDatabaseCreator>();
-        if (!databaseCreator.Exists())
+        try
         {
-            databaseCreator.Create();
+            if (db.Database.CanConnect())
+            {
+                connected = true;
+                break;
+            }
         }
-        if (!databaseCreator.HasTables())
-        {
-            databaseCreator.CreateTables();
-            Console.WriteLine("Database tables created successfully.");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"DB Creation notice: {ex.Message}");
+        catch { }
+        Console.WriteLine($"[SQL Server] Waiting for database to be ready (attempt {retry}/12)...");
+        System.Threading.Thread.Sleep(3000);
     }
 
-    try
+    if (connected)
     {
-        db.Database.EnsureCreated();
+        try
+        {
+            var databaseCreator = db.Database.GetService<IRelationalDatabaseCreator>();
+            if (!databaseCreator.Exists())
+            {
+                databaseCreator.Create();
+            }
+            if (!databaseCreator.HasTables())
+            {
+                databaseCreator.CreateTables();
+                Console.WriteLine("Database tables created successfully.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"DB Creation notice: {ex.Message}");
+        }
+
+        try
+        {
+            db.Database.EnsureCreated();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"DB EnsureCreated notice: {ex.Message}");
+        }
     }
-    catch (Exception ex)
+    else
     {
-        Console.WriteLine($"DB EnsureCreated notice: {ex.Message}");
+        Console.WriteLine("[SQL Server] Could not connect to database after 12 retries.");
     }
 
     try
