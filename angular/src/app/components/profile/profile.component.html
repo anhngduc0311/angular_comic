@@ -90,54 +90,66 @@
       <div class="stats-grid">
         <!-- EXP / Tu Vi -->
         <div class="stat-card glass-panel cultivation-stat">
-          <div class="stat-icon-wrapper exp">
-            <i class="fa fa-bolt"></i>
+          <div class="stat-card-header">
+            <div class="stat-icon-wrapper exp">
+              <i class="fa fa-bolt"></i>
+            </div>
+            <span class="stat-badge exp-badge">{{ gamification?.realm?.name || 'Luyện Khí' }}</span>
           </div>
-          <div class="stat-info">
-            <span class="stat-value text-exp">{{ (gamification?.exp ?? profile.exp ?? 0) | number }} EXP</span>
-            <span class="stat-label">Tổng Tu Vi Tích Lũy</span>
+          <div class="stat-card-body">
+            <div class="stat-value text-exp">
+              {{ (gamification?.exp ?? profile.exp ?? 0) | number }} <span class="stat-unit">EXP</span>
+            </div>
+            <div class="stat-label">Tổng Tu Vi Tích Lũy</div>
           </div>
-          <div class="stat-badge exp-badge">{{ gamification?.realm?.name || 'Luyện Khí' }}</div>
         </div>
 
         <!-- Chuỗi Điểm Danh -->
         <div class="stat-card glass-panel streak-stat">
-          <div class="stat-icon-wrapper streak">
-            <i class="fa fa-fire"></i>
+          <div class="stat-card-header">
+            <div class="stat-icon-wrapper streak">
+              <i class="fa fa-fire"></i>
+            </div>
+            <span class="stat-badge" [class.checked]="gamification?.hasCheckedInToday">
+              {{ gamification?.hasCheckedInToday ? 'Đã điểm danh ✔' : 'Chưa điểm danh' }}
+            </span>
           </div>
-          <div class="stat-info">
-            <span class="stat-value text-streak">{{ (gamification?.attendanceStreak ?? profile.attendanceStreak ?? 0) }} Ngày</span>
-            <span class="stat-label">Chuỗi Điểm Danh Liên Tiếp</span>
-          </div>
-          <div class="stat-badge" [class.checked]="gamification?.hasCheckedInToday">
-            {{ gamification?.hasCheckedInToday ? 'Đã điểm danh ✔' : 'Chưa điểm danh' }}
+          <div class="stat-card-body">
+            <div class="stat-value text-streak">
+              {{ (gamification?.attendanceStreak ?? profile.attendanceStreak ?? 0) }} <span class="stat-unit">Ngày</span>
+            </div>
+            <div class="stat-label">Chuỗi Điểm Danh Liên Tiếp</div>
           </div>
         </div>
 
         <!-- Truyện Theo Dõi -->
         <div class="stat-card glass-panel">
-          <div class="stat-icon-wrapper followed">
-            <i class="fa fa-bookmark"></i>
+          <div class="stat-card-header">
+            <div class="stat-icon-wrapper followed">
+              <i class="fa fa-bookmark"></i>
+            </div>
+            <a routerLink="/followed" class="stat-action-btn">
+              <span>Xem danh sách</span> <i class="fa fa-arrow-right"></i>
+            </a>
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ profile.followedCount }}</span>
-            <span class="stat-label">Truyện đang theo dõi</span>
+          <div class="stat-card-body">
+            <div class="stat-value">{{ profile.followedCount || 0 }}</div>
+            <div class="stat-label">Truyện đang theo dõi</div>
           </div>
-          <a routerLink="/followed" class="stat-action-btn">
-            Xem danh sách <i class="fa fa-arrow-right"></i>
-          </a>
         </div>
 
         <!-- Bình Luận -->
         <div class="stat-card glass-panel">
-          <div class="stat-icon-wrapper comments">
-            <i class="fa fa-comments"></i>
+          <div class="stat-card-header">
+            <div class="stat-icon-wrapper comments">
+              <i class="fa fa-comments"></i>
+            </div>
+            <span class="stat-badge">Hoạt động sôi nổi</span>
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ profile.commentsCount }}</span>
-            <span class="stat-label">Bình luận đã gửi</span>
+          <div class="stat-card-body">
+            <div class="stat-value">{{ profile.commentsCount || 0 }}</div>
+            <div class="stat-label">Bình luận đã gửi</div>
           </div>
-          <div class="stat-badge">Hoạt động sôi nổi</div>
         </div>
       </div>
 
