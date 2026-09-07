@@ -20,7 +20,7 @@
 
       <div class="list_grid_out" *ngIf="!isLoading && bookmarks.length > 0">
         <ul class="list_grid grid">
-          <li class="comic-item" *ngFor="let b of bookmarks">
+          <li class="comic-item" *ngFor="let b of bookmarks; let i = index">
             <div class="book_avatar">
               <a [routerLink]="['/comic', b.comic.slug]">
                 <img [src]="b.comic.coverImage" [alt]="b.comic.title" loading="lazy" />
@@ -28,8 +28,13 @@
               <button class="btn-remove-bookmark" (click)="removeBookmark(b.comicId, $event)" title="Bỏ theo dõi">
                 <i class="fa fa-times"></i>
               </button>
-              <div class="top-notice">
-                <span class="time-ago">{{ b.comic.status === 'Ongoing' ? 'Đang tiến hành' : 'Full' }}</span>
+              <div class="top-notice-right" *ngIf="b.comic.isFeatured || b.comic.views > 10000 || i % 2 === 0">
+                <span class="type-label hot">HOT!</span>
+              </div>
+              <div class="cover-stats-overlay">
+                <span class="stat-item"><i class="fa fa-eye"></i> {{ formatNumber(b.comic.views || 0) }}</span>
+                <span class="stat-item"><i class="fa fa-comment-o"></i> {{ formatNumber(b.comic.commentsCount || 0) }}</span>
+                <span class="stat-item"><i class="fa fa-heart"></i> {{ formatNumber(b.comic.likesCount || (b.comic.views ? (b.comic.views / 50) : 0)) }}</span>
               </div>
             </div>
             <div class="book_info">
@@ -38,6 +43,20 @@
                   <a [title]="b.comic.title" [routerLink]="['/comic', b.comic.slug]">{{ b.comic.title }}</a>
                 </h3>
               </div>
+              <div class="chapters-preview" *ngIf="b.comic.recentChapters && b.comic.recentChapters.length > 0; else singleLatestFollowed">
+                <div class="chapter-row-clean" *ngFor="let ch of b.comic.recentChapters | slice:0:3">
+                  <a [routerLink]="['/comic', b.comic.slug, 'chapter', ch.id]" class="ch-name">Chapter {{ ch.chapterNumber }}</a>
+                  <span class="ch-time">{{ formatTimeAgo(ch.createdAt || b.comic.updatedAt) }}</span>
+                </div>
+              </div>
+              <ng-template #singleLatestFollowed>
+                <div class="chapters-preview" *ngIf="b.comic.latestChapter">
+                  <div class="chapter-row-clean">
+                    <a [routerLink]="['/comic', b.comic.slug, 'chapter', b.comic.latestChapter.id]" class="ch-name">Chapter {{ b.comic.latestChapter.chapterNumber }}</a>
+                    <span class="ch-time">{{ formatTimeAgo(b.comic.latestChapter.createdAt || b.comic.updatedAt) }}</span>
+                  </div>
+                </div>
+              </ng-template>
             </div>
           </li>
         </ul>

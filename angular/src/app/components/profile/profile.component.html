@@ -15,6 +15,7 @@
         <div class="avatar-wrapper">
           <img 
             [src]="profile.avatar || defaultAvatar" 
+            (error)="onAvatarError($event)"
             alt="Avatar" 
             class="profile-avatar" 
           />

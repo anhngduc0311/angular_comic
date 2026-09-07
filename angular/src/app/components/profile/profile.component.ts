@@ -59,6 +59,13 @@ export class ProfileComponent implements OnInit {
   }
 
   get defaultAvatar(): string {
-    return 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+    return 'assets/default-avatar.svg';
+  }
+
+  onAvatarError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== this.defaultAvatar) {
+      img.src = this.defaultAvatar;
+    }
   }
 }

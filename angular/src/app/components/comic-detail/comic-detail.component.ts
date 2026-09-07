@@ -206,4 +206,11 @@ export class ComicDetailComponent implements OnInit {
       target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=200&q=80';
     }
   }
+
+  onAvatarError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    if (target && target.src !== 'assets/default-avatar.svg') {
+      target.src = 'assets/default-avatar.svg';
+    }
+  }
 }

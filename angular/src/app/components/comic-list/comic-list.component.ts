@@ -73,10 +73,19 @@ export class ComicListComponent implements OnInit {
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
     if (diffMins < 5) return 'Vừa xong';
-    if (diffMins < 60) return `${diffMins} Phút Trước`;
-    if (diffHours < 24) return `${diffHours} Giờ Trước`;
-    if (diffDays < 30) return `${diffDays} Ngày Trước`;
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays < 30) return `${diffDays} ngày trước`;
     return date.toLocaleDateString('vi-VN');
+  }
+
+  formatNumber(num?: number | string | null): string {
+    if (!num) return '0';
+    const n = typeof num === 'string' ? parseFloat(num) : num;
+    if (isNaN(n)) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return Math.floor(n).toString();
   }
 
   onImgError(event: Event): void {

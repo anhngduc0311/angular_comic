@@ -144,10 +144,13 @@ export class HomeComponent implements OnInit, OnDestroy {
     return date.toLocaleDateString('vi-VN');
   }
 
-  formatNumber(num: number): string {
-    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-    return num.toString();
+  formatNumber(num?: number | string | null): string {
+    if (!num) return '0';
+    const n = typeof num === 'string' ? parseFloat(num) : num;
+    if (isNaN(n)) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return Math.floor(n).toString();
   }
 
   onImgError(event: Event): void {

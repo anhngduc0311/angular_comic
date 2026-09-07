@@ -180,6 +180,31 @@ export class SearchComponent implements OnInit {
     }
   }
 
+  formatTimeAgo(dateStr?: string): string {
+    if (!dateStr) return 'Vừa xong';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMins < 5) return 'Vừa xong';
+    if (diffMins < 60) return `${diffMins} phút trước`;
+    if (diffHours < 24) return `${diffHours} giờ trước`;
+    if (diffDays < 30) return `${diffDays} ngày trước`;
+    return date.toLocaleDateString('vi-VN');
+  }
+
+  formatNumber(num?: number | string | null): string {
+    if (!num) return '0';
+    const n = typeof num === 'string' ? parseFloat(num) : num;
+    if (isNaN(n)) return '0';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return Math.floor(n).toString();
+  }
+
   onImgError(event: Event): void {
     const target = event.target as HTMLImageElement;
     if (target) {

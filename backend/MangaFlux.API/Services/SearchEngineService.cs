@@ -339,10 +339,25 @@ namespace TruyenKomi.API.Services
 
         private static ComicDto MapToComicDto(Comic comic)
         {
-            var latestChapter = comic.Chapters?
+            var orderedChapters = comic.Chapters?
                 .Where(ch => ch.IsPublic && (ch.PublishedAt == null || ch.PublishedAt <= DateTime.UtcNow))
                 .OrderByDescending(ch => ch.ChapterNumber)
-                .FirstOrDefault();
+                .ToList();
+
+            var latestChapter = orderedChapters?.FirstOrDefault();
+            var recentChapters = orderedChapters?
+                .Take(3)
+                .Select(ch => new ChapterDto
+                {
+                    Id = ch.Id,
+                    ComicId = ch.ComicId,
+                    ChapterNumber = ch.ChapterNumber,
+                    Title = ch.Title,
+                    Views = ch.Views,
+                    IsPublic = ch.IsPublic,
+                    PublishedAt = ch.PublishedAt,
+                    CreatedAt = ch.CreatedAt
+                }).ToList() ?? new List<ChapterDto>();
 
             return new ComicDto
             {
@@ -362,6 +377,10 @@ namespace TruyenKomi.API.Services
                 Rating = comic.Rating,
                 IsFeatured = comic.IsFeatured,
                 IsPublic = comic.IsPublic,
+                TotalChapters = comic.Chapters?.Count ?? 0,
+                CommentsCount = comic.Comments?.Count ?? 0,
+                LikesCount = comic.Bookmarks?.Count ?? 0,
+                CreatedAt = comic.CreatedAt,
                 UpdatedAt = comic.UpdatedAt,
                 Categories = comic.ComicCategories?.Select(cc => new CategoryDto
                 {
@@ -380,7 +399,8 @@ namespace TruyenKomi.API.Services
                     IsPublic = latestChapter.IsPublic,
                     PublishedAt = latestChapter.PublishedAt,
                     CreatedAt = latestChapter.CreatedAt
-                } : null
+                } : null,
+                RecentChapters = recentChapters
             };
         }
     }

@@ -154,7 +154,7 @@
         <!-- User Avatar Trigger -->
         <div class="user-avatar-wrapper" (click)="toggleUserDropdown($event)">
           <div class="user-avatar-badge">
-            <img [src]="authService.currentUserValue?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80'" alt="Avatar" class="avatar-img" />
+            <img [src]="getUserAvatar()" (error)="onAvatarError($event)" alt="Avatar" class="avatar-img" />
           </div>
 
           <!-- User Menu Dropdown -->

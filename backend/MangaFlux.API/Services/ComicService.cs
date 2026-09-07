@@ -200,7 +200,7 @@ namespace TruyenKomi.API.Services
                     Name = cc.Category.Name,
                     Slug = cc.Category.Slug
                 }).ToList(),
-                Chapters = comic.Chapters
+                Chapters = (comic.Chapters ?? Enumerable.Empty<Chapter>())
                     .Where(ch => ch.IsPublic && (ch.PublishedAt == null || ch.PublishedAt <= DateTime.UtcNow))
                     .OrderBy(ch => ch.ChapterNumber)
                     .Select(ch => new ChapterDto
@@ -1265,7 +1265,22 @@ namespace TruyenKomi.API.Services
 
         private static ComicDto MapToComicDto(Comic c)
         {
-            var latestChapter = c.Chapters?.OrderByDescending(ch => ch.ChapterNumber).FirstOrDefault();
+            var orderedChapters = c.Chapters?
+                .OrderByDescending(ch => ch.ChapterNumber)
+                .ToList();
+
+            var latestChapter = orderedChapters?.FirstOrDefault();
+            var recentChapters = orderedChapters?
+                .Take(3)
+                .Select(ch => new ChapterDto
+                {
+                    Id = ch.Id,
+                    ComicId = ch.ComicId,
+                    ChapterNumber = ch.ChapterNumber,
+                    Title = ch.Title,
+                    Views = ch.Views,
+                    CreatedAt = ch.CreatedAt
+                }).ToList() ?? new List<ChapterDto>();
 
             return new ComicDto
             {
@@ -1288,6 +1303,8 @@ namespace TruyenKomi.API.Services
                 IsFeatured = c.IsFeatured,
                 IsPublic = c.IsPublic,
                 TotalChapters = c.Chapters?.Count ?? 0,
+                CommentsCount = c.Comments?.Count ?? 0,
+                LikesCount = c.Bookmarks?.Count ?? 0,
                 CreatedAt = c.CreatedAt,
                 UpdatedAt = c.UpdatedAt,
                 Categories = c.ComicCategories?.Select(cc => new CategoryDto
@@ -1304,7 +1321,8 @@ namespace TruyenKomi.API.Services
                     Title = latestChapter.Title,
                     Views = latestChapter.Views,
                     CreatedAt = latestChapter.CreatedAt
-                }
+                },
+                RecentChapters = recentChapters
             };
         }
     }

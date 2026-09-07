@@ -51,10 +51,13 @@ export interface Comic {
   isFeatured: boolean;
   isPublic?: boolean;
   totalChapters?: number;
+  commentsCount?: number;
+  likesCount?: number;
   createdAt?: string;
   updatedAt: string;
   categories: Category[];
   latestChapter?: Chapter;
+  recentChapters?: Chapter[];
 }
 
 export interface Comment {

@@ -184,6 +184,15 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  readonly DEFAULT_AVATAR = 'assets/default-avatar.svg';
+
+  onAvatarError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== this.DEFAULT_AVATAR) {
+      img.src = this.DEFAULT_AVATAR;
+    }
+  }
+
   showMessage(msg: string, isErr = false): void {
     this.message = msg;
     this.isError = isErr;

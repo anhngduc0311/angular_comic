@@ -267,6 +267,23 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  readonly DEFAULT_AVATAR = 'assets/default-avatar.svg';
+
+  getUserAvatar(): string {
+    const avatar = this.authService.currentUserValue?.avatar;
+    if (!avatar || !avatar.trim()) {
+      return this.DEFAULT_AVATAR;
+    }
+    return avatar;
+  }
+
+  onAvatarError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (img && img.src !== this.DEFAULT_AVATAR) {
+      img.src = this.DEFAULT_AVATAR;
+    }
+  }
+
   getGenreSlug(genre: string): string {
     return genre.toLowerCase()
       .normalize('NFD')

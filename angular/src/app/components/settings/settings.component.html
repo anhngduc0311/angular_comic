@@ -65,7 +65,8 @@
         <form (ngSubmit)="saveProfile()" class="settings-form">
           <div class="avatar-preview-section">
             <img 
-              [src]="profileForm.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'" 
+              [src]="profileForm.avatar || DEFAULT_AVATAR" 
+              (error)="onAvatarError($event)"
               alt="Avatar Preview" 
               class="avatar-img" 
             />

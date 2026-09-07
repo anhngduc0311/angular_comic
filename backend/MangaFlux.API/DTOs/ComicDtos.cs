@@ -42,10 +42,13 @@ namespace TruyenKomi.API.DTOs
         public bool IsFeatured { get; set; }
         public bool IsPublic { get; set; } = true;
         public int TotalChapters { get; set; }
+        public int CommentsCount { get; set; }
+        public int LikesCount { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         public List<CategoryDto> Categories { get; set; } = new();
         public ChapterDto? LatestChapter { get; set; }
+        public List<ChapterDto> RecentChapters { get; set; } = new();
     }
 
     public class ComicDetailDto : ComicDto

@@ -108,7 +108,74 @@
     </ng-template>
   </main>
 
+  <!-- ==================== 3. END OF CHAPTER NAVIGATION & ACTIONS ==================== -->
+  <section class="chapter-end-nav-section" *ngIf="chapter">
+    <div class="div_middle">
+      <div class="chapter-end-card glass-panel">
+        <div class="end-card-header">
+          <div class="end-badge">
+            <i class="fa fa-check-circle"></i> Đã đọc xong chương này
+          </div>
+          <h3 class="end-comic-title">
+            <a [routerLink]="['/comic', chapter.comicSlug]">{{ chapter.comicTitle }}</a>
+            <span class="end-chap-num"> - Chapter {{ chapter.chapterNumber }}</span>
+          </h3>
+        </div>
 
+        <div class="end-nav-main-row">
+          <!-- Previous Chapter Button -->
+          <button 
+            class="btn-end-nav btn-end-prev" 
+            [disabled]="!prevChapterId" 
+            (click)="navigateToChapter(prevChapterId)"
+            title="Chương trước"
+          >
+            <i class="fa fa-arrow-left"></i>
+            <span>Chap Trước</span>
+          </button>
+
+          <!-- Chapter Select Dropdown -->
+          <div class="end-select-box">
+            <select [(ngModel)]="selectedChapterId" (change)="onSelectChapter()">
+              <option *ngFor="let ch of chapter.allChapters" [value]="ch.id">
+                Chapter {{ ch.chapterNumber }}
+              </option>
+            </select>
+            <i class="fa fa-angle-down end-select-arrow"></i>
+          </div>
+
+          <!-- Next Chapter Button -->
+          <button 
+            *ngIf="nextChapterId"
+            class="btn-end-nav btn-end-next glow-effect" 
+            (click)="navigateToChapter(nextChapterId)"
+            title="Chương tiếp theo"
+          >
+            <span>Chap Tiếp Theo</span>
+            <i class="fa fa-arrow-right"></i>
+          </button>
+
+          <!-- No Next Chapter Notice -->
+          <div *ngIf="!nextChapterId" class="end-latest-badge">
+            <i class="fa fa-star text-amber"></i> Bạn đã đọc đến chương mới nhất!
+          </div>
+        </div>
+
+        <!-- Quick Action Links -->
+        <div class="end-quick-actions">
+          <a [routerLink]="['/comic', chapter.comicSlug]" class="end-action-pill">
+            <i class="fa fa-book"></i> Danh Sách Chương
+          </a>
+          <button class="end-action-pill" (click)="scrollToTop()">
+            <i class="fa fa-arrow-up"></i> Lên Đầu Trang
+          </button>
+          <button class="end-action-pill btn-report-pill" (click)="openReportModal()">
+            <i class="fa fa-flag-o"></i> Báo Lỗi Chap
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <!-- ==================== 4. REPORT MODAL ==================== -->
