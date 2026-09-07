@@ -37,11 +37,10 @@ export class SearchComponent implements OnInit {
 
   countries = [
     { label: 'Tất cả quốc gia', value: 'All' },
-    { label: 'Nhật Bản (Manga)', value: 'Japan' },
-    { label: 'Hàn Quốc (Manhwa)', value: 'Korea' },
-    { label: 'Trung Quốc (Manhua)', value: 'China' },
-    { label: 'Việt Nam', value: 'Vietnam' },
-    { label: 'Âu Mỹ (Comic)', value: 'Western' }
+    { label: 'Nhật Bản (Manga)', value: 'Nhật Bản' },
+    { label: 'Hàn Quốc (Manhwa)', value: 'Hàn Quốc' },
+    { label: 'Trung Quốc (Manhua)', value: 'Trung Quốc' },
+    { label: 'Âu Mỹ (Comic)', value: 'Mỹ' }
   ];
 
   chapterRanges = [
@@ -74,7 +73,20 @@ export class SearchComponent implements OnInit {
       this.excludeCategories = exc ? exc.split(',') : [];
 
       this.selectedStatus = params['status'] || 'All';
-      this.selectedCountry = params['country'] || 'All';
+      
+      const rawCountry = params['country'] || 'All';
+      if (rawCountry.toLowerCase() === 'japan' || rawCountry.toLowerCase() === 'manga') {
+        this.selectedCountry = 'Nhật Bản';
+      } else if (rawCountry.toLowerCase() === 'korea' || rawCountry.toLowerCase() === 'manhwa') {
+        this.selectedCountry = 'Hàn Quốc';
+      } else if (rawCountry.toLowerCase() === 'china' || rawCountry.toLowerCase() === 'manhua') {
+        this.selectedCountry = 'Trung Quốc';
+      } else if (rawCountry.toLowerCase() === 'western') {
+        this.selectedCountry = 'Mỹ';
+      } else {
+        this.selectedCountry = rawCountry;
+      }
+
       this.selectedMinChapters = params['minChapters'] ? parseInt(params['minChapters'], 10) : 0;
       this.selectedSort = params['sortBy'] || params['sort'] || 'latest';
       this.currentPage = params['page'] ? parseInt(params['page'], 10) : 1;

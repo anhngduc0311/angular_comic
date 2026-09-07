@@ -20,9 +20,10 @@ export class AdminGenresComponent implements OnInit {
   message: string = '';
   isError: boolean = false;
 
-  // Search & Filter
+  // Search & Filters
   searchTerm: string = '';
-  sortBy: 'name' | 'comicCount' | 'id' = 'name';
+  sortBy: 'name' | 'nameDesc' | 'comicCount' | 'comicCountAsc' | 'id' = 'name';
+  filterStatus: 'all' | 'has_comics' | 'no_comics' = 'all';
 
   // Modal Form State
   showFormModal: boolean = false;
@@ -37,15 +38,19 @@ export class AdminGenresComponent implements OnInit {
     imageUrl: ''
   };
 
-  // Preset sample images for genres
+  // Preset sample high quality anime / fantasy images for genres
   presetGenreImages: string[] = [
     'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1569705460033-cfaa4b368e6a?auto=format&fit=crop&w=600&q=80',
     'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?auto=format&fit=crop&w=600&q=80',
-    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+    'https://images.unsplash.com/photo-1563089145-599997674d42?auto=format&fit=crop&w=600&q=80'
   ];
+
+  defaultFallbackCover: string = 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80';
 
   constructor(private comicService: ComicService) {}
 
@@ -53,11 +58,30 @@ export class AdminGenresComponent implements OnInit {
     this.loadGenres();
   }
 
+  // --- STAT COMPUTATIONS ---
+  get totalGenresCount(): number {
+    return this.genres.length;
+  }
+
+  get totalComicsAssigned(): number {
+    return this.genres.reduce((sum, g) => sum + (g.comicCount || 0), 0);
+  }
+
+  get topGenre(): Category | null {
+    if (!this.genres || this.genres.length === 0) return null;
+    const sorted = [...this.genres].sort((a, b) => (b.comicCount || 0) - (a.comicCount || 0));
+    return sorted[0] && (sorted[0].comicCount || 0) > 0 ? sorted[0] : null;
+  }
+
+  get emptyGenresCount(): number {
+    return this.genres.filter(g => !g.comicCount || g.comicCount === 0).length;
+  }
+
   loadGenres(): void {
     this.isLoading = true;
     this.comicService.getCategories().subscribe({
       next: (data) => {
-        this.genres = data;
+        this.genres = data || [];
         this.applyFilters();
         this.isLoading = false;
       },
@@ -72,6 +96,14 @@ export class AdminGenresComponent implements OnInit {
   applyFilters(): void {
     let result = [...this.genres];
 
+    // Filter status
+    if (this.filterStatus === 'has_comics') {
+      result = result.filter(g => (g.comicCount || 0) > 0);
+    } else if (this.filterStatus === 'no_comics') {
+      result = result.filter(g => !g.comicCount || g.comicCount === 0);
+    }
+
+    // Search term
     if (this.searchTerm.trim()) {
       const q = this.searchTerm.toLowerCase().trim();
       result = result.filter(g =>
@@ -81,13 +113,21 @@ export class AdminGenresComponent implements OnInit {
       );
     }
 
+    // Sorting
     result.sort((a, b) => {
       if (this.sortBy === 'comicCount') return (b.comicCount || 0) - (a.comicCount || 0);
-      if (this.sortBy === 'id') return a.id - b.id;
+      if (this.sortBy === 'comicCountAsc') return (a.comicCount || 0) - (b.comicCount || 0);
+      if (this.sortBy === 'nameDesc') return b.name.localeCompare(a.name);
+      if (this.sortBy === 'id') return b.id - a.id;
       return a.name.localeCompare(b.name);
     });
 
     this.filteredGenres = result;
+  }
+
+  setFilterStatus(status: 'all' | 'has_comics' | 'no_comics'): void {
+    this.filterStatus = status;
+    this.applyFilters();
   }
 
   // --- SLUG AUTO GENERATION ---
@@ -113,6 +153,10 @@ export class AdminGenresComponent implements OnInit {
     return slug;
   }
 
+  onImageError(event: any): void {
+    event.target.src = this.defaultFallbackCover;
+  }
+
   // --- MODAL ACTIONS ---
   openAddModal(): void {
     this.isEditing = false;
@@ -122,7 +166,7 @@ export class AdminGenresComponent implements OnInit {
       name: '',
       slug: '',
       description: '',
-      imageUrl: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80'
+      imageUrl: this.presetGenreImages[0]
     };
     this.showFormModal = true;
   }
@@ -135,7 +179,7 @@ export class AdminGenresComponent implements OnInit {
       name: genre.name,
       slug: genre.slug,
       description: genre.description || '',
-      imageUrl: genre.imageUrl || 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80'
+      imageUrl: genre.imageUrl || this.defaultFallbackCover
     };
     this.showFormModal = true;
   }
@@ -158,7 +202,7 @@ export class AdminGenresComponent implements OnInit {
       name: this.genreForm.name.trim(),
       slug: this.genreForm.slug.trim() || this.generateSlug(this.genreForm.name),
       description: this.genreForm.description.trim(),
-      imageUrl: this.genreForm.imageUrl.trim()
+      imageUrl: this.genreForm.imageUrl.trim() || this.defaultFallbackCover
     };
 
     if (this.isEditing && this.genreForm.id > 0) {
@@ -191,13 +235,13 @@ export class AdminGenresComponent implements OnInit {
   deleteGenre(genre: Category): void {
     let confirmMsg = `Bạn có chắc chắn muốn xóa thể loại "${genre.name}"?`;
     if (genre.comicCount && genre.comicCount > 0) {
-      confirmMsg += ` Thể loại này hiện đang được gán cho ${genre.comicCount} bộ truyện.`;
+      confirmMsg += `\n\nLưu ý: Thể loại này hiện đang được gán cho ${genre.comicCount} bộ truyện.`;
     }
 
     if (confirm(confirmMsg)) {
       this.comicService.deleteCategory(genre.id).subscribe({
         next: () => {
-          this.showMessage(`Đã xóa thể loại "${genre.name}".`);
+          this.showMessage(`Đã xóa thành công thể loại "${genre.name}".`);
           this.loadGenres();
         },
         error: (err) => {
@@ -211,6 +255,7 @@ export class AdminGenresComponent implements OnInit {
   showMessage(msg: string, isErr = false): void {
     this.message = msg;
     this.isError = isErr;
-    setTimeout(() => this.message = '', 4000);
+    setTimeout(() => this.message = '', 4500);
   }
 }
+

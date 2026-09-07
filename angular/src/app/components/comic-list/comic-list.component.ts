@@ -19,8 +19,17 @@ export class ComicListComponent implements OnInit {
   selectedCategory: string = '';
   selectedStatus: string = 'All';
   selectedSort: string = 'latest';
+  selectedCountry: string = 'All';
   isLoading: boolean = true;
   skeletonCards: number[] = Array(18).fill(0);
+
+  countries = [
+    { label: 'Tất cả quốc gia', value: 'All' },
+    { label: 'Nhật Bản (Manga)', value: 'Nhật Bản' },
+    { label: 'Hàn Quốc (Manhwa)', value: 'Hàn Quốc' },
+    { label: 'Trung Quốc (Manhua)', value: 'Trung Quốc' },
+    { label: 'Âu Mỹ (Comic)', value: 'Mỹ' }
+  ];
 
   constructor(
     private comicService: ComicService,
@@ -35,13 +44,14 @@ export class ComicListComponent implements OnInit {
       this.selectedCategory = params['category'] || '';
       this.selectedStatus = params['status'] || 'All';
       this.selectedSort = params['sort'] || params['sortBy'] || 'latest';
+      this.selectedCountry = params['country'] || 'All';
       this.fetchComics();
     });
   }
 
   fetchComics(): void {
     this.isLoading = true;
-    this.comicService.searchComics(undefined, this.selectedCategory, this.selectedStatus, this.selectedSort)
+    this.comicService.searchComics(undefined, this.selectedCategory, this.selectedStatus, this.selectedSort, this.selectedCountry)
       .subscribe({
         next: (data) => {
           this.comics = data;
@@ -57,10 +67,31 @@ export class ComicListComponent implements OnInit {
       queryParams: {
         category: this.selectedCategory || null,
         status: this.selectedStatus === 'All' ? null : this.selectedStatus,
-        sort: this.selectedSort
+        sort: this.selectedSort,
+        country: this.selectedCountry === 'All' ? null : this.selectedCountry
       },
       queryParamsHandling: 'merge'
     });
+  }
+
+  getPageHeading(): string {
+    if (this.selectedCountry && this.selectedCountry !== 'All') {
+      const match = this.countries.find(c => 
+        c.value.toLowerCase() === this.selectedCountry.toLowerCase() || 
+        (c.value === 'Nhật Bản' && (this.selectedCountry.toLowerCase() === 'japan' || this.selectedCountry.toLowerCase() === 'manga')) ||
+        (c.value === 'Hàn Quốc' && (this.selectedCountry.toLowerCase() === 'korea' || this.selectedCountry.toLowerCase() === 'manhwa')) ||
+        (c.value === 'Trung Quốc' && (this.selectedCountry.toLowerCase() === 'china' || this.selectedCountry.toLowerCase() === 'manhua'))
+      );
+      if (match) {
+        return `TRUYỆN TRANH ${match.label.toUpperCase()}`;
+      }
+      return `TRUYỆN TRANH ${this.selectedCountry.toUpperCase()}`;
+    }
+    if (this.selectedCategory) {
+      const cat = this.categories.find(c => c.slug === this.selectedCategory);
+      if (cat) return `TRUYỆN TRANH - THỂ LOẠI ${cat.name.toUpperCase()}`;
+    }
+    return 'DANH SÁCH TRUYỆN TRANH';
   }
 
   formatTimeAgo(dateStr?: string): string {

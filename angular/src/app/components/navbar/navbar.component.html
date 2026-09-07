@@ -59,12 +59,12 @@
         </div>
       </div>
 
-      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manhwa' }" routerLinkActive="active" class="nav-tab">
+      <a [routerLink]="['/comics']" [queryParams]="{ country: 'Hàn Quốc' }" routerLinkActive="active" class="nav-tab">
         <span class="badge-dot dot-cyan"></span>
         <span>Manhwa</span>
       </a>
 
-      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manga' }" routerLinkActive="active" class="nav-tab">
+      <a [routerLink]="['/comics']" [queryParams]="{ country: 'Nhật Bản' }" routerLinkActive="active" class="nav-tab">
         <span class="badge-dot dot-orange"></span>
         <span>Manga</span>
       </a>
@@ -256,6 +256,14 @@
 
     <a [routerLink]="['/comics']" [queryParams]="{ sort: 'views' }" (click)="closeMobileMenu()" class="mobile-nav-item">
       HOT
+    </a>
+
+    <a [routerLink]="['/comics']" [queryParams]="{ country: 'Nhật Bản' }" (click)="closeMobileMenu()" class="mobile-nav-item">
+      MANGA (NHẬT BẢN)
+    </a>
+
+    <a [routerLink]="['/comics']" [queryParams]="{ country: 'Hàn Quốc' }" (click)="closeMobileMenu()" class="mobile-nav-item">
+      MANHWA (HÀN QUỐC)
     </a>
 
     <a routerLink="/history" (click)="closeMobileMenu()" class="mobile-nav-item">

@@ -6,7 +6,7 @@
         <a routerLink="/"><i class="fa fa-home"></i> <span>Trang Chủ</span></a>
       </li>
       <li>
-        <span class="active">Danh Sách Truyện</span>
+        <span class="active">{{ getPageHeading() }}</span>
       </li>
     </ol>
 
@@ -14,13 +14,20 @@
       <!-- Section Heading & Filter -->
       <div class="section-heading">
         <h1 class="text_list_update">
-          <i class="fa fa-book-open"></i> DANH SÁCH TRUYỆN TRANH
+          <i class="fa fa-book-open"></i> {{ getPageHeading() }}
         </h1>
         <span class="text-muted" style="font-size: 13px;">({{ comics.length }} truyện)</span>
       </div>
 
       <!-- Filter Controls Bar -->
       <div class="truyengg-filter-box">
+        <div class="filter-item">
+          <label><i class="fa fa-globe"></i> Quốc gia:</label>
+          <select [(ngModel)]="selectedCountry" (change)="onFilterChange()" class="filter-select">
+            <option *ngFor="let c of countries" [value]="c.value">{{ c.label }}</option>
+          </select>
+        </div>
+
         <div class="filter-item">
           <label><i class="fa fa-th-large"></i> Thể loại:</label>
           <select [(ngModel)]="selectedCategory" (change)="onFilterChange()" class="filter-select">

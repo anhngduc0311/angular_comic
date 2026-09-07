@@ -63,7 +63,6 @@ export class AdminStoryFormComponent implements OnInit {
     'Nhật Bản',
     'Hàn Quốc',
     'Trung Quốc',
-    'Việt Nam',
     'Mỹ',
     'Khác'
   ];

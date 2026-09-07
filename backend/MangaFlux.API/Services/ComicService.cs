@@ -14,7 +14,7 @@ namespace TruyenKomi.API.Services
     {
         Task<List<ComicDto>> GetFeaturedComicsAsync();
         Task<List<ComicDto>> GetLatestComicsAsync(int count = 12);
-        Task<List<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy);
+        Task<List<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null);
         Task<ComicDetailDto?> GetComicBySlugAsync(string slug);
         Task<ComicDetailDto?> GetComicByIdAsync(int id);
         Task<ChapterDetailDto?> GetChapterByIdAsync(int chapterId);
@@ -97,7 +97,7 @@ namespace TruyenKomi.API.Services
             }, TimeSpan.FromMinutes(15))) ?? new List<ComicDto>();
         }
 
-        public async Task<List<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy)
+        public async Task<List<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null)
         {
             var comicsQuery = _context.Comics
                 .AsNoTracking()
@@ -119,6 +119,48 @@ namespace TruyenKomi.API.Services
             if (!string.IsNullOrWhiteSpace(status) && status != "All")
             {
                 comicsQuery = comicsQuery.Where(c => c.Status == status);
+            }
+
+            if (!string.IsNullOrWhiteSpace(country) && country != "All")
+            {
+                string normCountry = country.Trim().ToLower();
+                if (normCountry == "japan" || normCountry == "nhật bản" || normCountry == "manga" || normCountry == "nhat ban")
+                {
+                    // Any comic without Manhwa or Manhua tag and not Korea/China is considered Japanese (Manga)
+                    comicsQuery = comicsQuery.Where(c => 
+                        c.Country == "Nhật Bản" || 
+                        c.Country == "Japan" || 
+                        c.Country == "Manga" ||
+                        (!c.ComicCategories.Any(cc => cc.Category.Slug == "manhwa" || cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhwa") || cc.Category.Name.ToLower().Contains("manhua"))
+                         && c.Country != "Hàn Quốc" && c.Country != "Korea" && c.Country != "Trung Quốc" && c.Country != "China" && c.Country != "Manhwa" && c.Country != "Manhua")
+                    );
+                }
+                else if (normCountry == "korea" || normCountry == "hàn quốc" || normCountry == "manhwa" || normCountry == "han quoc")
+                {
+                    comicsQuery = comicsQuery.Where(c => 
+                        c.Country == "Hàn Quốc" || 
+                        c.Country == "Korea" || 
+                        c.Country == "Manhwa" ||
+                        c.ComicCategories.Any(cc => cc.Category.Slug == "manhwa" || cc.Category.Name.ToLower().Contains("manhwa"))
+                    );
+                }
+                else if (normCountry == "china" || normCountry == "trung quốc" || normCountry == "manhua" || normCountry == "trung quoc")
+                {
+                    comicsQuery = comicsQuery.Where(c => 
+                        c.Country == "Trung Quốc" || 
+                        c.Country == "China" || 
+                        c.Country == "Manhua" ||
+                        c.ComicCategories.Any(cc => cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhua"))
+                    );
+                }
+                else if (normCountry == "western" || normCountry == "mỹ" || normCountry == "my" || normCountry == "comic" || normCountry == "us")
+                {
+                    comicsQuery = comicsQuery.Where(c => c.Country == "Mỹ" || c.Country == "Western" || c.Country == "Comic" || c.Country == "US");
+                }
+                else
+                {
+                    comicsQuery = comicsQuery.Where(c => c.Country != null && c.Country.ToLower() == normCountry);
+                }
             }
 
             comicsQuery = sortBy switch
@@ -169,6 +211,27 @@ namespace TruyenKomi.API.Services
             return MapToComicDetailDto(comic);
         }
 
+        public static string ResolveComicCountry(Comic comic)
+        {
+            if (comic.ComicCategories != null && comic.ComicCategories.Any())
+            {
+                if (comic.ComicCategories.Any(cc => cc.Category != null && (cc.Category.Slug == "manhwa" || cc.Category.Name.ToLower().Contains("manhwa"))))
+                    return "Hàn Quốc";
+                if (comic.ComicCategories.Any(cc => cc.Category != null && (cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhua"))))
+                    return "Trung Quốc";
+            }
+            if (!string.IsNullOrWhiteSpace(comic.Country))
+            {
+                string norm = comic.Country.Trim().ToLower();
+                if (norm == "korea" || norm == "hàn quốc" || norm == "manhwa" || norm == "han quoc") return "Hàn Quốc";
+                if (norm == "china" || norm == "trung quốc" || norm == "manhua" || norm == "trung quoc") return "Trung Quốc";
+                if (norm == "western" || norm == "mỹ" || norm == "my" || norm == "comic" || norm == "us") return "Mỹ";
+                if (norm == "japan" || norm == "nhật bản" || norm == "manga" || norm == "nhat ban") return "Nhật Bản";
+                return comic.Country;
+            }
+            return "Nhật Bản";
+        }
+
         private static ComicDetailDto MapToComicDetailDto(Comic comic)
         {
             return new ComicDetailDto
@@ -182,7 +245,7 @@ namespace TruyenKomi.API.Services
                 Author = comic.Author,
                 OtherNames = comic.OtherNames,
                 Artist = comic.Artist,
-                Country = comic.Country,
+                Country = ResolveComicCountry(comic),
                 TranslatorGroup = comic.TranslatorGroup ?? "Đang cập nhật",
                 AgeLimit = string.IsNullOrWhiteSpace(comic.AgeLimit) ? "13+" : comic.AgeLimit,
                 ReleaseYear = comic.ReleaseYear,
@@ -1359,7 +1422,7 @@ namespace TruyenKomi.API.Services
                 Author = c.Author,
                 OtherNames = c.OtherNames,
                 Artist = c.Artist,
-                Country = c.Country,
+                Country = ResolveComicCountry(c),
                 TranslatorGroup = c.TranslatorGroup ?? "Đang cập nhật",
                 AgeLimit = string.IsNullOrWhiteSpace(c.AgeLimit) ? "13+" : c.AgeLimit,
                 ReleaseYear = c.ReleaseYear,

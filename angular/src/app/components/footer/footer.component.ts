@@ -51,9 +51,9 @@ import { RouterModule } from '@angular/router';
           <div class="footer-col-tags">
             <h4 class="col-title">Thể Loại Nổi Bật</h4>
             <div class="tags-cloud">
-              <a [routerLink]="['/comics']" [queryParams]="{ category: 'manhwa' }" class="tag-chip">Manhwa</a>
-              <a [routerLink]="['/comics']" [queryParams]="{ category: 'manga' }" class="tag-chip">Manga</a>
-              <a [routerLink]="['/comics']" [queryParams]="{ category: 'manhua' }" class="tag-chip">Manhua</a>
+              <a [routerLink]="['/comics']" [queryParams]="{ country: 'Hàn Quốc' }" class="tag-chip">Manhwa</a>
+              <a [routerLink]="['/comics']" [queryParams]="{ country: 'Nhật Bản' }" class="tag-chip">Manga</a>
+              <a [routerLink]="['/comics']" [queryParams]="{ country: 'Trung Quốc' }" class="tag-chip">Manhua</a>
               <a [routerLink]="['/comics']" [queryParams]="{ category: 'chuyen-sinh' }" class="tag-chip">Chuyển Sinh</a>
               <a [routerLink]="['/comics']" [queryParams]="{ category: 'action' }" class="tag-chip">Hành Động</a>
               <a [routerLink]="['/comics']" [queryParams]="{ category: 'ngon-tinh' }" class="tag-chip">Ngôn Tình</a>

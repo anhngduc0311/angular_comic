@@ -206,7 +206,44 @@ namespace TruyenKomi.API.Services
             // 2. Country Filter
             if (!string.IsNullOrWhiteSpace(filter.Country) && filter.Country != "All")
             {
-                query = query.Where(c => c.Country == filter.Country);
+                string normCountry = filter.Country.Trim().ToLower();
+                if (normCountry == "japan" || normCountry == "nhật bản" || normCountry == "manga" || normCountry == "nhat ban")
+                {
+                    // Any comic without Manhwa or Manhua tag and not Korea/China is considered Japanese (Manga)
+                    query = query.Where(c => 
+                        c.Country == "Nhật Bản" || 
+                        c.Country == "Japan" || 
+                        c.Country == "Manga" ||
+                        (!c.ComicCategories.Any(cc => cc.Category.Slug == "manhwa" || cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhwa") || cc.Category.Name.ToLower().Contains("manhua"))
+                         && c.Country != "Hàn Quốc" && c.Country != "Korea" && c.Country != "Trung Quốc" && c.Country != "China" && c.Country != "Manhwa" && c.Country != "Manhua")
+                    );
+                }
+                else if (normCountry == "korea" || normCountry == "hàn quốc" || normCountry == "manhwa" || normCountry == "han quoc")
+                {
+                    query = query.Where(c => 
+                        c.Country == "Hàn Quốc" || 
+                        c.Country == "Korea" || 
+                        c.Country == "Manhwa" ||
+                        c.ComicCategories.Any(cc => cc.Category.Slug == "manhwa" || cc.Category.Name.ToLower().Contains("manhwa"))
+                    );
+                }
+                else if (normCountry == "china" || normCountry == "trung quốc" || normCountry == "manhua" || normCountry == "trung quoc")
+                {
+                    query = query.Where(c => 
+                        c.Country == "Trung Quốc" || 
+                        c.Country == "China" || 
+                        c.Country == "Manhua" ||
+                        c.ComicCategories.Any(cc => cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhua"))
+                    );
+                }
+                else if (normCountry == "western" || normCountry == "mỹ" || normCountry == "my" || normCountry == "comic" || normCountry == "us")
+                {
+                    query = query.Where(c => c.Country == "Mỹ" || c.Country == "Western" || c.Country == "Comic" || c.Country == "US");
+                }
+                else
+                {
+                    query = query.Where(c => c.Country != null && c.Country.ToLower() == normCountry);
+                }
             }
 
             // 3. Min Chapters Filter
@@ -370,7 +407,7 @@ namespace TruyenKomi.API.Services
                 Author = comic.Author,
                 OtherNames = comic.OtherNames,
                 Artist = comic.Artist,
-                Country = comic.Country,
+                Country = ComicService.ResolveComicCountry(comic),
                 ReleaseYear = comic.ReleaseYear,
                 Status = comic.Status,
                 Views = comic.Views,

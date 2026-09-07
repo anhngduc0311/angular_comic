@@ -44,9 +44,9 @@ namespace TruyenKomi.API.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<IActionResult> Search([FromQuery] string? q, [FromQuery] string? category, [FromQuery] string? status, [FromQuery] string? sortBy)
+        public async Task<IActionResult> Search([FromQuery] string? q, [FromQuery] string? category, [FromQuery] string? status, [FromQuery] string? sortBy, [FromQuery] string? country)
         {
-            var comics = await _comicService.SearchComicsAsync(q, category, status, sortBy);
+            var comics = await _comicService.SearchComicsAsync(q, category, status, sortBy, country);
             return Ok(comics);
         }
 
