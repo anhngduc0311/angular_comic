@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ComicService } from '../../services/comic.service';
+import { SeoService } from '../../services/seo.service';
 import { Comic, Category } from '../../models/comic.model';
 
 @Component({
@@ -33,20 +34,31 @@ export class ComicListComponent implements OnInit {
 
   constructor(
     private comicService: ComicService,
+    private seoService: SeoService,
     private route: ActivatedRoute,
     private router: Router
   ) {}
 
   ngOnInit(): void {
-    this.comicService.getCategories().subscribe(cats => this.categories = cats);
+    this.comicService.getCategories().subscribe(cats => {
+      this.categories = cats;
+      this.updateSeo();
+    });
 
     this.route.queryParams.subscribe(params => {
       this.selectedCategory = params['category'] || '';
       this.selectedStatus = params['status'] || 'All';
       this.selectedSort = params['sort'] || params['sortBy'] || 'latest';
       this.selectedCountry = params['country'] || 'All';
+      this.updateSeo();
       this.fetchComics();
     });
+  }
+
+  private updateSeo(): void {
+    const catObj = this.categories.find(c => c.slug === this.selectedCategory);
+    const catName = catObj ? catObj.name : (this.selectedCountry !== 'All' ? this.selectedCountry : undefined);
+    this.seoService.setCategorySeo(catName);
   }
 
   fetchComics(): void {

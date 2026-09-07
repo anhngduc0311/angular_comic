@@ -7,9 +7,9 @@ import { ComicDetail } from '../models/comic.model';
   providedIn: 'root'
 })
 export class SeoService {
-  private defaultSiteName = 'TruyenKomi - Đọc Truyện Tranh Online Miễn Phí';
-  private defaultImage = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=1200&q=80';
-  private defaultDescription = 'TruyenKomi - Nền tảng đọc truyện tranh Manga, Manhwa, Manhua sắc nét chuẩn HD, tốc độ tải siêu tốc, cập nhật chương mới nhất liên tục.';
+  private defaultSiteName = 'TruyenKomi';
+  private defaultImage = 'https://truyenkomi.com/assets/logo.jpg';
+  private defaultDescription = 'TruyenKomi - Web đọc truyện tranh Manhwa, Manhua, Manga online hay và cập nhật mới và liên tục tại TruyenKomi chính thức, hình ảnh sắc nét chuẩn HD, không quảng cáo!!!';
 
   constructor(
     private titleService: Title,
@@ -17,54 +17,156 @@ export class SeoService {
     @Inject(DOCUMENT) private document: Document
   ) {}
 
+  /**
+   * Home Page SEO (Trang Chủ)
+   * Matches top Google SERP format: Brand | Key Value Proposition
+   */
+  setHomeSeo(): void {
+    const title = 'TruyenKomi | Đọc Truyện Tranh Manhwa, Manga Không Quảng Cáo';
+    const desc = 'TruyenKomi - Web đọc truyện tranh Manhwa, Manhua, Manga online hay và cập nhật mới và liên tục tại TruyenKomi chính thức, hình ảnh sắc nét chuẩn HD, không quảng cáo!!!';
+    this.titleService.setTitle(title);
+    this.updateBasicMeta(desc, 'TruyenKomi, truyenkomi, doc truyen tranh, truyen tranh online, truyen manhwa, truyen manga, truyen manhua, doc truyen khong quang cao, truyen moi, truyen hot');
+    this.updateOpenGraph(title, desc, this.defaultImage, '/', 'website');
+    this.updateTwitterCard(title, desc, this.defaultImage);
+    this.setCanonicalUrl('/');
+  }
+
+  /**
+   * Comic Detail SEO (Trang Chi Tiết Truyện)
+   * Matches Google format: [Tên Truyện] [Tới Chap X] - TruyenKomi
+   */
   setComicDetailSeo(comic: ComicDetail): void {
-    const fullTitle = `${comic.title} [Tới Chapter ${comic.latestChapter?.chapterNumber || 'Mới Nhất'}] Tiếng Việt - TruyenKomi`;
-    const cleanDesc = comic.description 
-      ? comic.description.substring(0, 200).replace(/\n/g, ' ') + '...'
-      : `Đọc truyện tranh ${comic.title} Tiếng Việt bản dịch đẹp nét căng tại TruyenKomi. Cập nhật nhanh nhất và sớm nhất.`;
+    const latestChap = comic.latestChapter?.chapterNumber ?? 'Mới Nhất';
+    const fullTitle = `${comic.title} [Tới Chap ${latestChap}] - TruyenKomi`;
+    
+    // Clean raw HTML or multiline text in comic description
+    const rawDesc = comic.description 
+      ? comic.description.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
+      : '';
+    const cleanDesc = `Đọc truyện tranh ${comic.title} [Tới Chap ${latestChap}] tiếng Việt mới nhất với hình ảnh cực nét, cập nhật liên tục tại TruyenKomi. ${rawDesc ? rawDesc.substring(0, 160) + '...' : 'Đọc truyện miễn phí không quảng cáo.'}`;
     const cover = comic.coverImage || this.defaultImage;
     const path = `/comic/${comic.slug}`;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://truyenkomi.com';
 
     this.titleService.setTitle(fullTitle);
 
-    this.updateBasicMeta(cleanDesc, `${comic.title}, doc truyen ${comic.title}, ${comic.author || ''}, manga, manhwa, manhua`);
+    this.updateBasicMeta(cleanDesc, `${comic.title}, ${comic.title} toi chap ${latestChap}, doc truyen ${comic.title}, ${comic.author || ''}, manhwa, manga, manhua, truyenkomi`);
     this.updateOpenGraph(fullTitle, cleanDesc, cover, path, 'book');
     this.updateTwitterCard(fullTitle, cleanDesc, cover);
     this.setCanonicalUrl(path);
 
-    // Schema.org Structured Data
+    // Rich Schema.org Structured Data with BreadcrumbList & Book metadata
     const schema = {
       '@context': 'https://schema.org',
-      '@type': 'Book',
-      'name': comic.title,
-      'author': {
-        '@type': 'Person',
-        'name': comic.author || 'Đang cập nhật'
-      },
-      'genre': comic.categories.map(c => c.name),
-      'image': cover,
-      'description': cleanDesc,
-      'aggregateRating': {
-        '@type': 'AggregateRating',
-        'ratingValue': comic.rating || 5.0,
-        'bestRating': 5,
-        'ratingCount': Math.max(10, Math.floor(comic.views / 20))
-      }
+      '@graph': [
+        {
+          '@type': 'Book',
+          '@id': `${origin}${path}#book`,
+          'name': comic.title,
+          'alternateName': `${comic.title} [Tới Chap ${latestChap}]`,
+          'author': {
+            '@type': 'Person',
+            'name': comic.author || 'Đang cập nhật'
+          },
+          'genre': comic.categories ? comic.categories.map(c => c.name) : [],
+          'image': cover,
+          'description': cleanDesc,
+          'url': `${origin}${path}`,
+          'inLanguage': 'vi'
+        },
+        {
+          '@type': 'BreadcrumbList',
+          '@id': `${origin}${path}#breadcrumb`,
+          'itemListElement': [
+            {
+              '@type': 'ListItem',
+              'position': 1,
+              'name': 'Trang Chủ',
+              'item': `${origin}/`
+            },
+            {
+              '@type': 'ListItem',
+              'position': 2,
+              'name': comic.categories?.[0]?.name || 'Truyện Tranh',
+              'item': `${origin}/comics?category=${comic.categories?.[0]?.slug || ''}`
+            },
+            {
+              '@type': 'ListItem',
+              'position': 3,
+              'name': `${comic.title} [Tới Chap ${latestChap}]`,
+              'item': `${origin}${path}`
+            }
+          ]
+        }
+      ]
     };
     this.setJsonLd(schema);
   }
 
+  /**
+   * Chapter Read SEO (Trang Đọc Chương)
+   * Matches Google format: Đọc Truyện [Tên Truyện] Chap X Tiếng Việt - TruyenKomi
+   */
   setChapterReadSeo(comicTitle: string, comicSlug: string, chapterTitle: string, chapterNumber: number, coverImage?: string): void {
-    const fullTitle = `Đọc Truyện ${comicTitle} Chương ${chapterNumber} [${chapterTitle}] Tiếng Việt - TruyenKomi`;
-    const cleanDesc = `Đọc chương ${chapterNumber} truyện tranh ${comicTitle} bản dịch chất lượng cao full HD tại TruyenKomi. Không giật lag, tải cực nhanh.`;
+    const fullTitle = `Đọc Truyện ${comicTitle} Chap ${chapterNumber} Tiếng Việt - TruyenKomi`;
+    const cleanDesc = `Đọc truyện tranh ${comicTitle} Chap ${chapterNumber} bản dịch tiếng Việt chuẩn nét full HD tại TruyenKomi. Tốc độ tải cực nhanh, không giật lag, đọc mượt mà không quảng cáo.`;
     const path = `/read/${comicSlug}/chuong-${chapterNumber}`;
     const cover = coverImage || this.defaultImage;
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://truyenkomi.com';
 
     this.titleService.setTitle(fullTitle);
-    this.updateBasicMeta(cleanDesc, `${comicTitle} chap ${chapterNumber}, doc ${comicTitle} chuong ${chapterNumber}`);
+    this.updateBasicMeta(cleanDesc, `${comicTitle} chap ${chapterNumber}, doc ${comicTitle} chuong ${chapterNumber}, doc truyen tranh ${comicTitle}`);
     this.updateOpenGraph(fullTitle, cleanDesc, cover, path, 'article');
     this.updateTwitterCard(fullTitle, cleanDesc, cover);
     this.setCanonicalUrl(path);
+
+    const schema = {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      'itemListElement': [
+        {
+          '@type': 'ListItem',
+          'position': 1,
+          'name': 'Trang Chủ',
+          'item': `${origin}/`
+        },
+        {
+          '@type': 'ListItem',
+          'position': 2,
+          'name': comicTitle,
+          'item': `${origin}/comic/${comicSlug}`
+        },
+        {
+          '@type': 'ListItem',
+          'position': 3,
+          'name': `Chap ${chapterNumber}`,
+          'item': `${origin}${path}`
+        }
+      ]
+    };
+    this.setJsonLd(schema);
+  }
+
+  /**
+   * Category / Filter / Search List SEO
+   */
+  setCategorySeo(categoryName?: string, query?: string): void {
+    let title = 'Kho Truyện Tranh Manhwa, Manga Hay Chọn Lọc - TruyenKomi';
+    let desc = 'Khám phá kho truyện tranh Manhwa, Manga, Manhua hay nhất, chọn lọc những bộ truyện đỉnh cao, cập nhật chương mới nhất liên tục tại TruyenKomi.';
+    
+    if (categoryName) {
+      title = `Truyện Tranh Thể Loại ${categoryName} Hay Nhất - TruyenKomi`;
+      desc = `Đọc truyện tranh thể loại ${categoryName} online mới nhất, hình ảnh nét căng chuẩn HD, đọc mượt mà không quảng cáo tại TruyenKomi.`;
+    } else if (query) {
+      title = `Tìm Kiếm Truyện Tranh: "${query}" - TruyenKomi`;
+      desc = `Kết quả tìm kiếm truyện tranh cho từ khóa "${query}". Đọc truyện tranh online miễn phí cập nhật mới nhất tại TruyenKomi.`;
+    }
+
+    this.titleService.setTitle(title);
+    this.updateBasicMeta(desc, 'truyen tranh online, truyen manhwa, truyen manga, truyen hay, truyenkomi');
+    this.updateOpenGraph(title, desc, this.defaultImage, '/comics', 'website');
+    this.updateTwitterCard(title, desc, this.defaultImage);
+    this.setCanonicalUrl('/comics');
   }
 
   setGeneralSeo(title: string, description?: string, image?: string, path?: string): void {
@@ -83,19 +185,20 @@ export class SeoService {
   private updateBasicMeta(description: string, keywords: string): void {
     this.metaService.updateTag({ name: 'description', content: description });
     this.metaService.updateTag({ name: 'keywords', content: keywords });
-    this.metaService.updateTag({ name: 'robots', content: 'index, follow' });
+    this.metaService.updateTag({ name: 'robots', content: 'index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1' });
   }
 
   private updateOpenGraph(title: string, description: string, image: string, path: string, type = 'website'): void {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://truyenkomi.com';
     const fullUrl = `${origin}${path}`;
 
-    this.metaService.updateTag({ property: 'og:site_name', content: 'TruyenKomi' });
+    this.metaService.updateTag({ property: 'og:site_name', content: this.defaultSiteName });
     this.metaService.updateTag({ property: 'og:title', content: title });
     this.metaService.updateTag({ property: 'og:description', content: description });
     this.metaService.updateTag({ property: 'og:image', content: image });
     this.metaService.updateTag({ property: 'og:url', content: fullUrl });
     this.metaService.updateTag({ property: 'og:type', content: type });
+    this.metaService.updateTag({ property: 'og:locale', content: 'vi_VN' });
   }
 
   private updateTwitterCard(title: string, description: string, image: string): void {

@@ -2,6 +2,7 @@ import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/co
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ComicService } from '../../services/comic.service';
+import { SeoService } from '../../services/seo.service';
 import { Comic, Category } from '../../models/comic.model';
 
 @Component({
@@ -41,7 +42,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   skeletonHotCards: number[] = Array(8).fill(0);
   skeletonCards: number[] = Array(12).fill(0);
 
-  constructor(private comicService: ComicService) {}
+  constructor(
+    private comicService: ComicService,
+    private seoService: SeoService
+  ) {}
 
   private suggestTimer?: any;
   private isSuggestHovered: boolean = false;
@@ -49,6 +53,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   private isSliding: boolean = false;
 
   ngOnInit(): void {
+    this.seoService.setHomeSeo();
     this.loadData();
     this.startSpotlightAutoPlay();
     this.startSuggestAutoScroll();
