@@ -232,6 +232,12 @@
             </div>
           </div>
 
+          <!-- Upload Progress Indicator -->
+          <div class="upload-progress-box bg-glass-dark" *ngIf="isUploading">
+            <i class="fa-solid fa-spinner fa-spin text-primary"></i>
+            <span>{{ uploadProgressText }}</span>
+          </div>
+
           <!-- Bulk URL Paste Panel -->
           <div class="bulk-url-box bg-glass-dark" *ngIf="showBulkUrlInput">
             <label>Dán danh sách URL ảnh (mỗi đường dẫn 1 dòng hoặc cách nhau bởi dấu phẩy):</label>
@@ -243,7 +249,7 @@
           </div>
 
           <!-- Empty Images Warning -->
-          <div class="empty-images-box" *ngIf="chapterForm.imageUrls.length === 0">
+          <div class="empty-images-box" *ngIf="chapterForm.imageUrls.length === 0 && !isUploading">
             <i class="fa-solid fa-file-image"></i>
             <p>Chưa có ảnh nào trong chapter này. Vui lòng bấm "Upload Ảnh từ Máy" hoặc "Nhập URL Hàng Loạt" để thêm trang ảnh truyện.</p>
           </div>
@@ -272,9 +278,10 @@
       </div>
 
       <div class="modal-footer">
-        <button type="button" (click)="closeFormModal()" class="btn btn-secondary">Hủy Bỏ</button>
-        <button type="submit" class="btn btn-primary">
-          <i class="fa-solid fa-floppy-disk"></i> {{ isEditing ? 'Cập Nhật Chapter' : 'Lưu Chapter Mới' }}
+        <button type="button" (click)="closeFormModal()" class="btn btn-secondary" [disabled]="isSaving">Hủy Bỏ</button>
+        <button type="submit" class="btn btn-primary" [disabled]="isSaving || isUploading">
+          <i class="fa-solid" [class.fa-spinner]="isSaving" [class.fa-spin]="isSaving" [class.fa-floppy-disk]="!isSaving"></i>
+          {{ isSaving ? 'Đang lưu...' : (isEditing ? 'Cập Nhật Chapter' : 'Lưu Chapter Mới') }}
         </button>
       </div>
     </form>

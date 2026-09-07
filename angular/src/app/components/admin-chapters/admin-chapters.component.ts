@@ -52,6 +52,11 @@ export class AdminChaptersComponent implements OnInit {
   bulkUrlInput: string = '';
   showBulkUrlInput: boolean = false;
 
+  // Upload & saving progress states
+  isUploading: boolean = false;
+  uploadProgressText: string = '';
+  isSaving: boolean = false;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -186,14 +191,41 @@ export class AdminChaptersComponent implements OnInit {
     if (!input.files || input.files.length === 0) return;
 
     const files = Array.from(input.files);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>) => {
-        if (e.target?.result) {
-          this.chapterForm.imageUrls.push(e.target.result as string);
+    this.isUploading = true;
+    this.uploadProgressText = `Đang tải lên ${files.length} ảnh lên máy chủ lưu trữ...`;
+
+    this.comicService.uploadImages(files, 'chapters').subscribe({
+      next: (res) => {
+        this.isUploading = false;
+        if (res && res.urls && res.urls.length > 0) {
+          this.chapterForm.imageUrls.push(...res.urls);
+          this.showMessage(`Đã tải lên thành công ${res.urls.length} ảnh.`);
         }
-      };
-      reader.readAsDataURL(file);
+      },
+      error: (err) => {
+        console.warn('Lỗi tải ảnh qua API upload, tự động fallback sang xử lý Base64:', err);
+        let loadedCount = 0;
+        files.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = (e: ProgressEvent<FileReader>) => {
+            if (e.target?.result) {
+              this.chapterForm.imageUrls.push(e.target.result as string);
+            }
+            loadedCount++;
+            if (loadedCount === files.length) {
+              this.isUploading = false;
+              this.showMessage(`Đã thêm ${files.length} ảnh vào danh sách.`);
+            }
+          };
+          reader.onerror = () => {
+            loadedCount++;
+            if (loadedCount === files.length) {
+              this.isUploading = false;
+            }
+          };
+          reader.readAsDataURL(file);
+        });
+      }
     });
 
     input.value = ''; // reset file input
@@ -254,6 +286,8 @@ export class AdminChaptersComponent implements OnInit {
   // --- SAVE & DELETE ---
 
   saveChapter(): void {
+    if (this.isSaving || this.isUploading) return;
+
     if (this.chapterForm.chapterNumber <= 0) {
       this.showMessage('Số Chapter phải lớn hơn 0.', true);
       return;
@@ -267,6 +301,7 @@ export class AdminChaptersComponent implements OnInit {
       return;
     }
 
+    this.isSaving = true;
     const payload = {
       comicId: this.comicId,
       chapterNumber: Number(this.chapterForm.chapterNumber),
@@ -279,25 +314,29 @@ export class AdminChaptersComponent implements OnInit {
     if (this.isEditing && this.chapterForm.id > 0) {
       this.comicService.updateChapter(this.chapterForm.id, payload).subscribe({
         next: () => {
+          this.isSaving = false;
           this.showMessage(`Cập nhật Chapter ${payload.chapterNumber} thành công!`);
           this.closeFormModal();
           this.loadChapters();
         },
         error: (err) => {
+          this.isSaving = false;
           console.error('Lỗi cập nhật chapter:', err);
-          this.showMessage('Cập nhật chapter thất bại.', true);
+          this.showMessage(err?.error?.detail || err?.error?.message || 'Cập nhật chapter thất bại.', true);
         }
       });
     } else {
       this.comicService.addChapter(payload).subscribe({
         next: () => {
+          this.isSaving = false;
           this.showMessage(`Thêm mới Chapter ${payload.chapterNumber} thành công!`);
           this.closeFormModal();
           this.loadChapters();
         },
         error: (err) => {
+          this.isSaving = false;
           console.error('Lỗi thêm chapter:', err);
-          this.showMessage('Thêm chapter mới thất bại.', true);
+          this.showMessage(err?.error?.detail || err?.error?.message || 'Thêm chapter mới thất bại.', true);
         }
       });
     }

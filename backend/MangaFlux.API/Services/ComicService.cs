@@ -876,8 +876,12 @@ namespace TruyenKomi.API.Services
                 .Include(c => c.Pages)
                 .FirstOrDefaultAsync(c => c.ComicId == dto.ComicId && Math.Abs(c.ChapterNumber - dto.ChapterNumber) < 0.001);
 
-            DateTime publishDate = dto.PublishedAt ?? dto.CreatedAt ?? DateTime.UtcNow;
-            DateTime createdDate = dto.CreatedAt ?? dto.PublishedAt ?? DateTime.UtcNow;
+            DateTime publishDate = dto.PublishedAt.HasValue 
+                ? DateTime.SpecifyKind(dto.PublishedAt.Value, DateTimeKind.Utc)
+                : (dto.CreatedAt.HasValue ? DateTime.SpecifyKind(dto.CreatedAt.Value, DateTimeKind.Utc) : DateTime.UtcNow);
+            DateTime createdDate = dto.CreatedAt.HasValue 
+                ? DateTime.SpecifyKind(dto.CreatedAt.Value, DateTimeKind.Utc)
+                : (dto.PublishedAt.HasValue ? DateTime.SpecifyKind(dto.PublishedAt.Value, DateTimeKind.Utc) : DateTime.UtcNow);
 
             if (chapter == null)
             {
@@ -885,7 +889,7 @@ namespace TruyenKomi.API.Services
                 {
                     ComicId = dto.ComicId,
                     ChapterNumber = dto.ChapterNumber,
-                    Title = dto.Title,
+                    Title = dto.Title ?? string.Empty,
                     Views = dto.Views,
                     IsPublic = dto.IsPublic,
                     PublishedAt = publishDate,
@@ -896,22 +900,28 @@ namespace TruyenKomi.API.Services
             }
             else
             {
-                chapter.Title = dto.Title;
+                chapter.Title = dto.Title ?? string.Empty;
                 if (dto.Views > 0) chapter.Views = dto.Views;
                 chapter.IsPublic = dto.IsPublic;
-                if (dto.PublishedAt.HasValue) chapter.PublishedAt = dto.PublishedAt;
-                if (dto.CreatedAt.HasValue) chapter.CreatedAt = dto.CreatedAt.Value;
-                _context.ChapterPages.RemoveRange(chapter.Pages);
+                if (dto.PublishedAt.HasValue) chapter.PublishedAt = DateTime.SpecifyKind(dto.PublishedAt.Value, DateTimeKind.Utc);
+                if (dto.CreatedAt.HasValue) chapter.CreatedAt = DateTime.SpecifyKind(dto.CreatedAt.Value, DateTimeKind.Utc);
+                if (chapter.Pages != null && chapter.Pages.Any())
+                {
+                    _context.ChapterPages.RemoveRange(chapter.Pages);
+                }
             }
 
-            for (int i = 0; i < dto.ImageUrls.Count; i++)
+            if (dto.ImageUrls != null && dto.ImageUrls.Count > 0)
             {
-                _context.ChapterPages.Add(new ChapterPage
+                for (int i = 0; i < dto.ImageUrls.Count; i++)
                 {
-                    ChapterId = chapter.Id,
-                    PageNumber = i + 1,
-                    ImageUrl = dto.ImageUrls[i]
-                });
+                    _context.ChapterPages.Add(new ChapterPage
+                    {
+                        ChapterId = chapter.Id,
+                        PageNumber = i + 1,
+                        ImageUrl = dto.ImageUrls[i]
+                    });
+                }
             }
 
             // Update comic updated time & views & clear cache
@@ -930,25 +940,34 @@ namespace TruyenKomi.API.Services
             }
 
             await _context.SaveChangesAsync();
-            await InvalidateComicCacheAsync(comic?.Slug, chapter.Id);
+
+            try
+            {
+                await InvalidateComicCacheAsync(comic?.Slug, chapter.Id);
+            }
+            catch { }
 
             // Notify bookmarked users if public & published now
-            var isCurrentlyPublished = dto.IsPublic && (dto.PublishedAt == null || dto.PublishedAt <= DateTime.UtcNow);
-            var bookmarkedUserIds = await _context.Bookmarks
-                .Where(b => b.ComicId == dto.ComicId)
-                .Select(b => b.UserId)
-                .ToListAsync();
-
-            if (comic != null && bookmarkedUserIds.Any() && isCurrentlyPublished)
+            try
             {
-                foreach (var uId in bookmarkedUserIds)
+                var isCurrentlyPublished = dto.IsPublic && (dto.PublishedAt == null || dto.PublishedAt <= DateTime.UtcNow);
+                var bookmarkedUserIds = await _context.Bookmarks
+                    .Where(b => b.ComicId == dto.ComicId)
+                    .Select(b => b.UserId)
+                    .ToListAsync();
+
+                if (comic != null && bookmarkedUserIds.Any() && isCurrentlyPublished)
                 {
-                    var link = $"/read/{comic.Slug}/chuong-{dto.ChapterNumber}";
-                    var title = "Chapter mới!";
-                    var message = $"Truyện '{comic.Title}' bạn theo dõi vừa có Chapter {dto.ChapterNumber}.";
-                    await _notificationService.CreateNotificationAsync(uId, "NewChapter", title, message, link);
+                    foreach (var uId in bookmarkedUserIds)
+                    {
+                        var link = $"/read/{comic.Slug}/chuong-{dto.ChapterNumber}";
+                        var title = "Chapter mới!";
+                        var message = $"Truyện '{comic.Title}' bạn theo dõi vừa có Chapter {dto.ChapterNumber}.";
+                        await _notificationService.CreateNotificationAsync(uId, "NewChapter", title, message, link);
+                    }
                 }
             }
+            catch { }
 
             return new ChapterDto
             {
@@ -972,30 +991,41 @@ namespace TruyenKomi.API.Services
             if (chapter == null) return null;
 
             chapter.ChapterNumber = dto.ChapterNumber;
-            chapter.Title = dto.Title;
+            chapter.Title = dto.Title ?? string.Empty;
             if (dto.Views > 0) chapter.Views = dto.Views;
             chapter.IsPublic = dto.IsPublic;
-            if (dto.PublishedAt.HasValue) chapter.PublishedAt = dto.PublishedAt;
-            if (dto.CreatedAt.HasValue) chapter.CreatedAt = dto.CreatedAt.Value;
+            if (dto.PublishedAt.HasValue) chapter.PublishedAt = DateTime.SpecifyKind(dto.PublishedAt.Value, DateTimeKind.Utc);
+            if (dto.CreatedAt.HasValue) chapter.CreatedAt = DateTime.SpecifyKind(dto.CreatedAt.Value, DateTimeKind.Utc);
 
             // Remove existing pages and add new ones in order
-            _context.ChapterPages.RemoveRange(chapter.Pages);
-
-            for (int i = 0; i < dto.ImageUrls.Count; i++)
+            if (chapter.Pages != null && chapter.Pages.Any())
             {
-                _context.ChapterPages.Add(new ChapterPage
+                _context.ChapterPages.RemoveRange(chapter.Pages);
+            }
+
+            if (dto.ImageUrls != null && dto.ImageUrls.Count > 0)
+            {
+                for (int i = 0; i < dto.ImageUrls.Count; i++)
                 {
-                    ChapterId = chapter.Id,
-                    PageNumber = i + 1,
-                    ImageUrl = dto.ImageUrls[i]
-                });
+                    _context.ChapterPages.Add(new ChapterPage
+                    {
+                        ChapterId = chapter.Id,
+                        PageNumber = i + 1,
+                        ImageUrl = dto.ImageUrls[i]
+                    });
+                }
             }
 
             var comic = await _context.Comics.FindAsync(chapter.ComicId);
             if (comic != null) comic.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
-            await InvalidateComicCacheAsync(comic?.Slug, chapter.Id);
+
+            try
+            {
+                await InvalidateComicCacheAsync(comic?.Slug, chapter.Id);
+            }
+            catch { }
 
             return new ChapterDto
             {

@@ -56,6 +56,18 @@ foreach (var envPath in envCandidates)
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 300 * 1024 * 1024; // 300MB
+});
+
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartBodyLengthLimit = 300 * 1024 * 1024; // 300MB
+    options.MemoryBufferThreshold = 10 * 1024 * 1024;
+});
+
 // 1. Add DbContext with PostgreSQL
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var defaultConn = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") 
