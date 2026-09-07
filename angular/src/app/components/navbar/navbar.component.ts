@@ -251,18 +251,28 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  clearSearch(): void {
+    this.searchQuery = '';
+    this.autocompleteResults = [];
+    this.isAutocompleteOpen = false;
+    this.selectedIndex = -1;
+  }
+
   onSearch(): void {
     if (this.selectedIndex >= 0 && this.autocompleteResults[this.selectedIndex]) {
       this.selectComic(this.autocompleteResults[this.selectedIndex].slug);
       return;
     }
 
-    if (this.searchQuery.trim()) {
-      this.router.navigate(['/search'], { queryParams: { q: this.searchQuery.trim() } });
-      this.closeMobileMenu();
-      this.isAutocompleteOpen = false;
-      this.isSearchOpen = false;
+    const query = this.searchQuery ? this.searchQuery.trim() : '';
+    if (query) {
+      this.router.navigate(['/search'], { queryParams: { q: query } });
+    } else {
+      this.router.navigate(['/search']);
     }
+    this.closeMobileMenu();
+    this.isAutocompleteOpen = false;
+    this.isSearchOpen = false;
   }
 
   logout(): void {

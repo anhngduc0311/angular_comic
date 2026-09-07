@@ -561,17 +561,23 @@
       position: relative;
 
       .user-avatar-badge {
-        width: 40px;
-        height: 40px;
+        width: 36px;
+        height: 36px;
         border-radius: var(--radius-pill);
         overflow: hidden;
         border: 2px solid var(--primary-orange);
         cursor: pointer;
-        box-shadow: 0 2px 10px rgba(253, 84, 0, 0.3);
+        box-shadow: 0 2px 8px rgba(253, 84, 0, 0.25);
         transition: transform 0.2s ease;
 
         &:hover {
-          transform: scale(1.08);
+          transform: scale(1.05);
+        }
+
+        @media (max-width: 576px) {
+          width: 32px;
+          height: 32px;
+          border-width: 1.5px;
         }
 
         .avatar-img {
@@ -748,6 +754,7 @@
     height: 40px;
     margin-bottom: 12px;
     flex-shrink: 0;
+    position: relative;
 
     input {
       flex: 1;
@@ -764,6 +771,19 @@
       }
     }
 
+    .mobile-clear-btn {
+      background: transparent;
+      color: #94a3b8;
+      font-size: 14px;
+      cursor: pointer;
+      padding: 6px;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      &:hover { color: #ef4444; }
+    }
+
     button {
       background: transparent;
       color: #475569;
@@ -774,6 +794,123 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      &:hover { color: var(--primary-orange); }
+    }
+  }
+
+  /* Mobile Live Search Autocomplete Panel */
+  .mobile-autocomplete-panel {
+    background: #181d28;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    margin-bottom: 14px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
+    flex-shrink: 0;
+    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+    animation: popIn 0.2s ease;
+
+    .mobile-autocomplete-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+
+      .close-popup-btn {
+        background: transparent;
+        border: none;
+        color: #64748b;
+        cursor: pointer;
+        padding: 2px 4px;
+        &:hover { color: #ffffff; }
+      }
+    }
+
+    .mobile-autocomplete-list {
+      overflow-y: auto;
+      flex: 1;
+
+      .mobile-autocomplete-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        transition: background 0.15s ease;
+
+        .item-thumb {
+          width: 34px;
+          height: 46px;
+          object-fit: cover;
+          border-radius: 4px;
+          flex-shrink: 0;
+        }
+
+        .item-meta {
+          flex: 1;
+          min-width: 0;
+
+          .item-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #f1f5f9;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin: 0;
+          }
+
+          .item-sub {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 2px;
+            font-size: 11.5px;
+
+            .item-chapter {
+              color: var(--primary-orange);
+              font-weight: 600;
+            }
+
+            .item-rating {
+              color: #94a3b8;
+              .text-amber { color: #f59e0b; }
+            }
+          }
+        }
+
+        &:hover,
+        &:active,
+        &.selected {
+          background: rgba(253, 84, 0, 0.15);
+          .item-title { color: var(--primary-orange); }
+        }
+      }
+    }
+
+    .mobile-autocomplete-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      background: rgba(253, 84, 0, 0.08);
+      border-top: 1px solid rgba(253, 84, 0, 0.15);
+      font-size: 12.5px;
+      color: var(--primary-orange);
+      font-weight: 600;
+      cursor: pointer;
+
+      &:hover, &:active {
+        background: rgba(253, 84, 0, 0.16);
+      }
     }
   }
 

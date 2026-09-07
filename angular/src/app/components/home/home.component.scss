@@ -356,6 +356,12 @@
     gap: 10px;
     flex-shrink: 0;
 
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: center;
+      gap: 8px;
+    }
+
     .community-btn {
       padding: 9px 18px;
       border-radius: var(--radius-pill);
@@ -363,8 +369,22 @@
       font-weight: 700;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 7px;
+      white-space: nowrap;
       transition: var(--transition);
+
+      @media (max-width: 768px) {
+        flex: 1;
+        max-width: 175px;
+        padding: 8px 12px;
+        font-size: 12px;
+        gap: 5px;
+
+        i {
+          font-size: 12px;
+        }
+      }
 
       &.tg-btn {
         background: rgba(14, 165, 233, 0.14);

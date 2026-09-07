@@ -68,11 +68,6 @@
         <span class="badge-dot dot-orange"></span>
         <span>Manga</span>
       </a>
-
-      <a [routerLink]="['/search']" routerLinkActive="active" class="nav-tab">
-        <i class="fa fa-filter"></i>
-        <span>Tìm Nâng Cao</span>
-      </a>
     </nav>
 
     <!-- CENTER-RIGHT: Smart Search Bar -->
@@ -92,7 +87,7 @@
         <div class="search-kbd-badge" *ngIf="!searchQuery">
           <span>Ctrl K</span>
         </div>
-        <button *ngIf="searchQuery" class="clear-search-btn" (click)="searchQuery = ''; autocompleteResults = []; isAutocompleteOpen = false">
+        <button *ngIf="searchQuery" class="clear-search-btn" (click)="clearSearch()" type="button" aria-label="Xóa tìm kiếm">
           <i class="fa fa-times"></i>
         </button>
       </div>
@@ -203,16 +198,54 @@
 <div class="mobile-drawer-backdrop" *ngIf="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
 <div class="mobile-drawer" [class.is-open]="isMobileMenuOpen">
   <!-- Top Search Input -->
-  <div class="mobile-search-bar">
+  <form class="mobile-search-bar" (ngSubmit)="onSearch()">
     <input 
-      type="text" 
+      type="search" 
+      name="mobileSearchQuery"
       [(ngModel)]="searchQuery" 
-      (keyup.enter)="onSearch()" 
+      (input)="onSearchInput()"
+      (keydown)="onKeyDown($event)"
       placeholder="Tìm truyện..." 
+      autocomplete="off"
+      enterkeyhint="search"
     />
-    <button (click)="onSearch()" aria-label="Tìm kiếm">
+    <button *ngIf="searchQuery" type="button" class="mobile-clear-btn" (click)="clearSearch()" aria-label="Xóa">
+      <i class="fa fa-times"></i>
+    </button>
+    <button type="submit" aria-label="Tìm kiếm">
       <i class="fa fa-search"></i>
     </button>
+  </form>
+
+  <!-- Mobile Autocomplete Dropdown Popup -->
+  <div class="mobile-autocomplete-panel" *ngIf="isAutocompleteOpen && autocompleteResults.length > 0">
+    <div class="mobile-autocomplete-header">
+      <span>Gợi ý kết quả ({{ autocompleteResults.length }})</span>
+      <button type="button" class="close-popup-btn" (click)="isAutocompleteOpen = false">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+    <div class="mobile-autocomplete-list">
+      <div
+        *ngFor="let item of autocompleteResults; let i = index"
+        class="mobile-autocomplete-item"
+        [class.selected]="i === selectedIndex"
+        (click)="selectComic(item.slug)"
+      >
+        <img [src]="item.coverImage || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=100&q=80'" [alt]="item.title" (error)="onImgError($event)" class="item-thumb" />
+        <div class="item-meta">
+          <h4 class="item-title">{{ item.title }}</h4>
+          <div class="item-sub">
+            <span class="item-chapter" *ngIf="item.latestChapter">Chap {{ item.latestChapter }}</span>
+            <span class="item-rating"><i class="fa fa-star text-amber"></i> {{ item.rating }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mobile-autocomplete-footer" (click)="onSearch()">
+      <span>Xem tất cả kết quả cho "<strong>{{ searchQuery }}</strong>"</span>
+      <i class="fa fa-arrow-right"></i>
+    </div>
   </div>
 
   <!-- Main Navigation List -->

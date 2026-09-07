@@ -62,7 +62,7 @@
           </div>
 
           <h1 class="comic-title">{{ comic.title }}</h1>
-          <!-- Meta Grid (2 Columns Layout matching user specs) -->
+          <!-- Meta Grid (2 Columns Layout) -->
           <div class="comic-specs-grid">
             <!-- Row 1 -->
             <div class="spec-cell">
@@ -76,12 +76,12 @@
 
             <!-- Row 2 -->
             <div class="spec-cell">
-              <span class="spec-label">Cập nhật</span>
-              <span class="spec-value">{{ comic.updatedAt | date:'dd/MM/yyyy' }}</span>
-            </div>
-            <div class="spec-cell">
               <span class="spec-label">Nhóm dịch</span>
               <span class="spec-value text-translator">{{ comic.translatorGroup || 'Đang cập nhật' }}</span>
+            </div>
+            <div class="spec-cell">
+              <span class="spec-label">Cập nhật</span>
+              <span class="spec-value">{{ comic.updatedAt | date:'dd/MM/yyyy' }}</span>
             </div>
 
             <!-- Row 3 -->
@@ -90,18 +90,24 @@
               <span class="spec-value">{{ comic.chapters ? comic.chapters.length : (comic.totalChapters || 0) }}</span>
             </div>
             <div class="spec-cell">
-              <span class="spec-label">Ngày tạo</span>
-              <span class="spec-value">{{ (comic.createdAt || comic.updatedAt) | date:'dd/MM/yyyy' }}</span>
+              <span class="spec-label">Độ tuổi</span>
+              <span class="spec-value">{{ comic.ageLimit || '13+' }}</span>
             </div>
 
             <!-- Row 4 -->
             <div class="spec-cell">
-              <span class="spec-label">Tên khác</span>
-              <span class="spec-value">{{ comic.otherNames || 'Đang cập nhật' }}</span>
+              <span class="spec-label">Ngày tạo</span>
+              <span class="spec-value">{{ (comic.createdAt || comic.updatedAt) | date:'dd/MM/yyyy' }}</span>
             </div>
-            <div class="spec-cell">
-              <span class="spec-label">Độ tuổi</span>
-              <span class="spec-value">{{ comic.ageLimit || '13+' }}</span>
+            <div class="spec-cell" *ngIf="comic.country">
+              <span class="spec-label">Quốc gia</span>
+              <span class="spec-value">{{ comic.country }}</span>
+            </div>
+
+            <!-- Full Width: Tên khác -->
+            <div class="spec-cell cell-full-width" *ngIf="comic.otherNames">
+              <span class="spec-label">Tên khác</span>
+              <span class="spec-value">{{ comic.otherNames }}</span>
             </div>
           </div>
 
