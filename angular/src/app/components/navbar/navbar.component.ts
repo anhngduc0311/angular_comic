@@ -38,6 +38,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   selectedIndex: number = -1;
 
   categories: Category[] = [];
+  isMobileGenresOpen: boolean = true;
 
   rankItems = [
     { label: 'Top Ngày', icon: 'fa-sun-o', query: 'day' },
@@ -302,5 +303,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .replace(/[đĐ]/g, 'd')
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  toggleMobileGenres(event?: Event): void {
+    if (event) event.stopPropagation();
+    this.isMobileGenresOpen = !this.isMobileGenresOpen;
+  }
+
+  isHotGenre(name?: string): boolean {
+    if (!name) return false;
+    const hotList = [
+      'tất cả', 'chuyển sinh', 'cổ đại', 'đam mỹ', 'manhua', 'manhwa', 
+      'ngôn tình', 'romance', 'huyền huyễn', 'trọng sinh'
+    ];
+    return hotList.includes(name.toLowerCase().trim());
   }
 }

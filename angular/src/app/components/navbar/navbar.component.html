@@ -145,12 +145,12 @@
       <!-- Logged-in State: User Profile Dropdown -->
       <ng-container *ngIf="authService.isLoggedIn">
         <!-- History Link -->
-        <a routerLink="/history" class="action-btn" title="Lịch sử đọc truyện">
+        <a routerLink="/history" class="action-btn desktop-only-btn" title="Lịch sử đọc truyện">
           <i class="fa fa-history"></i>
         </a>
 
         <!-- Followed Link -->
-        <a routerLink="/followed" class="action-btn" title="Truyện đang theo dõi">
+        <a routerLink="/followed" class="action-btn desktop-only-btn" title="Truyện đang theo dõi">
           <i class="fa fa-bookmark"></i>
         </a>
 
@@ -197,40 +197,81 @@
       </button>
     </div>
   </div>
+</header>
 
-  <!-- Mobile Drawer Menu -->
-  <div class="mobile-drawer-backdrop" *ngIf="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
-  <div class="mobile-drawer glass-panel" [class.is-open]="isMobileMenuOpen">
-    <div class="drawer-header">
-      <img src="assets/logo.svg" alt="TruyenKomi" class="drawer-logo" />
-      <button class="drawer-close-btn" (click)="closeMobileMenu()"><i class="fa fa-times"></i></button>
-    </div>
+<!-- Mobile Drawer Menu (Rendered outside header to escape backdrop-filter containing block) -->
+<div class="mobile-drawer-backdrop" *ngIf="isMobileMenuOpen" (click)="closeMobileMenu()"></div>
+<div class="mobile-drawer" [class.is-open]="isMobileMenuOpen">
+  <!-- Top Search Input -->
+  <div class="mobile-search-bar">
+    <input 
+      type="text" 
+      [(ngModel)]="searchQuery" 
+      (keyup.enter)="onSearch()" 
+      placeholder="Tìm truyện..." 
+    />
+    <button (click)="onSearch()" aria-label="Tìm kiếm">
+      <i class="fa fa-search"></i>
+    </button>
+  </div>
 
-    <!-- Mobile Search -->
-    <div class="drawer-search">
-      <input type="text" [(ngModel)]="searchQuery" (keyup.enter)="onSearch()" placeholder="Tìm kiếm truyện tranh..." />
-      <button (click)="onSearch()"><i class="fa fa-search"></i></button>
-    </div>
+  <!-- Main Navigation List -->
+  <div class="mobile-menu-body">
+    <a routerLink="/" (click)="closeMobileMenu()" class="mobile-nav-item">
+      TRANG CHỦ
+    </a>
 
-    <div class="drawer-links">
-      <a routerLink="/" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-home"></i> Trang Chủ</a>
-      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manhwa' }" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-flag"></i> Top Manhwa</a>
-      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manga' }" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-bolt"></i> Top Manga</a>
-      <a [routerLink]="['/comics']" [queryParams]="{ category: 'manhua' }" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-fire"></i> Top Manhua</a>
-      <a routerLink="/categories" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-th-large"></i> Thể Loại Truyện</a>
-      <a routerLink="/search" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-filter"></i> Tìm Nâng Cao</a>
-      <a routerLink="/history" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-history"></i> Lịch Sử Đọc</a>
-      <a routerLink="/followed" (click)="closeMobileMenu()" class="drawer-link"><i class="fa fa-bookmark"></i> Truyện Theo Dõi</a>
-    </div>
+    <a [routerLink]="['/comics']" [queryParams]="{ sort: 'views' }" (click)="closeMobileMenu()" class="mobile-nav-item">
+      HOT
+    </a>
 
-    <!-- Mobile Auth / User CTA -->
-    <div class="drawer-footer">
-      <ng-container *ngIf="!authService.isLoggedIn">
-        <button class="btn-primary-gradient w-100" routerLink="/auth" (click)="closeMobileMenu()">Đăng Nhập / Đăng Ký</button>
-      </ng-container>
-      <ng-container *ngIf="authService.isLoggedIn">
-        <button class="btn-logout-drawer" (click)="logout()"><i class="fa fa-sign-out"></i> Đăng Xuất</button>
-      </ng-container>
+    <a routerLink="/history" (click)="closeMobileMenu()" class="mobile-nav-item">
+      LỊCH SỬ
+    </a>
+
+    <a routerLink="/followed" (click)="closeMobileMenu()" class="mobile-nav-item">
+      THEO DÕI
+    </a>
+
+    <!-- Category Accordion Section -->
+    <div class="mobile-category-accordion">
+      <button class="mobile-nav-item mobile-category-toggle" [class.active]="isMobileGenresOpen" (click)="toggleMobileGenres($event)">
+        <span>THỂ LOẠI</span>
+        <i class="fa fa-caret-down caret-icon" [class.rotate]="isMobileGenresOpen"></i>
+      </button>
+
+      <div class="mobile-genres-grid" *ngIf="isMobileGenresOpen">
+        <!-- All Comics Option -->
+        <a [routerLink]="['/comics']" (click)="closeMobileMenu()" class="mobile-genre-link hot-genre">
+          Tất cả
+        </a>
+
+        <!-- Dynamic Categories -->
+        <a 
+          *ngFor="let cat of categories" 
+          [routerLink]="['/comics']" 
+          [queryParams]="{ category: cat.slug }" 
+          (click)="closeMobileMenu()" 
+          class="mobile-genre-link"
+          [class.hot-genre]="isHotGenre(cat.name)"
+        >
+          {{ cat.name }}
+        </a>
+      </div>
     </div>
   </div>
-</header>
+
+  <!-- Mobile Auth / User CTA -->
+  <div class="drawer-footer">
+    <ng-container *ngIf="!authService.isLoggedIn">
+      <button class="btn-primary-gradient w-100" routerLink="/auth" (click)="closeMobileMenu()">
+        <i class="fa fa-user-circle"></i> Đăng Nhập / Đăng Ký
+      </button>
+    </ng-container>
+    <ng-container *ngIf="authService.isLoggedIn">
+      <button class="btn-logout-drawer" (click)="logout()">
+        <i class="fa fa-sign-out"></i> Đăng Xuất
+      </button>
+    </ng-container>
+  </div>
+</div>
