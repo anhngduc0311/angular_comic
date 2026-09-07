@@ -275,23 +275,29 @@ class BaseMangaDownloader:
         merged_files = []
         for group_idx, i in enumerate(range(0, len(image_paths), group_size), 1):
             group = image_paths[i:i + group_size]
-            opened_imgs = []
+            loaded_imgs = []
             try:
                 for p in group:
-                    img = Image.open(p)
-                    if img.mode != 'RGB':
-                        img = img.convert('RGB')
-                    opened_imgs.append(img)
+                    p_obj = Path(p)
+                    if not p_obj.exists() or p_obj.stat().st_size < 100:
+                        continue
+                    with Image.open(p_obj) as raw_img:
+                        raw_img.load()
+                        if raw_img.mode != 'RGB':
+                            im = raw_img.convert('RGB')
+                        else:
+                            im = raw_img.copy()
+                        loaded_imgs.append(im)
 
-                if not opened_imgs:
+                if not loaded_imgs:
                     continue
 
-                max_width = max(im.width for im in opened_imgs)
+                max_width = max(im.width for im in loaded_imgs)
                 resized_imgs = []
                 total_height = 0
-                for im in opened_imgs:
+                for im in loaded_imgs:
                     if im.width != max_width:
-                        new_h = int(im.height * (max_width / im.width))
+                        new_h = max(1, int(im.height * (max_width / im.width)))
                         im_resized = im.resize((max_width, new_h), Image.Resampling.LANCZOS)
                         resized_imgs.append(im_resized)
                         total_height += new_h
@@ -305,16 +311,26 @@ class BaseMangaDownloader:
                     combined.paste(im, (0, curr_y))
                     curr_y += im.height
 
-                chunk_file = output_dir / f"{group_idx:03d}.webp"
+                chunk_file = output_dir / f"page_{group_idx:03d}.webp"
                 combined.save(chunk_file, 'WEBP', quality=90, method=6)
                 merged_files.append(chunk_file)
 
-                for im in opened_imgs:
-                    im.close()
-                for im in resized_imgs:
-                    if im not in opened_imgs:
+                # Dọn dẹp bộ nhớ an toàn
+                for im in loaded_imgs:
+                    try:
                         im.close()
-                combined.close()
+                    except Exception:
+                        pass
+                for im in resized_imgs:
+                    if im not in loaded_imgs:
+                        try:
+                            im.close()
+                        except Exception:
+                            pass
+                try:
+                    combined.close()
+                except Exception:
+                    pass
             except Exception as e:
                 if HAS_RICH and console:
                     console.print(f"[yellow]  ⚠️ Lỗi khi ghép nhóm ảnh {group_idx}: {e}[/yellow]")
@@ -328,18 +344,31 @@ class BaseMangaDownloader:
         valid_images = []
         for p in image_paths:
             try:
-                img = Image.open(p)
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                valid_images.append(img)
+                p_obj = Path(p)
+                if not p_obj.exists() or p_obj.stat().st_size < 100:
+                    continue
+                with Image.open(p_obj) as raw_img:
+                    raw_img.load()
+                    if raw_img.mode != 'RGB':
+                        im = raw_img.convert('RGB')
+                    else:
+                        im = raw_img.copy()
+                    valid_images.append(im)
             except Exception:
                 pass
 
         if valid_images:
-            first = valid_images[0]
-            rest = valid_images[1:]
-            first.save(pdf_path, "PDF", resolution=100.0, save_all=True, append_images=rest)
-            return True
+            try:
+                first = valid_images[0]
+                rest = valid_images[1:]
+                first.save(pdf_path, "PDF", resolution=100.0, save_all=True, append_images=rest)
+                return True
+            finally:
+                for im in valid_images:
+                    try:
+                        im.close()
+                    except Exception:
+                        pass
         return False
 
     def get_comic_info(self) -> dict:
@@ -348,13 +377,14 @@ class BaseMangaDownloader:
     def get_chapter_images(self, chapter_info_or_url) -> list:
         raise NotImplementedError
 
-    def download_chapter(self, chapter: dict, comic_dir: Path, progress=None, task_id=None, preloaded_images=None):
-        """Tải toàn bộ ảnh của 1 chapter và tự động ghép xuất ra ảnh WebP hoàn chỉnh"""
+    def download_chapter(self, chapter: dict, comic_dir: Path = None, progress=None, task_id=None, preloaded_images=None):
+        """Tải toàn bộ ảnh của 1 chapter theo chuẩn lưu trữ bucket: chapters/{slug}/chap{num}/page_{idx:03d}.webp"""
         chap_num = chapter["number"]
         chap_url = chapter.get("url", "")
         chap_num_str = f"{int(chap_num)}" if isinstance(chap_num, (int, float)) and float(chap_num).is_integer() else f"{chap_num}"
-        chap_folder_name = f"Chapter_{chap_num_str}"
-        chap_dir = comic_dir / chap_folder_name
+        
+        # Cấu trúc lưu chuẩn: {output_dir}/chapters/{slug}/chap{chap_num_str}/
+        chap_dir = self.output_dir / "chapters" / self.slug / f"chap{chap_num_str}"
         chap_dir.mkdir(parents=True, exist_ok=True)
 
         images = preloaded_images if preloaded_images is not None else self.get_chapter_images(chapter)
@@ -378,7 +408,7 @@ class BaseMangaDownloader:
                 ext = img_url.split(".")[-1].split("?")[0].lower()
                 if ext not in ("jpg", "jpeg", "png", "webp"):
                     ext = "jpg"
-                save_file = download_dir / f"raw_{idx+1:04d}.{ext}" if should_stitch else download_dir / f"raw_{idx+1:03d}.{ext}"
+                save_file = download_dir / f"page_raw_{idx+1:04d}.{ext}" if should_stitch else download_dir / f"page_{idx+1:03d}.{ext}"
                 downloaded_paths.append(save_file)
                 f = executor.submit(self._download_single_image, img_url, save_file, chap_url)
                 future_to_img[f] = save_file
@@ -412,17 +442,20 @@ class BaseMangaDownloader:
                 pass
 
             if HAS_RICH and console:
-                console.print(f"[green]  ✓ Đã xuất {len(final_paths)} trang ảnh WebP hoàn chỉnh vào {chap_folder_name}/ (đã dọn {num_downloaded} lát cắt thô)[/green]")
+                console.print(f"[green]  ✓ Đã xuất {len(final_paths)} trang ảnh WebP hoàn chỉnh vào chapters/{self.slug}/chap{chap_num_str}/[/green]")
             else:
-                print(f"  ✓ Đã xuất {len(final_paths)} trang ảnh WebP hoàn chỉnh vào {chap_folder_name}/ (đã dọn {num_downloaded} lát cắt thô)")
+                print(f"  ✓ Đã xuất {len(final_paths)} trang ảnh WebP hoàn chỉnh vào chapters/{self.slug}/chap{chap_num_str}/")
         else:
             final_paths = []
             for idx, p in enumerate(downloaded_paths, 1):
-                webp_path = chap_dir / f"{idx:03d}.webp"
+                webp_path = chap_dir / f"page_{idx:03d}.webp"
                 try:
-                    with Image.open(p) as im:
-                        if im.mode != 'RGB':
-                            im = im.convert('RGB')
+                    with Image.open(p) as raw_im:
+                        raw_im.load()
+                        if raw_im.mode != 'RGB':
+                            im = raw_im.convert('RGB')
+                        else:
+                            im = raw_im
                         im.save(webp_path, 'WEBP', quality=90, method=6)
                     final_paths.append(webp_path)
                     if p != webp_path and p.exists():
@@ -431,7 +464,7 @@ class BaseMangaDownloader:
                     final_paths.append(p)
 
         if self.make_pdf:
-            pdf_file = comic_dir / f"{chap_folder_name}.pdf"
+            pdf_file = chap_dir / f"chap{chap_num_str}.pdf"
             self._export_pdf(final_paths, pdf_file)
 
         if self.upload_to_web and final_paths:
@@ -500,9 +533,11 @@ class BaseMangaDownloader:
         chapters = info["chapters"]
         self.comic_title = title
 
-        comic_folder_name = self._sanitize_name(title)
-        comic_dir = self.output_dir / comic_folder_name
-        comic_dir.mkdir(parents=True, exist_ok=True)
+        # Cấu trúc lưu chuẩn theo bucket: covers/{slug}.webp và chapters/{slug}/chap{num}/page_{idx:03d}.webp
+        covers_dir = self.output_dir / "covers"
+        covers_dir.mkdir(parents=True, exist_ok=True)
+        chapters_root_dir = self.output_dir / "chapters" / self.slug
+        chapters_root_dir.mkdir(parents=True, exist_ok=True)
 
         target_chaps = chapters
         if specific_chap is not None:
@@ -530,7 +565,8 @@ class BaseMangaDownloader:
             table.add_row("Nhóm dịch", self.translator_group)
             table.add_row("Thể loại", ", ".join(self.genres[:5]) if self.genres else "Manga")
             table.add_row("Tổng số chapter", f"{len(chapters)} (Tải {len(target_chaps)} chương)")
-            table.add_row("Thư mục lưu", str(comic_dir.resolve()))
+            table.add_row("Thư mục lưu", str(chapters_root_dir.resolve()))
+            table.add_row("Cấu trúc lưu", f"covers/{self.slug}.webp | chapters/{self.slug}/chap<num>/page_001.webp")
             table.add_row("Định dạng ảnh", "WebP (Chất lượng cao)")
             table.add_row("Đẩy lên Website", "BẬT (Cloud & Web Sync)" if self.upload_to_web else "TẮT (Chỉ lưu máy)")
             console.print(table)
@@ -539,14 +575,15 @@ class BaseMangaDownloader:
             print(f"\n--- {title} ---")
             print(f"Slug: {self.slug}")
             print(f"Tổng số chapter: {len(chapters)} (Tải {len(target_chaps)} chương)")
-            print(f"Thư mục lưu: {comic_dir.resolve()}")
+            print(f"Thư mục lưu: {chapters_root_dir.resolve()}")
+            print(f"Cấu trúc lưu: covers/{self.slug}.webp & chapters/{self.slug}/chap<num>/page_001.webp")
             print(f"Định dạng ảnh: WebP")
             print(f"Đẩy lên Website: {'BẬT' if self.upload_to_web else 'TẮT'}\n")
 
-        # Tải và đưa ảnh bìa lên Cloud (WebP)
+        # Tải và đưa ảnh bìa lên Cloud (WebP) chuẩn vị trí: covers/{slug}.webp
         if info.get("cover_url"):
-            raw_cover_path = comic_dir / "cover_raw.jpg"
-            cover_path = comic_dir / "cover.webp"
+            raw_cover_path = covers_dir / f"{self.slug}_raw.jpg"
+            cover_path = covers_dir / f"{self.slug}.webp"
             self._download_single_image(info["cover_url"], raw_cover_path)
             if raw_cover_path.exists():
                 try:
@@ -562,9 +599,9 @@ class BaseMangaDownloader:
                 try:
                     self.cover_cdn_url = upload_file_to_cloud(cover_path, f"covers/{self.slug}.webp", "image/webp")
                     if HAS_RICH and console:
-                        console.print(f"[green]📸 Đã đưa Ảnh bìa (WebP) lên Cloud: [underline]{self.cover_cdn_url}[/underline][/green]\n")
+                        console.print(f"[green]📸 Đã lưu & đưa Ảnh bìa lên Cloud: [underline]{self.cover_cdn_url}[/underline][/green]\n")
                     else:
-                        print(f"📸 Đã đưa Ảnh bìa (WebP) lên Cloud: {self.cover_cdn_url}\n")
+                        print(f"📸 Đã lưu & đưa Ảnh bìa lên Cloud: {self.cover_cdn_url}\n")
                 except Exception as e:
                     if HAS_RICH and console:
                         console.print(f"[yellow]⚠️ Lỗi upload ảnh bìa: {e}[/yellow]\n")
@@ -948,26 +985,48 @@ class MangaDexDownloader(BaseMangaDownloader):
         }
 
     @staticmethod
-    def search_or_browse_manga(query: str = None, page: int = 1, limit: int = 20, lang: str = DEFAULT_LANG, only_available: bool = True) -> dict:
-        """Tìm kiếm hoặc duyệt danh sách truyện có bản dịch Tiếng Việt trên MangaDex"""
+    def search_or_browse_manga(query: str = None, page: int = 1, limit: int = 20, lang: str = DEFAULT_LANG, only_available: bool = True, order_by: str = "latest") -> dict:
+        """Tìm kiếm hoặc duyệt danh sách truyện có bản dịch Tiếng Việt trên MangaDex
+        order_by: 'latest' (mới cập nhật), 'oldest' (cũ nhất -> mới nhất theo createdAt), 'newest_created' (mới tạo -> cũ nhất), 'updated_desc'
+        """
         offset = (max(1, page) - 1) * limit
         params = {
             "limit": limit,
             "offset": offset,
             "availableTranslatedLanguage[]": [lang],
             "hasAvailableChapters": "true" if only_available else "false",
-            "order[latestUploadedChapter]": "desc",
             "includes[]": ["cover_art", "author", "artist", "tag"],
             "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
         }
+
+        if order_by in ("oldest", "created_at_asc", "createdAt_asc", "asc", "oldest_first"):
+            params["order[createdAt]"] = "asc"
+        elif order_by in ("newest_created", "created_at_desc", "createdAt_desc"):
+            params["order[createdAt]"] = "desc"
+        elif order_by in ("updated_asc", "updatedAt_asc"):
+            params["order[updatedAt]"] = "asc"
+        elif order_by in ("updated_desc", "updatedAt_desc"):
+            params["order[updatedAt]"] = "desc"
+        elif order_by in ("title_asc", "title"):
+            params["order[title]"] = "asc"
+        else:
+            params["order[latestUploadedChapter]"] = "desc"
+
         if query:
             params["title"] = query
 
         url = f"{MANGADEX_API_BASE}/manga"
         headers = {"User-Agent": "TruyenKomi-Downloader/1.0 (https://truyenkomi.site)"}
         
-        res = requests.get(url, params=params, headers=headers, timeout=TIMEOUT)
-        if res.status_code != 200:
+        for retry in range(MAX_RETRIES):
+            res = requests.get(url, params=params, headers=headers, timeout=TIMEOUT)
+            if res.status_code == 200:
+                break
+            elif res.status_code == 429:
+                time.sleep(2 * (retry + 1))
+            else:
+                time.sleep(1)
+        else:
             raise Exception(f"Không thể lấy danh sách truyện từ MangaDex (HTTP {res.status_code})")
 
         res_json = res.json()
@@ -1023,6 +1082,107 @@ class MangaDexDownloader(BaseMangaDownloader):
             "limit": limit,
             "items": items
         }
+
+    @staticmethod
+    def fetch_all_mangadex_manga_iter(lang: str = DEFAULT_LANG, order_by: str = "oldest", start_offset: int = 0, limit_per_req: int = 100, max_manga: int = None):
+        """Generator trả về từng bộ truyện trên MangaDex theo thứ tự chỉ định (Mặc định: cũ nhất đến mới nhất)"""
+        offset = start_offset
+        fetched_count = 0
+        limit = min(100, max(1, limit_per_req))
+
+        while True:
+            params = {
+                "limit": limit,
+                "offset": offset,
+                "availableTranslatedLanguage[]": [lang],
+                "hasAvailableChapters": "true",
+                "includes[]": ["cover_art", "author", "artist", "tag"],
+                "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
+            }
+            if order_by in ("oldest", "created_at_asc", "createdAt_asc", "asc", "oldest_first"):
+                params["order[createdAt]"] = "asc"
+            elif order_by in ("newest_created", "created_at_desc", "createdAt_desc"):
+                params["order[createdAt]"] = "desc"
+            elif order_by in ("updated_asc", "updatedAt_asc"):
+                params["order[updatedAt]"] = "asc"
+            elif order_by in ("updated_desc", "updatedAt_desc"):
+                params["order[updatedAt]"] = "desc"
+            else:
+                params["order[latestUploadedChapter]"] = "desc"
+
+            url = f"{MANGADEX_API_BASE}/manga"
+            headers = {"User-Agent": "TruyenKomi-Downloader/1.0 (https://truyenkomi.site)"}
+
+            res = None
+            for retry in range(MAX_RETRIES):
+                try:
+                    res = requests.get(url, params=params, headers=headers, timeout=TIMEOUT)
+                    if res.status_code == 200:
+                        break
+                    elif res.status_code == 429:
+                        time.sleep(2 * (retry + 1))
+                except Exception:
+                    time.sleep(1)
+
+            if not res or res.status_code != 200:
+                break
+
+            data = res.json()
+            manga_list = data.get("data", [])
+            total = data.get("total", 0)
+
+            if not manga_list:
+                break
+
+            for m in manga_list:
+                m_id = m.get("id")
+                attr = m.get("attributes", {})
+                title_dict = attr.get("title", {})
+                
+                vietnamese_title = None
+                for alt in attr.get("altTitles", []):
+                    if "vi" in alt:
+                        vietnamese_title = alt["vi"]
+                        break
+                
+                orig_title = list(title_dict.values())[0] if title_dict else "Unknown"
+                display_title = vietnamese_title or title_dict.get("en") or orig_title
+
+                authors = []
+                cover_filename = None
+                for rel in m.get("relationships", []):
+                    rel_type = rel.get("type")
+                    if rel_type in ("author", "artist"):
+                        a_name = rel.get("attributes", {}).get("name")
+                        if a_name and a_name not in authors:
+                            authors.append(a_name)
+                    elif rel_type == "cover_art":
+                        cover_filename = rel.get("attributes", {}).get("fileName")
+
+                cover_url = f"{MANGADEX_UPLOADS_BASE}/covers/{m_id}/{cover_filename}" if cover_filename else None
+                tags = [t.get("attributes", {}).get("name", {}).get("en") for t in attr.get("tags", []) if t.get("attributes", {}).get("name")]
+
+                item = {
+                    "id": m_id,
+                    "title": display_title,
+                    "orig_title": orig_title,
+                    "vietnamese_title": vietnamese_title,
+                    "author": ", ".join(authors) if authors else "Đang cập nhật",
+                    "cover_url": cover_url,
+                    "tags": tags,
+                    "url": f"https://mangadex.org/title/{m_id}",
+                    "total_available": total,
+                    "offset_index": offset + len(items) if 'items' in locals() else offset
+                }
+                yield item
+                fetched_count += 1
+                if max_manga and fetched_count >= max_manga:
+                    return
+
+            offset += len(manga_list)
+            if offset >= total:
+                break
+            time.sleep(0.2)  # Nhẹ nhàng với MangaDex API
 
     def get_comic_info(self):
         """Lấy thông tin chi tiết truyện và danh sách chapter Tiếng Việt từ MangaDex"""
@@ -1328,6 +1488,10 @@ Ví dụ sử dụng:
     # MangaDex Specific Arguments
     parser.add_argument("--source", "--src", choices=["auto", "zet", "mangadex"], default="auto", help="Nguồn truyện (Mặc định: auto nhận diện)")
     parser.add_argument("--mangadex", "--dex", action="store_true", help="Bật chế độ duyệt/tìm kiếm MangaDex Tiếng Việt")
+    parser.add_argument("--all-mangadex", "--download-all", action="store_true", help="Tải toàn bộ truyện MangaDex (Mặc định từ cũ nhất đến mới nhất)")
+    parser.add_argument("--order", choices=["oldest", "latest", "newest_created", "updated_desc"], default="oldest", help="Thứ tự tải toàn bộ (Mặc định: oldest - cũ nhất đến mới nhất)")
+    parser.add_argument("--start-offset", type=int, default=0, help="Bắt đầu từ truyện thứ mấy (Mặc định: 0)")
+    parser.add_argument("--max-manga", type=int, default=None, help="Số lượng truyện tối đa muốn tải (Mặc định: Tất cả)")
     parser.add_argument("-q", "--query", "--search", default=None, help="Từ khóa tìm kiếm truyện trên MangaDex")
     parser.add_argument("-p", "--page", type=int, default=1, help="Số trang duyệt trên MangaDex (Mặc định: 1)")
     parser.add_argument("--lang", default=DEFAULT_LANG, help=f"Mã ngôn ngữ bản dịch MangaDex (Mặc định: {DEFAULT_LANG} - Tiếng Việt)")
@@ -1337,6 +1501,62 @@ Ví dụ sử dụng:
     args = parser.parse_args()
 
     input_url = args.url or ""
+
+    # 0. Xử lý tải toàn bộ MangaDex (Batch All)
+    if args.all_mangadex:
+        order_name = "Cũ nhất ➜ Mới nhất (order[createdAt]=asc)" if args.order == "oldest" else args.order
+        if HAS_RICH and console:
+            console.print(f"[bold green]🚀 BẮT ĐẦU TIẾN TRÌNH TẢI TOÀN BỘ MANGADEX ({order_name})[/bold green]")
+            console.print(f"Ngôn ngữ: [cyan]{args.lang}[/cyan] | Bắt đầu từ offset: [cyan]{args.start_offset}[/cyan]")
+        else:
+            print(f"🚀 BẮT ĐẦU TIẾN TRÌNH TẢI TOÀN BỘ MANGADEX ({order_name})")
+            print(f"Ngôn ngữ: {args.lang} | Bắt đầu từ offset: {args.start_offset}")
+
+        manga_gen = MangaDexDownloader.fetch_all_mangadex_manga_iter(
+            lang=args.lang,
+            order_by=args.order,
+            start_offset=args.start_offset,
+            limit_per_req=100,
+            max_manga=args.max_manga
+        )
+
+        total_processed = 0
+        for item in manga_gen:
+            total_processed += 1
+            idx_num = args.start_offset + total_processed
+            tot_str = f" / {item.get('total_available', '?')}" if item.get('total_available') else ""
+            if HAS_RICH and console:
+                console.print(f"\n[bold yellow]━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━[/bold yellow]")
+                console.print(f"[bold green]▶ [{idx_num}{tot_str}] Đang xử lý bộ truyện:[/bold green] [bold cyan]{item['title']}[/bold cyan] (ID: {item['id']})")
+                console.print(f"✍️ Tác giả: {item['author']}")
+            else:
+                print(f"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                print(f"▶ [{idx_num}{tot_str}] Đang xử lý bộ truyện: {item['title']} (ID: {item['id']})")
+                print(f"✍️ Tác giả: {item['author']}")
+
+            try:
+                downloader = MangaDexDownloader(
+                    manga_id_or_url=item['id'],
+                    output_dir=args.output,
+                    merge_slices=args.merge,
+                    make_pdf=args.pdf,
+                    upload_to_web=args.upload,
+                    api_base_url=args.api,
+                    lang=args.lang,
+                    data_saver=args.data_saver
+                )
+                downloader.run(start_chap=args.start, end_chap=args.end, specific_chap=args.chapter)
+            except Exception as ex:
+                if HAS_RICH and console:
+                    console.print(f"[bold red]❌ Lỗi khi tải bộ truyện '{item['title']}': {ex}[/bold red]")
+                else:
+                    print(f"❌ Lỗi khi tải bộ truyện '{item['title']}': {ex}")
+
+        if HAS_RICH and console:
+            console.print(f"\n[bold green]🎉 ĐÃ HOÀN TẤT TIẾN TRÌNH TẢI HÀNG LOẠT {total_processed} BỘ TRUYỆN MANGADEX![/bold green]")
+        else:
+            print(f"\n🎉 ĐÃ HOÀN TẤT TIẾN TRÌNH TẢI HÀNG LOẠT {total_processed} BỘ TRUYỆN MANGADEX!")
+        return
     
     # 1. Nhận diện trường hợp tìm kiếm / duyệt danh sách MangaDex
     is_mangadex_browse_url = "mangadex.org/titles" in input_url or ("mangadex.org/manga" in input_url and "?" in input_url)

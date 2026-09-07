@@ -75,12 +75,193 @@ ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
 
 
+class MangaDexBatchConfigDialog(ctk.CTkToplevel):
+    """Cửa sổ cấu hình tải hàng loạt toàn bộ truyện MangaDex từ cũ nhất đến mới nhất"""
+    def __init__(self, parent, default_save_dir: str, default_api_url: str, on_start_callback):
+        super().__init__(parent)
+        self.title("⚡ Tải Toàn Bộ Truyện MangaDex (Cũ Nhất ➜ Mới Nhất)")
+        self.geometry("650x720")
+        self.minsize(580, 640)
+        self.resizable(False, False)
+        self.default_save_dir = default_save_dir
+        self.default_api_url = default_api_url
+        self.on_start_callback = on_start_callback
+
+        self.transient(parent)
+        self.grab_set()
+
+        self._setup_dialog_ui()
+
+    def _setup_dialog_ui(self):
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        # Header Frame
+        hdr = ctk.CTkFrame(self, fg_color="#131722", corner_radius=0)
+        hdr.grid(row=0, column=0, sticky="ew", padx=0, pady=0)
+        
+        t_lbl = ctk.CTkLabel(
+            hdr, 
+            text="📥 Tải Hàng Loạt Toàn Bộ MangaDex", 
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color="#f59e0b"
+        )
+        t_lbl.pack(anchor="w", padx=20, pady=(15, 2))
+
+        sub_lbl = ctk.CTkLabel(
+            hdr,
+            text="Tự động tải toàn bộ ~6.600+ truyện Tiếng Việt từ MangaDex theo thứ tự từ Cũ Nhất đến Mới Nhất.\nHỗ trợ đa luồng, chuyển đổi WebP, ghép ảnh manhwa, tạo PDF và tự động đồng bộ Web.",
+            font=ctk.CTkFont(size=12),
+            text_color="#94a3b8",
+            justify="left"
+        )
+        sub_lbl.pack(anchor="w", padx=20, pady=(0, 15))
+
+        # Body Scrollable Frame
+        body = ctk.CTkScrollableFrame(self, fg_color="#18202f", corner_radius=10)
+        body.grid(row=1, column=0, sticky="nsew", padx=15, pady=10)
+        body.grid_columnconfigure(1, weight=1)
+
+        # 1. Thứ tự tải (Order)
+        ctk.CTkLabel(body, text="🎯 Thứ tự tải:", font=ctk.CTkFont(weight="bold"), text_color="#38bdf8").grid(row=0, column=0, padx=10, pady=(10, 4), sticky="w")
+        self.order_var = ctk.StringVar(value="oldest")
+        
+        order_box = ctk.CTkFrame(body, fg_color="transparent")
+        order_box.grid(row=0, column=1, padx=10, pady=(10, 4), sticky="w")
+        
+        ctk.CTkRadioButton(order_box, text="⏳ Cũ nhất ➜ Mới nhất (order[createdAt]=asc) [Khuyên dùng]", variable=self.order_var, value="oldest").pack(anchor="w", pady=2)
+        ctk.CTkRadioButton(order_box, text="🔄 Mới cập nhật nhất (order[latestUploadedChapter]=desc)", variable=self.order_var, value="latest").pack(anchor="w", pady=2)
+
+        # 2. Vị trí bắt đầu & Giới hạn
+        ctk.CTkLabel(body, text="🔢 Bắt đầu từ truyện #:", font=ctk.CTkFont(weight="bold")).grid(row=1, column=0, padx=10, pady=6, sticky="w")
+        self.start_idx_entry = ctk.CTkEntry(body, width=120, placeholder_text="1")
+        self.start_idx_entry.insert(0, "1")
+        self.start_idx_entry.grid(row=1, column=1, padx=10, pady=6, sticky="w")
+
+        ctk.CTkLabel(body, text="📊 Giới hạn số truyện:", font=ctk.CTkFont(weight="bold")).grid(row=2, column=0, padx=10, pady=6, sticky="w")
+        max_box = ctk.CTkFrame(body, fg_color="transparent")
+        max_box.grid(row=2, column=1, padx=10, pady=6, sticky="w")
+        self.max_manga_entry = ctk.CTkEntry(max_box, width=100, placeholder_text="0 (Tất cả)")
+        self.max_manga_entry.insert(0, "0")
+        self.max_manga_entry.pack(side="left", padx=(0, 10))
+        ctk.CTkLabel(max_box, text="(0 = Tải TẤT CẢ ~6.600 bộ)", font=ctk.CTkFont(size=11), text_color="#94a3b8").pack(side="left")
+
+        # 3. Thư mục lưu
+        ctk.CTkLabel(body, text="📂 Thư mục lưu máy:", font=ctk.CTkFont(weight="bold")).grid(row=3, column=0, padx=10, pady=6, sticky="w")
+        save_box = ctk.CTkFrame(body, fg_color="transparent")
+        save_box.grid(row=3, column=1, padx=10, pady=6, sticky="ew")
+        save_box.grid_columnconfigure(0, weight=1)
+
+        self.save_dir_entry = ctk.CTkEntry(save_box)
+        self.save_dir_entry.insert(0, self.default_save_dir)
+        self.save_dir_entry.grid(row=0, column=0, padx=(0, 5), sticky="ew")
+
+        ctk.CTkButton(save_box, text="Chọn", width=60, command=self._browse_save_folder, fg_color="#334155").grid(row=0, column=1)
+
+        # 4. Tùy chọn xử lý & Tải lên
+        ctk.CTkLabel(body, text="⚙️ Tùy chọn xử lý:", font=ctk.CTkFont(weight="bold"), text_color="#38bdf8").grid(row=4, column=0, padx=10, pady=(12, 4), sticky="w")
+
+        opts_frame = ctk.CTkFrame(body, fg_color="#0f172a", corner_radius=6)
+        opts_frame.grid(row=5, column=0, columnspan=2, padx=10, pady=4, sticky="ew")
+
+        self.cb_upload_web = ctk.CTkCheckBox(opts_frame, text="🌐 Tự động tải lên Cloud Storage & Đồng bộ Web API", fg_color="#0284c7")
+        self.cb_upload_web.select()
+        self.cb_upload_web.pack(anchor="w", padx=12, pady=(10, 4))
+
+        self.cb_skip_existing = ctk.CTkCheckBox(opts_frame, text="⏭️ Bỏ qua chapter đã có trên máy (Tránh tải trùng / Resume)", fg_color="#0284c7")
+        self.cb_skip_existing.select()
+        self.cb_skip_existing.pack(anchor="w", padx=12, pady=4)
+
+        self.cb_data_saver = ctk.CTkCheckBox(opts_frame, text="⚡ MangaDex Data-Saver (Tải ảnh nén nhẹ tiết kiệm mạng)", fg_color="#0284c7")
+        self.cb_data_saver.pack(anchor="w", padx=12, pady=4)
+
+        self.cb_merge = ctk.CTkCheckBox(opts_frame, text="🧩 Ghép ảnh Manhwa 5-in-1 (Tự động khi chapter > 70 ảnh)", fg_color="#0284c7")
+        self.cb_merge.pack(anchor="w", padx=12, pady=4)
+
+        self.cb_pdf = ctk.CTkCheckBox(opts_frame, text="📄 Tự động xuất mỗi chapter thành file PDF", fg_color="#0284c7")
+        self.cb_pdf.pack(anchor="w", padx=12, pady=(4, 10))
+
+        # 5. Luồng tải
+        ctk.CTkLabel(body, text="⚡ Luồng tải song song:", font=ctk.CTkFont(weight="bold")).grid(row=6, column=0, padx=10, pady=(10, 4), sticky="w")
+        thread_box = ctk.CTkFrame(body, fg_color="transparent")
+        thread_box.grid(row=6, column=1, padx=10, pady=(10, 4), sticky="ew")
+        thread_box.grid_columnconfigure(0, weight=1)
+
+        self.lbl_threads_dialog = ctk.CTkLabel(thread_box, text="16 luồng")
+        self.slider_threads_dialog = ctk.CTkSlider(
+            thread_box, from_=4, to=32, number_of_steps=7,
+            command=lambda v: self.lbl_threads_dialog.configure(text=f"{int(v)} luồng")
+        )
+        self.slider_threads_dialog.set(16)
+        self.slider_threads_dialog.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        self.lbl_threads_dialog.grid(row=0, column=1)
+
+        # Bottom Buttons
+        btn_bar = ctk.CTkFrame(self, fg_color="#131722", corner_radius=0)
+        btn_bar.grid(row=2, column=0, sticky="ew", padx=0, pady=0)
+
+        ctk.CTkButton(
+            btn_bar,
+            text="❌ Hủy / Đóng",
+            command=self.destroy,
+            fg_color="#334155",
+            hover_color="#475569",
+            width=120,
+            height=36
+        ).pack(side="right", padx=(5, 20), pady=12)
+
+        ctk.CTkButton(
+            btn_bar,
+            text="🚀 Bắt Đầu Tải Hàng Loạt",
+            command=self._on_start_clicked,
+            fg_color="#10b981",
+            hover_color="#059669",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            width=220,
+            height=36
+        ).pack(side="right", padx=5, pady=12)
+
+    def _browse_save_folder(self):
+        f = filedialog.askdirectory(initialdir=self.save_dir_entry.get())
+        if f:
+            self.save_dir_entry.delete(0, "end")
+            self.save_dir_entry.insert(0, f)
+
+    def _on_start_clicked(self):
+        try:
+            start_idx = max(1, int(self.start_idx_entry.get() or 1))
+        except ValueError:
+            start_idx = 1
+
+        try:
+            max_manga = int(self.max_manga_entry.get() or 0)
+            if max_manga <= 0:
+                max_manga = None
+        except ValueError:
+            max_manga = None
+
+        config = {
+            "order": self.order_var.get(),
+            "start_offset": start_idx - 1,
+            "max_manga": max_manga,
+            "save_dir": self.save_dir_entry.get().strip(),
+            "upload_to_web": self.cb_upload_web.get() == 1,
+            "skip_existing": self.cb_skip_existing.get() == 1,
+            "data_saver": self.cb_data_saver.get() == 1,
+            "merge_slices": self.cb_merge.get() == 1,
+            "make_pdf": self.cb_pdf.get() == 1,
+            "workers": int(self.slider_threads_dialog.get())
+        }
+        self.destroy()
+        self.on_start_callback(config)
+
+
 class MangaDownloaderGUI(ctk.CTk):
     def __init__(self):
         super().__init__()
 
         self.title("⚡ TruyenKomi Manga Downloader Pro (ZetTruyen & MangaDex)")
-        self.geometry("1080x820")
+        self.geometry("1100x840")
         self.minsize(950, 700)
 
         # App state
@@ -91,6 +272,7 @@ class MangaDownloaderGUI(ctk.CTk):
         self.current_mangadex_page = 1
         self.total_mangadex_pages = 1
         self.mangadex_search_query = None
+        self.mangadex_sort_order = "latest"
         self.is_fetching_mangadex_list = False
 
         self._setup_ui()
@@ -102,22 +284,39 @@ class MangaDownloaderGUI(ctk.CTk):
         # ---------------- 1. TOP HEADER ----------------
         header_frame = ctk.CTkFrame(self, corner_radius=10, fg_color="#131722")
         header_frame.grid(row=0, column=0, padx=15, pady=(12, 6), sticky="ew")
+        header_frame.grid_columnconfigure(0, weight=1)
+
+        title_box = ctk.CTkFrame(header_frame, fg_color="transparent")
+        title_box.pack(side="left", padx=20, pady=10)
 
         title_lbl = ctk.CTkLabel(
-            header_frame,
+            title_box,
             text="🚀 TruyenKomi Manga Downloader Pro",
             font=ctk.CTkFont(size=22, weight="bold"),
             text_color="#38bdf8"
         )
-        title_lbl.pack(anchor="w", padx=20, pady=(10, 2))
+        title_lbl.pack(anchor="w", pady=(0, 2))
 
         sub_lbl = ctk.CTkLabel(
-            header_frame,
+            title_box,
             text="Tải truyện siêu tốc từ ZetTruyen & MangaDex (Tiếng Việt) • Đa luồng • Xuất PDF • Ghép ảnh Manhwa • Đồng bộ Cloud & Website",
             font=ctk.CTkFont(size=12),
             text_color="#94a3b8"
         )
-        sub_lbl.pack(anchor="w", padx=20, pady=(0, 10))
+        sub_lbl.pack(anchor="w")
+
+        # Quick Batch Download Button in Header
+        self.btn_header_batch = ctk.CTkButton(
+            header_frame,
+            text="⚡ Tải Toàn Bộ MangaDex (Cũ ➜ Mới)",
+            command=self.open_mangadex_batch_dialog,
+            fg_color="#d97706",
+            hover_color="#b45309",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            height=36,
+            width=270
+        )
+        self.btn_header_batch.pack(side="right", padx=20, pady=10)
 
         # ---------------- 2. TAB VIEW (DOWNLOADER / MANGADEX BROWSER) ----------------
         self.tabview = ctk.CTkTabview(self, corner_radius=10)
@@ -367,19 +566,40 @@ class MangaDownloaderGUI(ctk.CTk):
             command=self.search_mangadex_action,
             fg_color="#0284c7",
             hover_color="#0369a1",
-            width=110
+            width=100
         )
         self.btn_dex_search.grid(row=0, column=1, padx=(0, 6))
 
+        self.dex_sort_menu = ctk.CTkOptionMenu(
+            top_search_row,
+            values=["🔄 Mới cập nhật", "⏳ Cũ nhất ➜ Mới nhất", "🆕 Mới tạo gần đây"],
+            command=self._on_mangadex_sort_changed,
+            width=165,
+            fg_color="#1e293b"
+        )
+        self.dex_sort_menu.set("🔄 Mới cập nhật")
+        self.dex_sort_menu.grid(row=0, column=2, padx=(0, 6))
+
         self.btn_dex_refresh = ctk.CTkButton(
             top_search_row,
-            text="🔄 Mới Nhất",
+            text="🔄 Làm Mới",
             command=self.refresh_mangadex_latest,
             fg_color="#334155",
             hover_color="#475569",
-            width=100
+            width=90
         )
-        self.btn_dex_refresh.grid(row=0, column=2)
+        self.btn_dex_refresh.grid(row=0, column=3, padx=(0, 6))
+
+        self.btn_dex_download_all = ctk.CTkButton(
+            top_search_row,
+            text="⚡ Tải Toàn Bộ (Cũ ➜ Mới)",
+            command=self.open_mangadex_batch_dialog,
+            fg_color="#d97706",
+            hover_color="#b45309",
+            font=ctk.CTkFont(weight="bold"),
+            width=190
+        )
+        self.btn_dex_download_all.grid(row=0, column=4)
 
         # Nav & Page Bar
         nav_row = ctk.CTkFrame(search_card, fg_color="transparent")
@@ -505,6 +725,16 @@ class MangaDownloaderGUI(ctk.CTk):
     # =========================================================================
     # MANGADEX BROWSER LOGIC
     # =========================================================================
+    def _on_mangadex_sort_changed(self, choice):
+        if "Cũ nhất" in choice:
+            self.mangadex_sort_order = "oldest"
+        elif "Mới tạo" in choice:
+            self.mangadex_sort_order = "newest_created"
+        else:
+            self.mangadex_sort_order = "latest"
+        self.current_mangadex_page = 1
+        self.fetch_mangadex_list_thread()
+
     def search_mangadex_action(self):
         query = self.dex_search_entry.get().strip()
         self.mangadex_search_query = query if query else None
@@ -574,7 +804,8 @@ class MangaDownloaderGUI(ctk.CTk):
                 page=self.current_mangadex_page,
                 limit=12,
                 lang="vi",
-                only_available=True
+                only_available=True,
+                order_by=getattr(self, 'mangadex_sort_order', 'latest')
             )
             items = res.get("items", [])
             total = res.get("total", 0)
@@ -853,9 +1084,11 @@ class MangaDownloaderGUI(ctk.CTk):
         all_chaps = info["chapters"]
         out_root = Path(self.save_entry.get())
 
-        safe_title = re.sub(r'[\\/*?:"<>|]', "", title).replace(" ", "_")
-        comic_dir = out_root / safe_title
-        comic_dir.mkdir(parents=True, exist_ok=True)
+        # Cấu trúc lưu chuẩn theo bucket: covers/{slug}.webp & chapters/{slug}/chap{num}/page_{idx:03d}.webp
+        covers_dir = out_root / "covers"
+        covers_dir.mkdir(parents=True, exist_ok=True)
+        chapters_root_dir = out_root / "chapters" / slug
+        chapters_root_dir.mkdir(parents=True, exist_ok=True)
 
         # Filter target chapters
         if self.mode_var.get() == "range":
@@ -881,16 +1114,17 @@ class MangaDownloaderGUI(ctk.CTk):
 
         self.after(0, lambda: self.log(f"\n=========================================="))
         self.after(0, lambda: self.log(f"🚀 Bắt đầu tải {len(target_chaps)} chương ({workers} luồng song song)..."))
-        self.after(0, lambda: self.log(f"📂 Thư mục máy: {comic_dir}"))
+        self.after(0, lambda: self.log(f"📂 Thư mục máy: {chapters_root_dir}"))
+        self.after(0, lambda: self.log(f"📁 Cấu trúc lưu chuẩn: covers/{slug}.webp & chapters/{slug}/chap<num>/page_001.webp"))
         self.after(0, lambda: self.log(f"🖼 Định dạng ảnh: WebP (Chất lượng 90)"))
         if upload_to_web:
             self.after(0, lambda: self.log(f"🌐 Chế độ: Tự động đưa lên Website & Cloud Storage sau khi tải"))
 
-        # Download and upload cover
+        # Download and upload cover (covers/{slug}.webp)
         cover_cdn_url = None
         if info.get("cover_url"):
-            raw_cover_path = comic_dir / "cover_raw.jpg"
-            cover_path = comic_dir / "cover.webp"
+            raw_cover_path = covers_dir / f"{slug}_raw.jpg"
+            cover_path = covers_dir / f"{slug}.webp"
             downloader._download_single_image(info["cover_url"], raw_cover_path)
             if raw_cover_path.exists():
                 try:
@@ -905,7 +1139,7 @@ class MangaDownloaderGUI(ctk.CTk):
             if upload_to_web and cover_path.exists():
                 try:
                     cover_cdn_url = upload_file_to_cloud(cover_path, f"covers/{slug}.webp", "image/webp")
-                    self.after(0, lambda u=cover_cdn_url: self.log(f"📸 Đã đưa Ảnh bìa (WebP) lên Cloud: {u}"))
+                    self.after(0, lambda u=cover_cdn_url: self.log(f"📸 Đã lưu & đưa Ảnh bìa lên Cloud: {u}"))
                 except Exception as e:
                     self.after(0, lambda err=e: self.log(f"⚠️ Lỗi upload ảnh bìa: {err}"))
 
@@ -923,7 +1157,7 @@ class MangaDownloaderGUI(ctk.CTk):
             if chap.get("title") and chap["title"] != chap_title:
                 chap_title += f" - {chap['title']}"
 
-            chap_dir = comic_dir / f"Chapter_{num_str}"
+            chap_dir = chapters_root_dir / f"chap{num_str}"
             chap_dir.mkdir(parents=True, exist_ok=True)
 
             self.after(0, lambda t=chap_title, i=idx, tot=len(target_chaps): (
@@ -955,7 +1189,7 @@ class MangaDownloaderGUI(ctk.CTk):
                     ext = img_url.split(".")[-1].split("?")[0].lower()
                     if ext not in ("jpg", "jpeg", "png", "webp"):
                         ext = "jpg"
-                    save_p = download_dir / f"raw_{i+1:04d}.{ext}" if should_merge else download_dir / f"raw_{i+1:03d}.{ext}"
+                    save_p = download_dir / f"page_raw_{i+1:04d}.{ext}" if should_merge else download_dir / f"page_{i+1:03d}.{ext}"
                     downloaded.append(save_p)
                     f = executor.submit(downloader._download_single_image, img_url, save_p, chap.get("url"))
                     futures[f] = save_p
@@ -992,17 +1226,20 @@ class MangaDownloaderGUI(ctk.CTk):
                 except Exception:
                     pass
 
-                self.after(0, lambda cnt=len(final_paths), n=num_downloaded, cname=f"Chapter_{num_str}": self.log(
-                    f"  ✓ Đã xuất {cnt} trang ảnh WebP hoàn chỉnh vào {cname}/ (đã dọn {n} lát cắt thô)"
+                self.after(0, lambda cnt=len(final_paths), n=num_downloaded, cname=f"chap{num_str}": self.log(
+                    f"  ✓ Đã xuất {cnt} trang ảnh WebP hoàn chỉnh vào chapters/{slug}/{cname}/ (đã dọn {n} lát cắt thô)"
                 ))
             else:
                 final_paths = []
                 for idx_p, p in enumerate(valid_paths, 1):
-                    webp_path = chap_dir / f"{idx_p:03d}.webp"
+                    webp_path = chap_dir / f"page_{idx_p:03d}.webp"
                     try:
-                        with Image.open(p) as im:
-                            if im.mode != 'RGB':
-                                im = im.convert('RGB')
+                        with Image.open(p) as raw_im:
+                            raw_im.load()
+                            if raw_im.mode != 'RGB':
+                                im = raw_im.convert('RGB')
+                            else:
+                                im = raw_im
                             im.save(webp_path, 'WEBP', quality=90, method=6)
                         final_paths.append(webp_path)
                         if p != webp_path and p.exists():
@@ -1015,7 +1252,7 @@ class MangaDownloaderGUI(ctk.CTk):
 
             if make_pdf:
                 self.after(0, lambda: self.log("  📄 Đang tạo file PDF..."))
-                pdf_f = comic_dir / f"Chapter_{num_str}.pdf"
+                pdf_f = chap_dir / f"chap{num_str}.pdf"
                 downloader._export_pdf(final_paths, pdf_f)
 
             # Upload to Cloud Storage & Web API
@@ -1078,11 +1315,328 @@ class MangaDownloaderGUI(ctk.CTk):
 
         self.after(0, self._on_download_finished)
 
+    # =========================================================================
+    # MANGADEX BATCH DOWNLOAD (ALL MANGA FROM OLDEST TO NEWEST)
+    # =========================================================================
+    def open_mangadex_batch_dialog(self):
+        if self.is_downloading:
+            messagebox.showwarning("Cảnh báo", "Đang có tiến trình tải hoạt động! Vui lòng dừng lại trước khi bắt đầu tải hàng loạt.")
+            return
+        MangaDexBatchConfigDialog(
+            self,
+            default_save_dir=self.save_entry.get(),
+            default_api_url=DEFAULT_API_BASE_URL,
+            on_start_callback=self.start_batch_mangadex_download
+        )
+
+    def start_batch_mangadex_download(self, config: dict):
+        if self.is_downloading:
+            return
+        self.is_downloading = True
+        self.cancel_requested = False
+        self.btn_start.configure(state="disabled")
+        self.btn_fetch.configure(state="disabled")
+        self.btn_cancel.configure(state="normal")
+        if hasattr(self, 'btn_header_batch'):
+            self.btn_header_batch.configure(state="disabled")
+        if hasattr(self, 'btn_dex_download_all'):
+            self.btn_dex_download_all.configure(state="disabled")
+
+        # Switch to download tab to see live progress and logs
+        self.tabview.set("⚡ Tải Theo Link / ID")
+        self.progress_bar.set(0)
+
+        threading.Thread(target=self._batch_download_mangadex_worker, args=(config,), daemon=True).start()
+
+    def _batch_download_mangadex_worker(self, config: dict):
+        order_key = config.get("order", "oldest")
+        order_desc = "Cũ Nhất ➜ Mới Nhất (order[createdAt]=asc)" if order_key == "oldest" else "Mới Cập Nhật Nhất (order[latestUploadedChapter]=desc)"
+        start_offset = config.get("start_offset", 0)
+        max_manga = config.get("max_manga")
+        out_root = Path(config.get("save_dir", self.save_entry.get()))
+        upload_to_web = config.get("upload_to_web", True)
+        skip_existing = config.get("skip_existing", True)
+        data_saver = config.get("data_saver", False)
+        merge_slices = config.get("merge_slices", False)
+        make_pdf = config.get("make_pdf", False)
+        workers = config.get("workers", 16)
+
+        self.after(0, lambda: self.log("\n" + "=" * 70))
+        self.after(0, lambda: self.log("🚀 BẮT ĐẦU TIẾN TRÌNH TẢI TOÀN BỘ MANGADEX HÀNG LOẠT"))
+        self.after(0, lambda: self.log(f"📋 Thứ tự tải: {order_desc}"))
+        self.after(0, lambda: self.log(f"🌐 Ngôn ngữ: Tiếng Việt (vi) | Bắt đầu từ truyện #{start_offset + 1}"))
+        self.after(0, lambda: self.log(f"📂 Thư mục lưu: {out_root.resolve()}"))
+        self.after(0, lambda: self.log(f"⚡ Luồng tải song song: {workers} luồng"))
+        self.after(0, lambda: self.log(f"🌐 Đồng bộ Web & Cloud: {'BẬT' if upload_to_web else 'TẮT'} | ⏭️ Bỏ qua chapter đã có: {'BẬT' if skip_existing else 'TẮT'}"))
+        self.after(0, lambda: self.log("=" * 70 + "\n"))
+
+        self.after(0, lambda: self.lbl_status.configure(text="Đang kết nối MangaDex API lấy danh sách truyện..."))
+
+        try:
+            manga_gen = MangaDexDownloader.fetch_all_mangadex_manga_iter(
+                lang="vi",
+                order_by=order_key,
+                start_offset=start_offset,
+                limit_per_req=100,
+                max_manga=max_manga
+            )
+        except Exception as e:
+            self.after(0, lambda err=str(e): self.log(f"❌ Lỗi kết nối lấy danh sách MangaDex: {err}"))
+            self.after(0, self._on_download_finished)
+            return
+
+        total_processed_comics = 0
+        total_downloaded_images = 0
+        total_chapters_all = 0
+        start_time = time.time()
+
+        for manga_item in manga_gen:
+            if self.cancel_requested:
+                self.after(0, lambda: self.log("\n⛔ Đã hủy tiến trình tải hàng loạt theo yêu cầu của người dùng!"))
+                break
+
+            comic_num = start_offset + total_processed_comics + 1
+            tot_str = f" / {manga_item.get('total_available', '?')}" if manga_item.get('total_available') else ""
+            m_title = manga_item['title']
+            m_id = manga_item['id']
+
+            self.after(0, lambda n=comic_num, tot=tot_str, t=m_title, mid=m_id, a=manga_item.get('author', 'Đang cập nhật'): (
+                self.lbl_status.configure(text=f"[{n}{tot}] Đang xử lý: {t}..."),
+                self.log(f"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"),
+                self.log(f"▶ [{n}{tot}] 📖 {t}"),
+                self.log(f"   MangaDex ID: {mid} | ✍️ Tác giả: {a}")
+            ))
+
+            try:
+                downloader = MangaDexDownloader(
+                    manga_id_or_url=m_id,
+                    output_dir=str(out_root),
+                    merge_slices=merge_slices,
+                    make_pdf=make_pdf,
+                    upload_to_web=upload_to_web,
+                    api_base_url=DEFAULT_API_BASE_URL,
+                    lang="vi",
+                    data_saver=data_saver
+                )
+
+                info = downloader.get_comic_info()
+                chapters = info.get("chapters", [])
+                if not chapters:
+                    self.after(0, lambda: self.log("   ⚠️ Truyện không có chapter Tiếng Việt hợp lệ -> Bỏ qua."))
+                    total_processed_comics += 1
+                    continue
+
+                slug = info["slug"]
+                covers_dir = out_root / "covers"
+                covers_dir.mkdir(parents=True, exist_ok=True)
+                chapters_root_dir = out_root / "chapters" / slug
+                chapters_root_dir.mkdir(parents=True, exist_ok=True)
+
+                # Cover handling: covers/{slug}.webp
+                cover_cdn_url = None
+                if info.get("cover_url"):
+                    raw_cover_path = covers_dir / f"{slug}_raw.jpg"
+                    cover_path = covers_dir / f"{slug}.webp"
+                    if not cover_path.exists():
+                        downloader._download_single_image(info["cover_url"], raw_cover_path)
+                        if raw_cover_path.exists():
+                            try:
+                                with Image.open(raw_cover_path) as im:
+                                    if im.mode != 'RGB':
+                                        im = im.convert('RGB')
+                                    im.save(cover_path, 'WEBP', quality=90, method=6)
+                                raw_cover_path.unlink(missing_ok=True)
+                            except Exception:
+                                cover_path = raw_cover_path
+
+                    if upload_to_web and cover_path.exists():
+                        try:
+                            cover_cdn_url = upload_file_to_cloud(cover_path, f"covers/{slug}.webp", "image/webp")
+                            self.after(0, lambda u=cover_cdn_url: self.log(f"   📸 Đã đưa Ảnh bìa (WebP) lên Cloud: {u}"))
+                        except Exception as err:
+                            self.after(0, lambda e=err: self.log(f"   ⚠️ Lỗi upload ảnh bìa: {e}"))
+
+                self.after(0, lambda cnt=len(chapters): self.log(f"   📚 Có {cnt} chương Tiếng Việt. Bắt đầu tải..."))
+
+                # Download chapters: chapters/{slug}/chap{num}/page_{idx:03d}.webp
+                comic_img_count = 0
+                for c_idx, chap in enumerate(chapters, 1):
+                    if self.cancel_requested:
+                        break
+
+                    num = chap["number"]
+                    num_str = f"{int(num)}" if isinstance(num, (int, float)) and float(num).is_integer() else f"{num}"
+                    chap_title = f"Chương {num_str}"
+                    if chap.get("title") and chap["title"] != chap_title:
+                        chap_title += f" - {chap['title']}"
+
+                    chap_dir = chapters_root_dir / f"chap{num_str}"
+
+                    # Skip if existing
+                    if skip_existing and chap_dir.exists():
+                        existing_webp = list(chap_dir.glob("page_*.webp")) or list(chap_dir.glob("*.webp"))
+                        if len(existing_webp) >= 1:
+                            self.after(0, lambda t=chap_title, c=len(existing_webp): self.log(f"   ⏭️ {t} đã có trên máy ({c} ảnh WebP) ➜ Bỏ qua."))
+                            continue
+
+                    chap_dir.mkdir(parents=True, exist_ok=True)
+                    self.after(0, lambda t=chap_title, ci=c_idx, ct=len(chapters), cn=comic_num, tot=tot_str: (
+                        self.lbl_status.configure(text=f"[{cn}{tot}] [{ci}/{ct}] Đang tải {t}..."),
+                        self.log(f"   ▶ [{ci}/{ct}] Đang tải {t}...")
+                    ))
+
+                    images = downloader.get_chapter_images(chap)
+                    if not images:
+                        self.after(0, lambda t=chap_title: self.log(f"     ⚠️ Không tìm thấy ảnh cho {t}"))
+                        continue
+
+                    num_raw = len(images)
+                    should_merge = merge_slices or (num_raw > AUTO_STITCH_THRESHOLD)
+
+                    if should_merge:
+                        temp_dir = chap_dir / "_temp_slices"
+                        temp_dir.mkdir(parents=True, exist_ok=True)
+                        download_dir = temp_dir
+                    else:
+                        download_dir = chap_dir
+
+                    downloaded = []
+                    with ThreadPoolExecutor(max_workers=workers) as executor:
+                        futures = {}
+                        for i, img_url in enumerate(images):
+                            if self.cancel_requested:
+                                break
+                            ext = img_url.split(".")[-1].split("?")[0].lower()
+                            if ext not in ("jpg", "jpeg", "png", "webp"):
+                                ext = "jpg"
+                            save_p = download_dir / f"page_raw_{i+1:04d}.{ext}" if should_merge else download_dir / f"page_{i+1:03d}.{ext}"
+                            downloaded.append(save_p)
+                            f = executor.submit(downloader._download_single_image, img_url, save_p, chap.get("url"))
+                            futures[f] = save_p
+
+                        done_count = 0
+                        for f in as_completed(futures):
+                            if self.cancel_requested:
+                                break
+                            f.result()
+                            done_count += 1
+                            prog = (c_idx - 1 + (done_count / len(images))) / len(chapters)
+                            self.after(0, lambda p=prog, dc=done_count, tc=len(images), ct=chap_title: (
+                                self.progress_bar.set(p),
+                                self.lbl_status.configure(text=f"{ct}: {dc}/{tc} ảnh ({int(p*100)}%)")
+                            ))
+
+                    valid_paths = [p for p in downloaded if p.exists()]
+                    num_downloaded = len(valid_paths)
+
+                    final_paths = []
+                    if should_merge:
+                        final_paths = downloader._merge_images_vertical(valid_paths, chap_dir, STITCH_GROUP_SIZE)
+                        for p in valid_paths:
+                            try: p.unlink(missing_ok=True)
+                            except Exception: pass
+                        try: temp_dir.rmdir()
+                        except Exception: pass
+                        self.after(0, lambda cnt=len(final_paths): self.log(f"     🧩 Đã ghép {cnt} ảnh WebP hoàn chỉnh (5-in-1)"))
+                    else:
+                        for idx_p, p in enumerate(valid_paths, 1):
+                            webp_path = chap_dir / f"page_{idx_p:03d}.webp"
+                            try:
+                                with Image.open(p) as raw_im:
+                                    raw_im.load()
+                                    if raw_im.mode != 'RGB':
+                                        im = raw_im.convert('RGB')
+                                    else:
+                                        im = raw_im
+                                    im.save(webp_path, 'WEBP', quality=90, method=6)
+                                final_paths.append(webp_path)
+                                if p != webp_path and p.exists():
+                                    p.unlink(missing_ok=True)
+                            except Exception:
+                                final_paths.append(p)
+                        self.after(0, lambda cnt=len(final_paths): self.log(f"     ✓ Đã tải {cnt} trang ảnh WebP."))
+
+                    comic_img_count += len(final_paths)
+                    total_downloaded_images += len(final_paths)
+                    total_chapters_all += 1
+
+                    if make_pdf:
+                        pdf_f = chap_dir / f"chap{num_str}.pdf"
+                        downloader._export_pdf(final_paths, pdf_f)
+
+                    # Upload to Cloud Storage & Web API
+                    if upload_to_web and final_paths:
+                        uploaded_cdn_urls = [None] * len(final_paths)
+                        with ThreadPoolExecutor(max_workers=workers) as executor:
+                            fut_map = {}
+                            for p_idx, p in enumerate(final_paths):
+                                obj_name = f"chapters/{slug}/chap{num_str}/page_{p_idx+1:03d}.webp"
+                                fut = executor.submit(upload_file_to_cloud, p, obj_name, "image/webp")
+                                fut_map[fut] = p_idx
+                            for fut in as_completed(fut_map):
+                                p_idx = fut_map[fut]
+                                try:
+                                    uploaded_cdn_urls[p_idx] = fut.result()
+                                except Exception:
+                                    pass
+
+                        valid_cdn_urls = [u for u in uploaded_cdn_urls if u]
+                        if valid_cdn_urls:
+                            synced = sync_chapter_to_web_api(
+                                api_base_url=DEFAULT_API_BASE_URL,
+                                comic_title=info["title"],
+                                comic_slug=slug,
+                                cover_cdn_url=cover_cdn_url or valid_cdn_urls[0],
+                                chapter_num=num,
+                                chapter_title=chap.get("title", f"Chương {num_str}"),
+                                image_urls=valid_cdn_urls,
+                                author=info.get("author"),
+                                translator_group=chap.get("scanlation_group") or info.get("translator_group"),
+                                other_names=info.get("other_names"),
+                                age_limit=info.get("age_limit"),
+                                views=chap.get("views", 0),
+                                published_at=chap.get("updated_at"),
+                                created_at=chap.get("updated_at"),
+                                comic_views=info.get("views", 0),
+                                comic_created_at=info.get("created_at_iso") or info.get("created_date_str"),
+                                comic_updated_at=info.get("updated_at_iso") or info.get("updated_date_str"),
+                                categories=info.get("genres", [])
+                            )
+                            if synced:
+                                self.after(0, lambda t=chap_title: self.log(f"     🌐 Đã đồng bộ {t} lên Website!"))
+                            else:
+                                self.after(0, lambda t=chap_title: self.log(f"     ⚠️ Đã upload Cloud {t} - Chưa đồng bộ Web API"))
+
+                self.after(0, lambda t=m_title, img_c=comic_img_count, n=comic_num: self.log(f"   🎉 [{n}] Hoàn tất bộ '{t}' ({img_c} ảnh)!"))
+                total_processed_comics += 1
+
+            except Exception as ex:
+                self.after(0, lambda t=m_title, err=str(ex): self.log(f"   ❌ Lỗi khi xử lý bộ truyện '{t}': {err}"))
+                total_processed_comics += 1
+                continue
+
+        elapsed = time.time() - start_time
+        self.after(0, lambda: self.progress_bar.set(1.0))
+        self.after(0, lambda: self.log("\n" + "=" * 70))
+        self.after(0, lambda: self.log(f"🎉 HOÀN TẤT TIẾN TRÌNH TẢI HÀNG LOẠT!"))
+        self.after(0, lambda: self.log(f"• Tổng số bộ truyện đã xử lý: {total_processed_comics} bộ"))
+        self.after(0, lambda: self.log(f"• Tổng số chapter đã tải: {total_chapters_all} chapter"))
+        self.after(0, lambda: self.log(f"• Tổng số trang ảnh đã tải: {total_downloaded_images} ảnh"))
+        self.after(0, lambda: self.log(f"• Thời gian chạy: {elapsed:.1f}s ({elapsed/60:.1f} phút)"))
+        self.after(0, lambda: self.log("=" * 70 + "\n"))
+        self.after(0, lambda: self.lbl_status.configure(text=f"Hoàn tất tải hàng loạt: {total_processed_comics} bộ ({total_downloaded_images} ảnh)"))
+
+        self.after(0, self._on_download_finished)
+
     def _on_download_finished(self):
         self.is_downloading = False
         self.btn_start.configure(state="normal")
         self.btn_fetch.configure(state="normal")
         self.btn_cancel.configure(state="disabled")
+        if hasattr(self, 'btn_header_batch'):
+            self.btn_header_batch.configure(state="normal")
+        if hasattr(self, 'btn_dex_download_all'):
+            self.btn_dex_download_all.configure(state="normal")
 
 
 def main():
