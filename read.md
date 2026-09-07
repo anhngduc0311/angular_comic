@@ -20,16 +20,21 @@ sudo su -
 usermod -aG sudo akzan0311
 passwd akzan0311
 sudo apt update && sudo apt install -y git
+
+git config --global credential.helper store
 git clone https://github.com/anhngduc0311/angular_comic.git
+Username: anhngduc0311
+Password: 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
 
 cd ~/angular_comic
+git branch -a
+git checkout truyenggclone
 chmod +x deploy.sh
 ./deploy.sh
 
-
+xoa docker
 docker compose down -v
 ./deploy.sh
 
-git config --global credential.helper store
-Username: anhngduc0311
-Password: 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
+
+

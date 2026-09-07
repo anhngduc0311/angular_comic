@@ -1,18 +1,18 @@
 services:
-  # 1. Database - SQL Server
-  sqlserver:
-    image: mcr.microsoft.com/azure-sql-edge:latest
-    container_name: truyenkomi-sqlserver
+  # 1. Database - PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: truyenkomi-postgres
     ports:
-      - "1433:1433"
+      - "5432:5432"
     environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=TruyenKomiDbPassword2026!
-      - MSSQL_PID=Developer
+      - POSTGRES_DB=TruyenKomiDb
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=TruyenKomiDbPassword2026!
     restart: always
     volumes:
-      - sqlserver_data:/var/opt/mssql
-      - ./database:/database:ro
+      - postgres_data:/var/lib/postgresql/data
+      - ./database:/docker-entrypoint-initdb.d:ro
 
   # 2. Cache - Redis
   redis:
@@ -49,7 +49,7 @@ services:
       - "5000:5000"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - DB_CONNECTION_STRING=Server=sqlserver,1433;Database=TruyenKomiDb;User Id=sa;Password=TruyenKomiDbPassword2026!;TrustServerCertificate=True;MultipleActiveResultSets=true
+      - DB_CONNECTION_STRING=Host=postgres;Port=5432;Database=TruyenKomiDb;Username=postgres;Password=TruyenKomiDbPassword2026!;
       - REDIS_CONNECTION_STRING=redis:6379,abortConnect=false
       - MEILISEARCH_HOST=http://meilisearch:7700
       - MEILI_MASTER_KEY=TruyenKomiMeiliMasterKey2026!
@@ -66,7 +66,7 @@ services:
       - R2_SECURE=${R2_SECURE:-true}
       - R2_CDN_BASE_URL=${R2_CDN_BASE_URL:-https://img.truyenkomi.site}
     depends_on:
-      - sqlserver
+      - postgres
       - redis
       - meilisearch
 
@@ -96,6 +96,6 @@ services:
       - redis
 
 volumes:
-  sqlserver_data:
+  postgres_data:
   redis_data:
   meili_data:

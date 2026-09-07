@@ -26,7 +26,7 @@ docker-compose up -d
 ```
 
 > **Các dịch vụ container được khởi động:**
-> - **SQL Server**: Port `1433` (Database `TruyenKomiDb`, user: `sa`, password: `TruyenKomiDbPassword2026!`)
+> - **PostgreSQL**: Port `5432` (Database `TruyenKomiDb`, user: `postgres`, password: `TruyenKomiDbPassword2026!`)
 > - **Redis Cache**: Port `6379` (Caching dữ liệu & Rate Limiting)
 > - **MinIO Object Storage**: Port `9000` (S3 API) & Port `9001` (Web Management Console)
 > - **Meilisearch**: Port `7700` (Công cụ tìm kiếm Full-text search tốc độ cao)
@@ -117,7 +117,7 @@ C:\cloudflare\cloudflared.exe --config "C:\Users\ADMIN\.cloudflared\config.yml" 
 | **Grafana APM Dashboard** | [http://localhost:3000](http://localhost:3000) | `admin` | `admin` |
 | **Prometheus Metrics** | [http://localhost:9090](http://localhost:9090) | - | - |
 | **Meilisearch Search Engine** | [http://localhost:7700](http://localhost:7700) | Master Key | `TruyenKomiMeiliMasterKey2026!` |
-| **SQL Server Database** | `localhost:1433` | `sa` | `TruyenKomiDbPassword2026!` |
+| **PostgreSQL Database** | `localhost:5432` | `postgres` | `TruyenKomiDbPassword2026!` |
 
 ---
 

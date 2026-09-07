@@ -173,7 +173,7 @@ fi
 # BƯỚC 5: BUILD VÀ KHỞI CHẠY TẤT CẢ CONTAINERS
 # ==============================================================================
 log_step "BƯỚC 5/7: Build và khởi chạy toàn bộ dịch vụ TruyenKomi bằng Docker Compose"
-log_info "Đang thực thi: $DOCKER_COMPOSE_CMD up -d --build (sqlserver, redis, meilisearch, api, frontend, nginx)..."
+log_info "Đang thực thi: $DOCKER_COMPOSE_CMD up -d --build (postgres, redis, meilisearch, api, frontend, nginx)..."
 
 $DOCKER_COMPOSE_CMD up -d --build
 
@@ -182,41 +182,33 @@ log_success "Tất cả các dịch vụ container đã được build và khở
 # ==============================================================================
 # BƯỚC 6: TỰ ĐỘNG KIỂM TRA & KHỞI TẠO DATABASE SCHEMA
 # ==============================================================================
-log_step "BƯỚC 6/7: Tự động kiểm tra & Khởi tạo Database SQL Server"
+log_step "BƯỚC 6/7: Tự động kiểm tra & Khởi tạo Database PostgreSQL"
 
-log_info "Đang chờ SQL Server container sẵn sàng nhận kết nối..."
-SQLCMD_BIN=""
+log_info "Đang chờ PostgreSQL container sẵn sàng nhận kết nối..."
+PG_READY=false
 for i in {1..30}; do
-    # Tự động phát hiện đường dẫn sqlcmd trong container (hỗ trợ Azure SQL Edge, SQL 2019, SQL 2022)
-    if docker exec truyenkomi-sqlserver test -f /opt/mssql-tools/bin/sqlcmd 2>/dev/null; then
-        SQLCMD_BIN="/opt/mssql-tools/bin/sqlcmd"
-    elif docker exec truyenkomi-sqlserver test -f /opt/mssql-tools18/bin/sqlcmd 2>/dev/null; then
-        SQLCMD_BIN="/opt/mssql-tools18/bin/sqlcmd -C"
-    fi
-
-    if [ -n "$SQLCMD_BIN" ]; then
-        if docker exec truyenkomi-sqlserver $SQLCMD_BIN -S localhost -U sa -P 'TruyenKomiDbPassword2026!' -Q "SELECT 1" >/dev/null 2>&1; then
-            log_success "SQL Server đã sẵn sàng kết nối!"
-            break
-        fi
+    if docker exec truyenkomi-postgres pg_isready -U postgres -d TruyenKomiDb >/dev/null 2>&1; then
+        log_success "PostgreSQL đã sẵn sàng kết nối!"
+        PG_READY=true
+        break
     fi
     echo -n "."
     sleep 2
 done
 echo ""
 
-if [ -z "$SQLCMD_BIN" ]; then
-    log_warning "Không xác định được công cụ sqlcmd trong container SQL Server. Bỏ qua bước kiểm tra SQL tự động."
+if [ "$PG_READY" = false ]; then
+    log_warning "PostgreSQL container chưa sẵn sàng sau 60s. Vui lòng kiểm tra lại logs container."
 else
     # Kiểm tra xem Database TruyenKomiDb và bảng Users đã tồn tại chưa
-    CHECK_DB=$(docker exec -i truyenkomi-sqlserver $SQLCMD_BIN -S localhost -U sa -P 'TruyenKomiDbPassword2026!' -Q "IF OBJECT_ID('TruyenKomiDb.dbo.Users', 'U') IS NOT NULL PRINT 'DB_EXISTS'" 2>/dev/null || echo "")
+    CHECK_DB=$(docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb -tAc "SELECT to_regclass('public.\"Users\"');" 2>/dev/null || echo "")
 
-    if [[ "$CHECK_DB" != *"DB_EXISTS"* ]]; then
+    if [ -z "$CHECK_DB" ] || [ "$CHECK_DB" = "" ]; then
         log_info "Phát hiện Database mới (chưa có bảng): Đang tự động nạp cấu trúc Database sạch (01_CreateDatabase.sql)..."
         
         if [ -f "database/01_CreateDatabase.sql" ]; then
             log_info "-> Đang thực thi /database/01_CreateDatabase.sql (Tạo các bảng & Index)..."
-            docker exec -i truyenkomi-sqlserver $SQLCMD_BIN -S localhost -U sa -P 'TruyenKomiDbPassword2026!' -i /database/01_CreateDatabase.sql
+            docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb -f /docker-entrypoint-initdb.d/01_CreateDatabase.sql
             log_success "Đã tạo toàn bộ cấu trúc bảng Database TruyenKomiDb thành công (Sạch 100%, sẵn sàng nhận dữ liệu)!"
         fi
 

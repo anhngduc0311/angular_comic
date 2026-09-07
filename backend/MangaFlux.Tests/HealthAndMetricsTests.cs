@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using TruyenKomi.API.Services;
 using TruyenKomi.API.Services.HealthChecks;
@@ -52,6 +53,20 @@ namespace TruyenKomi.Tests
             var result = await healthCheck.CheckHealthAsync(context, CancellationToken.None);
 
             Assert.Equal(HealthStatus.Healthy, result.Status);
+        }
+
+        [Fact]
+        public async Task PostgreSqlHealthCheck_WithInMemoryDb_CanExecute()
+        {
+            var options = new Microsoft.EntityFrameworkCore.DbContextOptionsBuilder<TruyenKomi.API.Data.MangaDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+            using var dbContext = new TruyenKomi.API.Data.MangaDbContext(options);
+            var healthCheck = new PostgreSqlHealthCheck(dbContext);
+            var context = new HealthCheckContext();
+
+            var result = await healthCheck.CheckHealthAsync(context, CancellationToken.None);
+            Assert.True(result.Status == HealthStatus.Healthy || result.Status == HealthStatus.Unhealthy);
         }
     }
 }

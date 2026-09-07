@@ -76,16 +76,16 @@ namespace TruyenKomi.API.Services
 
             if (comicUpdates.Count > 0)
             {
-                if (dbContext.Database.IsSqlServer())
+                if (dbContext.Database.IsNpgsql())
                 {
                     foreach (var batch in comicUpdates.Chunk(100))
                     {
                         var valuesClauses = string.Join(",", batch.Select(b => $"({b.Key}, {b.Value})"));
                         var sql = $@"
-                            UPDATE c
-                            SET c.Views = c.Views + v.ViewsDelta
-                            FROM Comics c
-                            INNER JOIN (VALUES {valuesClauses}) AS v(Id, ViewsDelta) ON c.Id = v.Id;";
+                            UPDATE ""Comics"" AS c
+                            SET ""Views"" = c.""Views"" + v.""ViewsDelta""
+                            FROM (VALUES {valuesClauses}) AS v(""Id"", ""ViewsDelta"")
+                            WHERE c.""Id"" = v.""Id"";";
                         await dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
                         comicSyncCount += batch.Length;
                         totalViewsSynced += batch.Sum(b => b.Value);
@@ -123,16 +123,16 @@ namespace TruyenKomi.API.Services
             int chapterSyncCount = 0;
             if (chapterUpdates.Count > 0)
             {
-                if (dbContext.Database.IsSqlServer())
+                if (dbContext.Database.IsNpgsql())
                 {
                     foreach (var batch in chapterUpdates.Chunk(100))
                     {
                         var valuesClauses = string.Join(",", batch.Select(b => $"({b.Key}, {b.Value})"));
                         var sql = $@"
-                            UPDATE ch
-                            SET ch.Views = ch.Views + v.ViewsDelta
-                            FROM Chapters ch
-                            INNER JOIN (VALUES {valuesClauses}) AS v(Id, ViewsDelta) ON ch.Id = v.Id;";
+                            UPDATE ""Chapters"" AS ch
+                            SET ""Views"" = ch.""Views"" + v.""ViewsDelta""
+                            FROM (VALUES {valuesClauses}) AS v(""Id"", ""ViewsDelta"")
+                            WHERE ch.""Id"" = v.""Id"";";
                         await dbContext.Database.ExecuteSqlRawAsync(sql, cancellationToken);
                         chapterSyncCount += batch.Length;
                         totalViewsSynced += batch.Sum(b => b.Value);
@@ -158,7 +158,7 @@ namespace TruyenKomi.API.Services
 
             if (comicSyncCount > 0 || chapterSyncCount > 0)
             {
-                _logger.LogInformation("[ViewSyncWorker] Batch synced {ComicCount} comics and {ChapterCount} chapters ({TotalViews} views) to SQL Server.", comicSyncCount, chapterSyncCount, totalViewsSynced);
+                _logger.LogInformation("[ViewSyncWorker] Batch synced {ComicCount} comics and {ChapterCount} chapters ({TotalViews} views) to Database.", comicSyncCount, chapterSyncCount, totalViewsSynced);
             }
         }
     }

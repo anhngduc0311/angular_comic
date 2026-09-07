@@ -8,11 +8,11 @@ using TruyenKomi.API.Data;
 
 namespace TruyenKomi.API.Services.HealthChecks
 {
-    public class SqlServerHealthCheck : IHealthCheck
+    public class PostgreSqlHealthCheck : IHealthCheck
     {
         private readonly MangaDbContext _dbContext;
 
-        public SqlServerHealthCheck(MangaDbContext dbContext)
+        public PostgreSqlHealthCheck(MangaDbContext dbContext)
         {
             _dbContext = dbContext;
         }
@@ -24,14 +24,14 @@ namespace TruyenKomi.API.Services.HealthChecks
                 var canConnect = await _dbContext.Database.CanConnectAsync(cancellationToken);
                 if (canConnect)
                 {
-                    return HealthCheckResult.Healthy("SQL Server database connection is healthy.");
+                    return HealthCheckResult.Healthy("PostgreSQL database connection is healthy.");
                 }
 
-                return HealthCheckResult.Unhealthy("Cannot connect to SQL Server database.");
+                return HealthCheckResult.Unhealthy("Cannot connect to PostgreSQL database.");
             }
             catch (Exception ex)
             {
-                return HealthCheckResult.Unhealthy($"SQL Server health check failed: {ex.Message}", ex);
+                return HealthCheckResult.Unhealthy($"PostgreSQL health check failed: {ex.Message}", ex);
             }
         }
     }

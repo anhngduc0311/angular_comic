@@ -56,13 +56,14 @@ foreach (var envPath in envCandidates)
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
 
-// 1. Add DbContext with SQL Server
+// 1. Add DbContext with PostgreSQL
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var defaultConn = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING") 
                   ?? builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddDbContext<MangaDbContext>(options =>
-    options.UseSqlServer(defaultConn, sqlOptions =>
-        sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+    options.UseNpgsql(defaultConn, npgsqlOptions =>
+        npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
 // 2. Register Application Services, Distributed Caching & Exception Handling
 var redisConnectionString = Environment.GetEnvironmentVariable("REDIS_CONNECTION_STRING") 
@@ -97,7 +98,7 @@ builder.Services.AddProblemDetails();
 
 // 2a. Register Health Checks
 builder.Services.AddHealthChecks()
-    .AddCheck<SqlServerHealthCheck>("database", tags: new[] { "ready", "db" })
+    .AddCheck<PostgreSqlHealthCheck>("database", tags: new[] { "ready", "db" })
     .AddCheck<RedisHealthCheck>("redis", tags: new[] { "ready", "cache" })
     .AddCheck<StorageHealthCheck>("storage", tags: new[] { "ready", "storage" });
 
@@ -256,7 +257,7 @@ using (var scope = app.Services.CreateScope())
             }
         }
         catch { }
-        Console.WriteLine($"[SQL Server] Waiting for database to be ready (attempt {retry}/12)...");
+        Console.WriteLine($"[PostgreSQL] Waiting for database to be ready (attempt {retry}/12)...");
         System.Threading.Thread.Sleep(3000);
     }
 
@@ -266,6 +267,26 @@ using (var scope = app.Services.CreateScope())
         {
             if (db.Database.IsRelational())
             {
+                try
+                {
+                    db.Database.ExecuteSqlRaw(@"
+                        CREATE TABLE IF NOT EXISTS ""__EFMigrationsHistory"" (
+                            ""MigrationId"" character varying(150) NOT NULL,
+                            ""ProductVersion"" character varying(32) NOT NULL,
+                            CONSTRAINT ""PK___EFMigrationsHistory"" PRIMARY KEY (""MigrationId"")
+                        );
+                        DO $$
+                        BEGIN
+                            IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'Categories') THEN
+                                INSERT INTO ""__EFMigrationsHistory"" (""MigrationId"", ""ProductVersion"")
+                                VALUES ('20260907013224_Initial_Postgres_Schema', '9.0.4')
+                                ON CONFLICT (""MigrationId"") DO NOTHING;
+                            END IF;
+                        END $$;
+                    ");
+                }
+                catch { }
+
                 db.Database.Migrate();
                 Console.WriteLine("[EF Core] Migrations applied successfully.");
             }
@@ -320,7 +341,7 @@ using (var scope = app.Services.CreateScope())
     }
     else
     {
-        Console.WriteLine("[SQL Server] Could not connect to database after 12 retries.");
+        Console.WriteLine("[PostgreSQL] Could not connect to database after 12 retries.");
     }
 }
 

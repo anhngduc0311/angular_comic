@@ -1,205 +1,181 @@
 -- ============================================================================
--- TRUYENKOMI DATABASE CREATION SCRIPT (SQL SERVER)
+-- TRUYENKOMI DATABASE CREATION SCRIPT (POSTGRESQL)
 -- ============================================================================
 
-IF DB_ID('TruyenKomiDb') IS NOT NULL
-BEGIN
-    ALTER DATABASE TruyenKomiDb SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-    DROP DATABASE TruyenKomiDb;
-END
-GO
-
-CREATE DATABASE TruyenKomiDb;
-GO
-
-USE TruyenKomiDb;
-GO
-
 -- 1. Table: Users
-CREATE TABLE Users (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    Username NVARCHAR(50) NOT NULL UNIQUE,
-    Email NVARCHAR(100) NOT NULL UNIQUE,
-    PasswordHash NVARCHAR(255) NOT NULL,
-    FullName NVARCHAR(100) NULL,
-    Avatar NVARCHAR(500) NULL,
-    Role NVARCHAR(20) NOT NULL DEFAULT 'User', -- 'User' or 'Admin'
-    IsLocked BIT NOT NULL DEFAULT 0,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    RefreshToken NVARCHAR(MAX) NULL,
-    RefreshTokenExpiryTime DATETIME2 NULL,
-    GoogleId NVARCHAR(255) NULL,
-    AuthProvider NVARCHAR(50) NOT NULL DEFAULT 'Local'
+CREATE TABLE IF NOT EXISTS "Users" (
+    "Id" SERIAL PRIMARY KEY,
+    "Username" VARCHAR(50) NOT NULL UNIQUE,
+    "Email" VARCHAR(100) NOT NULL UNIQUE,
+    "PasswordHash" VARCHAR(255) NOT NULL,
+    "FullName" VARCHAR(100) NULL,
+    "Avatar" VARCHAR(500) NULL,
+    "Role" VARCHAR(20) NOT NULL DEFAULT 'User',
+    "IsLocked" BOOLEAN NOT NULL DEFAULT FALSE,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "RefreshToken" TEXT NULL,
+    "RefreshTokenExpiryTime" TIMESTAMP NULL,
+    "GoogleId" VARCHAR(255) NULL,
+    "AuthProvider" VARCHAR(50) NOT NULL DEFAULT 'Local'
 );
-GO
 
 -- 2. Table: Categories
-CREATE TABLE Categories (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    Name NVARCHAR(100) NOT NULL UNIQUE,
-    Slug NVARCHAR(100) NOT NULL UNIQUE,
-    Description NVARCHAR(500) NULL,
-    ImageUrl NVARCHAR(500) NULL
+CREATE TABLE IF NOT EXISTS "Categories" (
+    "Id" SERIAL PRIMARY KEY,
+    "Name" VARCHAR(100) NOT NULL UNIQUE,
+    "Slug" VARCHAR(100) NOT NULL UNIQUE,
+    "Description" VARCHAR(500) NULL,
+    "ImageUrl" VARCHAR(500) NULL
 );
-GO
 
 -- 3. Table: Comics
-CREATE TABLE Comics (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    Title NVARCHAR(255) NOT NULL,
-    Slug NVARCHAR(255) NOT NULL UNIQUE,
-    Description NVARCHAR(MAX) NULL,
-    CoverImage NVARCHAR(500) NULL,
-    BannerImage NVARCHAR(500) NULL,
-    Author NVARCHAR(100) NULL,
-    OtherNames NVARCHAR(255) NULL,
-    Artist NVARCHAR(100) NULL,
-    Country NVARCHAR(50) NULL,
-    ReleaseYear INT NULL,
-    Status NVARCHAR(50) NOT NULL DEFAULT 'Ongoing', -- 'Ongoing', 'Completed'
-    Views INT NOT NULL DEFAULT 0,
-    Rating DECIMAL(3,2) NOT NULL DEFAULT 5.0,
-    IsFeatured BIT NOT NULL DEFAULT 0,
-    IsPublic BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    UpdatedAt DATETIME2 NOT NULL DEFAULT GETDATE()
+CREATE TABLE IF NOT EXISTS "Comics" (
+    "Id" SERIAL PRIMARY KEY,
+    "Title" VARCHAR(255) NOT NULL,
+    "Slug" VARCHAR(255) NOT NULL UNIQUE,
+    "Description" TEXT NULL,
+    "CoverImage" VARCHAR(500) NULL,
+    "BannerImage" VARCHAR(500) NULL,
+    "Author" VARCHAR(100) NULL,
+    "OtherNames" VARCHAR(255) NULL,
+    "Artist" VARCHAR(100) NULL,
+    "Country" VARCHAR(50) NULL,
+    "TranslatorGroup" VARCHAR(100) NULL,
+    "AgeLimit" VARCHAR(20) NULL DEFAULT '13+',
+    "ReleaseYear" INT NULL,
+    "Status" VARCHAR(50) NOT NULL DEFAULT 'Ongoing',
+    "Views" INT NOT NULL DEFAULT 0,
+    "Rating" NUMERIC(3,2) NOT NULL DEFAULT 5.0,
+    "IsFeatured" BOOLEAN NOT NULL DEFAULT FALSE,
+    "IsPublic" BOOLEAN NOT NULL DEFAULT TRUE,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "UpdatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
-GO
 
 -- 4. Table: ComicCategories (Junction Table for Many-to-Many)
-CREATE TABLE ComicCategories (
-    ComicId INT NOT NULL,
-    CategoryId INT NOT NULL,
-    CONSTRAINT PK_ComicCategories PRIMARY KEY (ComicId, CategoryId),
-    CONSTRAINT FK_ComicCategories_Comics FOREIGN KEY (ComicId) REFERENCES Comics(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_ComicCategories_Categories FOREIGN KEY (CategoryId) REFERENCES Categories(Id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS "ComicCategories" (
+    "ComicId" INT NOT NULL,
+    "CategoryId" INT NOT NULL,
+    CONSTRAINT "PK_ComicCategories" PRIMARY KEY ("ComicId", "CategoryId"),
+    CONSTRAINT "FK_ComicCategories_Comics" FOREIGN KEY ("ComicId") REFERENCES "Comics"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_ComicCategories_Categories" FOREIGN KEY ("CategoryId") REFERENCES "Categories"("Id") ON DELETE CASCADE
 );
-GO
 
 -- 5. Table: Chapters
-CREATE TABLE Chapters (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    ComicId INT NOT NULL,
-    ChapterNumber FLOAT NOT NULL,
-    Title NVARCHAR(255) NOT NULL,
-    Views INT NOT NULL DEFAULT 0,
-    IsPublic BIT NOT NULL DEFAULT 1,
-    PublishedAt DATETIME2 NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_Chapters_Comics FOREIGN KEY (ComicId) REFERENCES Comics(Id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS "Chapters" (
+    "Id" SERIAL PRIMARY KEY,
+    "ComicId" INT NOT NULL,
+    "ChapterNumber" DOUBLE PRECISION NOT NULL,
+    "Title" VARCHAR(255) NOT NULL,
+    "Views" INT NOT NULL DEFAULT 0,
+    "IsPublic" BOOLEAN NOT NULL DEFAULT TRUE,
+    "PublishedAt" TIMESTAMP NULL,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_Chapters_Comics" FOREIGN KEY ("ComicId") REFERENCES "Comics"("Id") ON DELETE CASCADE
 );
-GO
 
 -- 6. Table: ChapterPages
-CREATE TABLE ChapterPages (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    ChapterId INT NOT NULL,
-    PageNumber INT NOT NULL,
-    ImageUrl NVARCHAR(500) NOT NULL,
-    CONSTRAINT FK_ChapterPages_Chapters FOREIGN KEY (ChapterId) REFERENCES Chapters(Id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS "ChapterPages" (
+    "Id" SERIAL PRIMARY KEY,
+    "ChapterId" INT NOT NULL,
+    "PageNumber" INT NOT NULL,
+    "ImageUrl" VARCHAR(500) NOT NULL,
+    CONSTRAINT "FK_ChapterPages_Chapters" FOREIGN KEY ("ChapterId") REFERENCES "Chapters"("Id") ON DELETE CASCADE
 );
-GO
 
 -- 7. Table: Bookmarks
-CREATE TABLE Bookmarks (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT NOT NULL,
-    ComicId INT NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_Bookmarks_Users FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_Bookmarks_Comics FOREIGN KEY (ComicId) REFERENCES Comics(Id) ON DELETE CASCADE,
-    CONSTRAINT UQ_User_Comic_Bookmark UNIQUE (UserId, ComicId)
+CREATE TABLE IF NOT EXISTS "Bookmarks" (
+    "Id" SERIAL PRIMARY KEY,
+    "UserId" INT NOT NULL,
+    "ComicId" INT NOT NULL,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_Bookmarks_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_Bookmarks_Comics" FOREIGN KEY ("ComicId") REFERENCES "Comics"("Id") ON DELETE CASCADE,
+    CONSTRAINT "UQ_User_Comic_Bookmark" UNIQUE ("UserId", "ComicId")
 );
-GO
 
 -- 8. Table: ReadingHistories
-CREATE TABLE ReadingHistories (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT NOT NULL,
-    ComicId INT NOT NULL,
-    ChapterId INT NOT NULL,
-    LastReadAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_ReadingHistories_Users FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_ReadingHistories_Comics FOREIGN KEY (ComicId) REFERENCES Comics(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_ReadingHistories_Chapters FOREIGN KEY (ChapterId) REFERENCES Chapters(Id)
+CREATE TABLE IF NOT EXISTS "ReadingHistories" (
+    "Id" SERIAL PRIMARY KEY,
+    "UserId" INT NOT NULL,
+    "ComicId" INT NOT NULL,
+    "ChapterId" INT NOT NULL,
+    "LastReadAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_ReadingHistories_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_ReadingHistories_Comics" FOREIGN KEY ("ComicId") REFERENCES "Comics"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_ReadingHistories_Chapters" FOREIGN KEY ("ChapterId") REFERENCES "Chapters"("Id") ON DELETE CASCADE
 );
-GO
 
 -- 9. Table: Comments
-CREATE TABLE Comments (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT NOT NULL,
-    ComicId INT NOT NULL,
-    ChapterId INT NULL,
-    ParentCommentId INT NULL,
-    Content NVARCHAR(MAX) NOT NULL,
-    IsHidden BIT NOT NULL DEFAULT 0,
-    ReportCount INT NOT NULL DEFAULT 0,
-    ReportReason NVARCHAR(500) NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_Comments_Users FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_Comments_Comics FOREIGN KEY (ComicId) REFERENCES Comics(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_Comments_Chapters FOREIGN KEY (ChapterId) REFERENCES Chapters(Id),
-    CONSTRAINT FK_Comments_ParentComment FOREIGN KEY (ParentCommentId) REFERENCES Comments(Id)
+CREATE TABLE IF NOT EXISTS "Comments" (
+    "Id" SERIAL PRIMARY KEY,
+    "UserId" INT NOT NULL,
+    "ComicId" INT NOT NULL,
+    "ChapterId" INT NULL,
+    "ParentCommentId" INT NULL,
+    "Content" TEXT NOT NULL,
+    "IsHidden" BOOLEAN NOT NULL DEFAULT FALSE,
+    "ReportCount" INT NOT NULL DEFAULT 0,
+    "ReportReason" VARCHAR(500) NULL,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_Comments_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_Comments_Comics" FOREIGN KEY ("ComicId") REFERENCES "Comics"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_Comments_Chapters" FOREIGN KEY ("ChapterId") REFERENCES "Chapters"("Id") ON DELETE SET NULL,
+    CONSTRAINT "FK_Comments_ParentComment" FOREIGN KEY ("ParentCommentId") REFERENCES "Comments"("Id") ON DELETE SET NULL
 );
-GO
 
 -- 10. Table: CommentLikes
-CREATE TABLE CommentLikes (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT NOT NULL,
-    CommentId INT NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_CommentLikes_Users FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_CommentLikes_Comments FOREIGN KEY (CommentId) REFERENCES Comments(Id),
-    CONSTRAINT UQ_User_CommentLike UNIQUE (UserId, CommentId)
+CREATE TABLE IF NOT EXISTS "CommentLikes" (
+    "Id" SERIAL PRIMARY KEY,
+    "UserId" INT NOT NULL,
+    "CommentId" INT NOT NULL,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_CommentLikes_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_CommentLikes_Comments" FOREIGN KEY ("CommentId") REFERENCES "Comments"("Id") ON DELETE CASCADE,
+    CONSTRAINT "UQ_User_CommentLike" UNIQUE ("UserId", "CommentId")
 );
-GO
 
 -- 11. Table: Notifications
-CREATE TABLE Notifications (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT NOT NULL,
-    Type NVARCHAR(50) NOT NULL DEFAULT 'AdminSystem',
-    Title NVARCHAR(255) NOT NULL,
-    Message NVARCHAR(MAX) NOT NULL,
-    Link NVARCHAR(500) NULL,
-    IsRead BIT NOT NULL DEFAULT 0,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    CONSTRAINT FK_Notifications_Users FOREIGN KEY (UserId) REFERENCES Users(Id) ON DELETE CASCADE
+CREATE TABLE IF NOT EXISTS "Notifications" (
+    "Id" SERIAL PRIMARY KEY,
+    "UserId" INT NOT NULL,
+    "Type" VARCHAR(50) NOT NULL DEFAULT 'AdminSystem',
+    "Title" VARCHAR(255) NOT NULL,
+    "Message" TEXT NOT NULL,
+    "Link" VARCHAR(500) NULL,
+    "IsRead" BOOLEAN NOT NULL DEFAULT FALSE,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_Notifications_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE
 );
-GO
 
 -- 12. Table: Reports
-CREATE TABLE Reports (
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    ComicId INT NOT NULL,
-    ChapterId INT NULL,
-    UserId INT NULL,
-    ReporterName NVARCHAR(100) NOT NULL,
-    ErrorType NVARCHAR(50) NOT NULL,
-    Description NVARCHAR(MAX) NULL,
-    Status NVARCHAR(50) NOT NULL DEFAULT 'Pending',
-    AdminNotes NVARCHAR(MAX) NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT GETDATE(),
-    ResolvedAt DATETIME2 NULL,
-    CONSTRAINT FK_Reports_Comics FOREIGN KEY (ComicId) REFERENCES Comics(Id) ON DELETE CASCADE,
-    CONSTRAINT FK_Reports_Chapters FOREIGN KEY (ChapterId) REFERENCES Chapters(Id),
-    CONSTRAINT FK_Reports_Users FOREIGN KEY (UserId) REFERENCES Users(Id)
+CREATE TABLE IF NOT EXISTS "Reports" (
+    "Id" SERIAL PRIMARY KEY,
+    "ComicId" INT NOT NULL,
+    "ChapterId" INT NULL,
+    "UserId" INT NULL,
+    "ReporterName" VARCHAR(100) NOT NULL,
+    "ErrorType" VARCHAR(50) NOT NULL,
+    "Description" TEXT NULL,
+    "Status" VARCHAR(50) NOT NULL DEFAULT 'Pending',
+    "AdminNotes" TEXT NULL,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "ResolvedAt" TIMESTAMP NULL,
+    CONSTRAINT "FK_Reports_Comics" FOREIGN KEY ("ComicId") REFERENCES "Comics"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_Reports_Chapters" FOREIGN KEY ("ChapterId") REFERENCES "Chapters"("Id") ON DELETE SET NULL,
+    CONSTRAINT "FK_Reports_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE SET NULL
 );
-GO
 
 -- Performance Optimization Indexes
-CREATE UNIQUE INDEX IX_Comics_Slug ON Comics(Slug);
-CREATE UNIQUE INDEX IX_Categories_Slug ON Categories(Slug);
-CREATE UNIQUE INDEX IX_Users_Username ON Users(Username);
-CREATE UNIQUE INDEX IX_Users_Email ON Users(Email);
-CREATE INDEX IX_Chapters_ComicId ON Chapters(ComicId);
-CREATE INDEX IX_Chapters_ComicId_ChapterNumber ON Chapters(ComicId, ChapterNumber);
-CREATE INDEX IX_ChapterPages_ChapterId ON ChapterPages(ChapterId);
-CREATE INDEX IX_ReadingHistories_UserId_LastReadAt ON ReadingHistories(UserId, LastReadAt);
-CREATE INDEX IX_Bookmarks_UserId ON Bookmarks(UserId);
-CREATE INDEX IX_Comments_ComicId_CreatedAt ON Comments(ComicId, CreatedAt);
-CREATE INDEX IX_Notifications_UserId_IsRead_CreatedAt ON Notifications(UserId, IsRead, CreatedAt);
-CREATE INDEX IX_Comics_IsPublic_IsFeatured_UpdatedAt ON Comics(IsPublic, IsFeatured, UpdatedAt);
-GO
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_Comics_Slug" ON "Comics"("Slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_Categories_Slug" ON "Categories"("Slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Username" ON "Users"("Username");
+CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users"("Email");
+CREATE INDEX IF NOT EXISTS "IX_Chapters_ComicId" ON "Chapters"("ComicId");
+CREATE INDEX IF NOT EXISTS "IX_Chapters_ComicId_ChapterNumber" ON "Chapters"("ComicId", "ChapterNumber");
+CREATE INDEX IF NOT EXISTS "IX_ChapterPages_ChapterId" ON "ChapterPages"("ChapterId");
+CREATE INDEX IF NOT EXISTS "IX_ReadingHistories_UserId_LastReadAt" ON "ReadingHistories"("UserId", "LastReadAt");
+CREATE INDEX IF NOT EXISTS "IX_Bookmarks_UserId" ON "Bookmarks"("UserId");
+CREATE INDEX IF NOT EXISTS "IX_Comments_ComicId_CreatedAt" ON "Comments"("ComicId", "CreatedAt");
+CREATE INDEX IF NOT EXISTS "IX_Notifications_UserId_IsRead_CreatedAt" ON "Notifications"("UserId", "IsRead", "CreatedAt");
+CREATE INDEX IF NOT EXISTS "IX_Comics_IsPublic_IsFeatured_UpdatedAt" ON "Comics"("IsPublic", "IsFeatured", "UpdatedAt");

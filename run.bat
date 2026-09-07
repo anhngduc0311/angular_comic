@@ -13,7 +13,7 @@ echo   [1] Khoi chay TOAN BO (Docker + Backend .NET + Frontend Angular)
 echo   [2] Khoi chay Backend .NET API (Port 5000)
 echo   [3] Khoi chay Frontend Angular (Port 4200)
 echo   [4] Khoi chay Tool Tai Truyen ZetTruyen (Giao dien GUI)
-echo   [5] Khoi dong Docker Containers (SQL Server, Redis, Meilisearch)
+echo   [5] Khoi dong Docker Containers (PostgreSQL, Redis, Meilisearch)
 echo   [6] Tat Docker Containers
 echo   [0] Thoat
 echo.
