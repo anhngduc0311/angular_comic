@@ -103,18 +103,20 @@
               *ngIf="firstChapterNumber !== null" 
               [routerLink]="['/read', comic.slug, 'chuong-' + firstChapterNumber]" 
               class="btn-cta btn-read-first"
+              title="Đọc từ Chapter {{ firstChapterNumber }}"
             >
               <i class="fa fa-book-open"></i>
-              <span>Đọc Từ Đầu (Chap {{ firstChapterNumber }})</span>
+              <span>Đọc Từ Đầu</span>
             </a>
 
             <a 
               *ngIf="latestChapterNumber !== null" 
               [routerLink]="['/read', comic.slug, 'chuong-' + latestChapterNumber]" 
               class="btn-cta btn-read-latest"
+              title="Đọc Chapter {{ latestChapterNumber }} mới nhất"
             >
               <i class="fa fa-bolt"></i>
-              <span>Đọc Mới Nhất (Chap {{ latestChapterNumber }})</span>
+              <span>Đọc Mới Nhất</span>
             </a>
 
             <button 
@@ -128,7 +130,7 @@
 
             <button class="btn-cta btn-like" [class.liked]="isLiked" (click)="toggleLike()">
               <i class="fa" [ngClass]="isLiked ? 'fa-thumbs-up' : 'fa-thumbs-o-up'"></i>
-              <span>{{ likesCount }}</span>
+              <span>{{ likesCount }} Thích</span>
             </button>
           </div>
         </div>

@@ -33,7 +33,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   isFullscreen: boolean = false;
   showHint: boolean = false;
   private lastScrollY: number = 0;
-  private scrollThreshold: number = 8;
+  private scrollThreshold: number = 4;
 
   // Preloading & Reading Position states
   private preloadedChapterId: number | null = null;
@@ -274,24 +274,24 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
-    const currentScrollY = window.scrollY;
+    const currentScrollY = window.scrollY || document.documentElement.scrollTop || 0;
     this.showScrollTop = currentScrollY > 400;
 
-    // Smart Auto-hide logic
+    // Smart Auto-hide logic: reveal header instantly when scrolling UP
     if (!this.isPinned) {
       if (currentScrollY <= 60) {
-        // At the very top: always show header
+        // At the top: always show header
         this.isHeaderHidden = false;
       } else if (currentScrollY > this.lastScrollY + this.scrollThreshold) {
         // Scrolling down: smoothly hide header
         this.isHeaderHidden = true;
       } else if (currentScrollY < this.lastScrollY - this.scrollThreshold) {
-        // Scrolling up: reveal header
+        // Scrolling up: reveal header immediately
         this.isHeaderHidden = false;
       }
     }
 
-    this.lastScrollY = currentScrollY;
+    this.lastScrollY = Math.max(0, currentScrollY);
 
     // Save scroll position for the current chapter (throttled 300ms)
     if (this.chapter && currentScrollY > 50) {
