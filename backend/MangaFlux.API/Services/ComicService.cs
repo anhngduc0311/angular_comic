@@ -19,7 +19,7 @@ namespace TruyenKomi.API.Services
         Task<ComicDetailDto?> GetComicByIdAsync(int id);
         Task<ChapterDetailDto?> GetChapterByIdAsync(int chapterId);
         Task<ChapterDetailDto?> GetChapterBySlugAndNumberAsync(string comicSlug, double chapterNumber);
-        Task<List<CategoryDto>> GetAllCategoriesAsync();
+        Task<List<CategoryDto>> GetAllCategoriesAsync(bool onlyWithComics = false);
         Task<CommentDto> AddCommentAsync(int userId, CreateCommentDto dto);
         Task<bool> LikeCommentAsync(int userId, int commentId);
         Task<PagedSearchResultDto<CommentDto>> GetComicCommentsAsync(int comicId, int page = 1, int pageSize = 20, int? currentUserId = null);
@@ -319,13 +319,18 @@ namespace TruyenKomi.API.Services
             return await GetChapterByIdAsync(chapter.Id);
         }
 
-        public async Task<List<CategoryDto>> GetAllCategoriesAsync()
+        public async Task<List<CategoryDto>> GetAllCategoriesAsync(bool onlyWithComics = false)
         {
-            const string cacheKey = "all_categories_cache";
+            string cacheKey = onlyWithComics ? "all_categories_active_cache" : "all_categories_cache";
             return (await _cache.GetOrSetAsync(cacheKey, async () =>
             {
-                var result = await _context.Categories
-                    .AsNoTracking()
+                var query = _context.Categories.AsNoTracking();
+                if (onlyWithComics)
+                {
+                    query = query.Where(cat => cat.ComicCategories.Any(cc => cc.Comic.IsPublic));
+                }
+
+                var result = await query
                     .Select(cat => new CategoryDto
                     {
                         Id = cat.Id,
@@ -333,12 +338,20 @@ namespace TruyenKomi.API.Services
                         Slug = cat.Slug,
                         Description = cat.Description,
                         ImageUrl = cat.ImageUrl,
-                        ComicCount = cat.ComicCategories.Count
+                        ComicCount = cat.ComicCategories.Count(cc => cc.Comic.IsPublic)
                     })
+                    .OrderByDescending(cat => cat.ComicCount)
+                    .ThenBy(cat => cat.Name)
                     .ToListAsync();
 
                 return result;
-            }, TimeSpan.FromMinutes(30))) ?? new List<CategoryDto>();
+            }, TimeSpan.FromMinutes(5))) ?? new List<CategoryDto>();
+        }
+
+        private async Task InvalidateCategoriesCacheAsync()
+        {
+            await _cache.RemoveAsync("all_categories_cache");
+            await _cache.RemoveAsync("all_categories_active_cache");
         }
 
         public async Task<CommentDto> AddCommentAsync(int userId, CreateCommentDto dto)
@@ -554,6 +567,7 @@ namespace TruyenKomi.API.Services
                     _context.ComicCategories.Add(new ComicCategory { ComicId = comic.Id, CategoryId = catId });
                 }
                 await _context.SaveChangesAsync();
+                await InvalidateCategoriesCacheAsync();
             }
 
             await InvalidateComicCacheAsync(comic.Slug);
@@ -601,6 +615,7 @@ namespace TruyenKomi.API.Services
             }
 
             await _context.SaveChangesAsync();
+            await InvalidateCategoriesCacheAsync();
             await InvalidateComicCacheAsync(comic.Slug);
             return MapToComicDto(comic);
         }
@@ -728,7 +743,7 @@ namespace TruyenKomi.API.Services
             if (changed)
             {
                 await _context.SaveChangesAsync();
-                await _cache.RemoveAsync("all_categories_cache");
+                await InvalidateCategoriesCacheAsync();
                 await InvalidateComicCacheAsync(comic.Slug);
             }
         }
@@ -1043,7 +1058,7 @@ namespace TruyenKomi.API.Services
 
             _context.Categories.Add(category);
             await _context.SaveChangesAsync();
-            await _cache.RemoveAsync("all_categories_cache");
+            await InvalidateCategoriesCacheAsync();
             await InvalidateComicCacheAsync();
 
             return new CategoryDto
@@ -1073,7 +1088,7 @@ namespace TruyenKomi.API.Services
             category.ImageUrl = dto.ImageUrl;
 
             await _context.SaveChangesAsync();
-            await _cache.RemoveAsync("all_categories_cache");
+            await InvalidateCategoriesCacheAsync();
             await InvalidateComicCacheAsync();
 
             return new CategoryDto
@@ -1094,7 +1109,7 @@ namespace TruyenKomi.API.Services
 
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
-            await _cache.RemoveAsync("all_categories_cache");
+            await InvalidateCategoriesCacheAsync();
             await InvalidateComicCacheAsync();
             return true;
         }

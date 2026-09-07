@@ -83,8 +83,9 @@ export class ComicService {
     return this.api.get<ChapterDetail>(`chapters/by-slug/${comicSlug}/chuong-${chapterNumber}`);
   }
 
-  getCategories(): Observable<Category[]> {
-    return this.api.get<Category[]>('categories');
+  getCategories(onlyWithComics = false): Observable<Category[]> {
+    const query = onlyWithComics ? '?onlyWithComics=true' : '';
+    return this.api.get<Category[]>(`categories${query}`);
   }
 
   getComicComments(comicId: number, page = 1, pageSize = 20): Observable<PagedResult<Comment>> {

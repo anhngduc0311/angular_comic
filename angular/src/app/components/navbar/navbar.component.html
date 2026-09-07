@@ -29,10 +29,13 @@
             <a routerLink="/categories" class="view-all-link" (click)="closeMobileMenu()">Xem tất cả <i class="fa fa-angle-right"></i></a>
           </div>
           <div class="mega-menu-grid">
-            <a *ngFor="let genre of genresList" [routerLink]="['/comics']" [queryParams]="{ category: getGenreSlug(genre) }" (click)="closeMobileMenu()" class="genre-item">
+            <a *ngFor="let cat of categories" [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }" (click)="closeMobileMenu()" class="genre-item">
               <span class="genre-dot"></span>
-              <span class="genre-name">{{ genre }}</span>
+              <span class="genre-name">{{ cat.name }}</span>
             </a>
+            <div *ngIf="categories.length === 0" style="padding: 12px; color: var(--text-muted); font-size: 13px; grid-column: 1 / -1; text-align: center;">
+              Đang tải danh sách thể loại...
+            </div>
           </div>
         </div>
       </div>

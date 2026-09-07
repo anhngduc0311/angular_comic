@@ -17,9 +17,9 @@ namespace TruyenKomi.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] bool onlyWithComics = false)
         {
-            var categories = await _comicService.GetAllCategoriesAsync();
+            var categories = await _comicService.GetAllCategoriesAsync(onlyWithComics);
             return Ok(categories);
         }
     }

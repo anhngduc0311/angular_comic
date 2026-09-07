@@ -8,7 +8,7 @@ import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../services/notification.service';
 import { ComicService } from '../../services/comic.service';
 import { ThemeService } from '../../services/theme.service';
-import { SearchAutocompleteItem } from '../../models/comic.model';
+import { SearchAutocompleteItem, Category } from '../../models/comic.model';
 
 @Component({
   selector: 'app-navbar',
@@ -37,15 +37,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   isLoadingAutocomplete: boolean = false;
   selectedIndex: number = -1;
 
-  genresList: string[] = [
-    'Action', 'Adventure', 'Anime', 'Chuyển Sinh', 'Cổ Đại', 'Comedy', 'Comic',
-    'Demons', 'Detective', 'Doujinshi', 'Drama', 'Fantasy', 'Gender Bender',
-    'Harem', 'Historical', 'Horror', 'Huyền Huyễn', 'Isekai', 'Josei', 'Mafia',
-    'Magic', 'Manga', 'Manhua', 'Manhwa', 'Martial Arts', 'Military', 'Mystery',
-    'Ngôn Tình', 'One shot', 'Psychological', 'Romance', 'School Life', 'Sci-fi',
-    'Seinen', 'Shoujo', 'Shoujo Ai', 'Shounen', 'Shounen Ai', 'Slice of life',
-    'Sports', 'Supernatural', 'Tragedy', 'Trọng Sinh', 'Truyện Màu', 'Webtoon', 'Xuyên Không'
-  ];
+  categories: Category[] = [];
 
   rankItems = [
     { label: 'Top Ngày', icon: 'fa-sun-o', query: 'day' },
@@ -70,6 +62,8 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.loadCategories();
+
     this.searchSub = this.searchSubject.pipe(
       debounceTime(150),
       distinctUntilChanged(),
@@ -93,6 +87,17 @@ export class NavbarComponent implements OnInit, OnDestroy {
       error: () => {
         this.isLoadingAutocomplete = false;
         this.autocompleteResults = [];
+      }
+    });
+  }
+
+  loadCategories(): void {
+    this.comicService.getCategories(true).subscribe({
+      next: (cats) => {
+        this.categories = cats || [];
+      },
+      error: () => {
+        this.categories = [];
       }
     });
   }
@@ -176,6 +181,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
       clearTimeout(this.categoryTimeout);
       this.categoryTimeout = null;
     }
+    if (this.categories.length === 0) {
+      this.loadCategories();
+    }
     this.isCategoryMenuOpen = true;
     this.isRankMenuOpen = false;
   }
@@ -204,6 +212,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   toggleCategoryMenu(event?: Event): void {
     if (event) event.stopPropagation();
     if (this.categoryTimeout) clearTimeout(this.categoryTimeout);
+    if (this.categories.length === 0) {
+      this.loadCategories();
+    }
     this.isCategoryMenuOpen = !this.isCategoryMenuOpen;
     this.isRankMenuOpen = false;
   }
