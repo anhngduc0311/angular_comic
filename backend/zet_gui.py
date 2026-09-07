@@ -89,6 +89,7 @@ class MangaDownloaderGUI(ctk.CTk):
         self.is_downloading = False
         self.cancel_requested = False
         self.current_mangadex_page = 1
+        self.total_mangadex_pages = 1
         self.mangadex_search_query = None
         self.is_fetching_mangadex_list = False
 
@@ -402,10 +403,40 @@ class MangaDownloaderGUI(ctk.CTk):
             width=90,
             fg_color="#1e293b"
         )
-        self.btn_prev_page.pack(side="left", padx=4)
+        self.btn_prev_page.pack(side="left", padx=3)
 
-        self.lbl_dex_page = ctk.CTkLabel(page_btn_frame, text="Trang 1", font=ctk.CTkFont(weight="bold"))
-        self.lbl_dex_page.pack(side="left", padx=8)
+        ctk.CTkLabel(page_btn_frame, text="Trang", font=ctk.CTkFont(size=12, weight="bold")).pack(side="left", padx=(6, 3))
+
+        self.dex_page_entry = ctk.CTkEntry(
+            page_btn_frame,
+            width=48,
+            height=28,
+            justify="center",
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        self.dex_page_entry.insert(0, "1")
+        self.dex_page_entry.pack(side="left", padx=2)
+        self.dex_page_entry.bind("<Return>", self.goto_mangadex_page)
+
+        self.lbl_dex_total_pages = ctk.CTkLabel(
+            page_btn_frame,
+            text="/ 1",
+            font=ctk.CTkFont(size=12, weight="bold"),
+            text_color="#94a3b8"
+        )
+        self.lbl_dex_total_pages.pack(side="left", padx=(2, 4))
+
+        self.btn_goto_page = ctk.CTkButton(
+            page_btn_frame,
+            text="Đi ↵",
+            command=self.goto_mangadex_page,
+            width=42,
+            height=28,
+            fg_color="#0284c7",
+            hover_color="#0369a1",
+            font=ctk.CTkFont(size=11, weight="bold")
+        )
+        self.btn_goto_page.pack(side="left", padx=(0, 4))
 
         self.btn_next_page = ctk.CTkButton(
             page_btn_frame,
@@ -414,7 +445,7 @@ class MangaDownloaderGUI(ctk.CTk):
             width=90,
             fg_color="#1e293b"
         )
-        self.btn_next_page.pack(side="left", padx=4)
+        self.btn_next_page.pack(side="left", padx=3)
 
         # Scrollable Comic Cards Container
         self.dex_scroll_frame = ctk.CTkScrollableFrame(tab, corner_radius=8, fg_color="#131722")
@@ -486,14 +517,29 @@ class MangaDownloaderGUI(ctk.CTk):
         self.current_mangadex_page = 1
         self.fetch_mangadex_list_thread()
 
+    def goto_mangadex_page(self, event=None):
+        try:
+            val = self.dex_page_entry.get().strip()
+            page = int(val)
+            if page < 1:
+                page = 1
+            if self.total_mangadex_pages and page > self.total_mangadex_pages:
+                page = self.total_mangadex_pages
+            self.current_mangadex_page = page
+            self.fetch_mangadex_list_thread()
+        except ValueError:
+            self.dex_page_entry.delete(0, "end")
+            self.dex_page_entry.insert(0, str(self.current_mangadex_page))
+
     def prev_mangadex_page(self):
         if self.current_mangadex_page > 1:
             self.current_mangadex_page -= 1
             self.fetch_mangadex_list_thread()
 
     def next_mangadex_page(self):
-        self.current_mangadex_page += 1
-        self.fetch_mangadex_list_thread()
+        if self.current_mangadex_page < self.total_mangadex_pages:
+            self.current_mangadex_page += 1
+            self.fetch_mangadex_list_thread()
 
     def fetch_mangadex_list_thread(self):
         if self.is_fetching_mangadex_list:
@@ -501,7 +547,11 @@ class MangaDownloaderGUI(ctk.CTk):
         self.is_fetching_mangadex_list = True
         self.btn_dex_search.configure(state="disabled")
         self.btn_dex_refresh.configure(state="disabled")
-        self.lbl_dex_page.configure(text=f"Trang {self.current_mangadex_page}")
+        self.btn_prev_page.configure(state="disabled")
+        self.btn_next_page.configure(state="disabled")
+        self.btn_goto_page.configure(state="disabled")
+        self.dex_page_entry.delete(0, "end")
+        self.dex_page_entry.insert(0, str(self.current_mangadex_page))
         self.lbl_dex_status.configure(text="Đang tải danh sách truyện từ MangaDex...")
 
         # Clear existing cards
@@ -535,16 +585,27 @@ class MangaDownloaderGUI(ctk.CTk):
             self.is_fetching_mangadex_list = False
             self.after(0, lambda: (
                 self.btn_dex_search.configure(state="normal"),
-                self.btn_dex_refresh.configure(state="normal")
+                self.btn_dex_refresh.configure(state="normal"),
+                self.btn_goto_page.configure(state="normal"),
+                self.btn_prev_page.configure(state="normal" if self.current_mangadex_page > 1 else "disabled"),
+                self.btn_next_page.configure(state="normal" if self.current_mangadex_page < self.total_mangadex_pages else "disabled")
             ))
 
     def _render_mangadex_results(self, items, total):
         for widget in self.dex_scroll_frame.winfo_children():
             widget.destroy()
 
+        self.total_mangadex_pages = max(1, (total + 11) // 12) if total > 0 else 1
+        self.lbl_dex_total_pages.configure(text=f"/ {self.total_mangadex_pages}")
+        self.btn_prev_page.configure(state="normal" if self.current_mangadex_page > 1 else "disabled")
+        self.btn_next_page.configure(state="normal" if self.current_mangadex_page < self.total_mangadex_pages else "disabled")
+        self.btn_goto_page.configure(state="normal")
+        self.dex_page_entry.delete(0, "end")
+        self.dex_page_entry.insert(0, str(self.current_mangadex_page))
+
         query_str = f" với từ khóa '{self.mangadex_search_query}'" if self.mangadex_search_query else ""
         self.lbl_dex_status.configure(
-            text=f"Tìm thấy {total} bộ truyện Tiếng Việt{query_str} (Trang {self.current_mangadex_page})"
+            text=f"Tìm thấy {total} bộ truyện Tiếng Việt{query_str} (Trang {self.current_mangadex_page}/{self.total_mangadex_pages})"
         )
 
         if not items:

@@ -102,58 +102,73 @@
       </div>
     </section>
 
-    <!-- ==================== 3. SUGGESTED / HOT HORIZONTAL CAROUSEL ==================== -->
+    <!-- ==================== 3. SUGGESTED / HOT HORIZONTAL CAROUSEL (TRUYENGG STYLE) ==================== -->
     <section class="suggest-carousel-section" *ngIf="!isLoadingHot">
       <div class="section-header-modern">
         <div class="header-left">
           <div class="icon-circle icon-orange"><i class="fa fa-fire"></i></div>
-          <h2 class="section-title">Truyện Đề Cử Nổi Bật</h2>
+          <h2 class="section-title">TRUYỆN HOT</h2>
         </div>
-        <div class="carousel-nav-arrows">
-          <button (click)="scrollSuggest('left')" class="arrow-btn" aria-label="Trước"><i class="fa fa-angle-left"></i></button>
-          <button (click)="scrollSuggest('right')" class="arrow-btn" aria-label="Sau"><i class="fa fa-angle-right"></i></button>
-        </div>
+        <a [routerLink]="['/comics']" [queryParams]="{ sort: 'views' }" class="view-all-text">
+          Xem Tất Cả <i class="fa fa-angle-right"></i>
+        </a>
       </div>
 
-      <div class="suggest-slider-viewport" #suggestContainer>
-        <div class="suggest-slider-track">
-          <div class="comic-card-v3 suggest-card" *ngFor="let comic of hotComics; let i = index">
-            <div class="book_avatar">
-              <a [routerLink]="['/comic', comic.slug]">
-                <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
-              </a>
-              <div class="top-notice-right" *ngIf="comic.isFeatured || comic.views > 10000 || i % 2 === 0">
-                <span class="type-label hot">HOT!</span>
-              </div>
-              <div class="cover-stats-overlay">
-                <span class="stat-item"><i class="fa fa-eye"></i> {{ formatNumber(comic.views || 0) }}</span>
-                <span class="stat-item"><i class="fa fa-comment-o"></i> {{ formatNumber(comic.commentsCount || 0) }}</span>
-                <span class="stat-item"><i class="fa fa-heart"></i> {{ formatNumber(comic.likesCount || (comic.views ? (comic.views / 50) : 0)) }}</span>
-              </div>
-            </div>
-            <div class="book_info">
-              <div class="book_name">
-                <h3>
-                  <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
-                </h3>
-              </div>
-              <div class="chapters-preview" *ngIf="comic.recentChapters && comic.recentChapters.length > 0; else singleLatestSuggest">
-                <div class="chapter-row-clean" *ngFor="let ch of comic.recentChapters | slice:0:3">
-                  <a [routerLink]="['/comic', comic.slug, 'chapter', ch.id]" class="ch-name">Chapter {{ ch.chapterNumber }}</a>
-                  <span class="ch-time">{{ formatTimeAgo(ch.createdAt || comic.updatedAt) }}</span>
+      <div class="suggest-carousel-wrapper" 
+        (mouseenter)="onSuggestMouseEnter()"
+        (mouseleave)="onSuggestMouseLeave()"
+        (touchstart)="onSuggestMouseEnter()"
+        (touchend)="onSuggestMouseLeave()"
+      >
+        <!-- Floating Left Arrow Overlay -->
+        <button class="slider-nav-btn nav-prev" (click)="scrollSuggest('left')" aria-label="Trước">
+          <i class="fa fa-angle-left"></i>
+        </button>
+
+        <!-- Viewport & Track -->
+        <div 
+          class="suggest-slider-viewport" 
+          #suggestContainer
+          (scroll)="onSuggestScroll()"
+        >
+          <div class="suggest-slider-track">
+            <!-- Original & Cloned items for seamless infinite loop -->
+            <div class="comic-card-v3 suggest-card" *ngFor="let comic of displayHotComics; let i = index">
+              <div class="book_avatar">
+                <a [routerLink]="['/comic', comic.slug]">
+                  <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
+                </a>
+                <div class="top-notice-left" *ngIf="comic.updatedAt">
+                  <span class="time-badge">{{ formatTimeAgo(comic.updatedAt) }}</span>
+                </div>
+                <div class="top-notice-right" *ngIf="comic.isFeatured || comic.views > 10000 || i % 2 === 0">
+                  <span class="type-label hot">HOT</span>
+                </div>
+                <div class="cover-stats-overlay">
+                  <span class="stat-item"><i class="fa fa-eye"></i> {{ formatNumber(comic.views || 0) }}</span>
+                  <span class="stat-item"><i class="fa fa-heart"></i> {{ formatNumber(comic.likesCount || (comic.views ? (comic.views / 50) : 0)) }}</span>
                 </div>
               </div>
-              <ng-template #singleLatestSuggest>
-                <div class="chapters-preview" *ngIf="comic.latestChapter">
-                  <div class="chapter-row-clean">
-                    <a [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]" class="ch-name">Chapter {{ comic.latestChapter.chapterNumber }}</a>
-                    <span class="ch-time">{{ formatTimeAgo(comic.latestChapter.createdAt || comic.updatedAt) }}</span>
-                  </div>
+              <div class="book_info">
+                <div class="book_name">
+                  <h3>
+                    <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
+                  </h3>
                 </div>
-              </ng-template>
+                <div class="last_chapter" *ngIf="comic.latestChapter">
+                  <a [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]">
+                    Chương {{ comic.latestChapter.chapterNumber }}
+                  </a>
+                </div>
+              </div>
             </div>
           </div>
         </div>
+
+        <!-- Floating Right Arrow Overlay -->
+        <button class="slider-nav-btn nav-next" (click)="scrollSuggest('right')" aria-label="Sau">
+          <i class="fa fa-angle-right"></i>
+        </button>
       </div>
     </section>
 

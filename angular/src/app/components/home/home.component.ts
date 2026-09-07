@@ -43,13 +43,20 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   constructor(private comicService: ComicService) {}
 
+  private suggestTimer?: any;
+  private isSuggestHovered: boolean = false;
+  displayHotComics: Comic[] = [];
+  private isSliding: boolean = false;
+
   ngOnInit(): void {
     this.loadData();
     this.startSpotlightAutoPlay();
+    this.startSuggestAutoScroll();
   }
 
   ngOnDestroy(): void {
     this.stopSpotlightAutoPlay();
+    this.stopSuggestAutoScroll();
   }
 
   loadData(): void {
@@ -60,8 +67,11 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.comicService.getFeaturedComics().subscribe({
       next: (data) => {
         this.hotComics = data;
+        // Duplicate items for seamless continuous infinite loop (TruyenGG style)
+        this.displayHotComics = data.length > 0 ? [...data, ...data, ...data] : [];
         this.featuredComics = data.slice(0, 5);
         this.isLoadingHot = false;
+        setTimeout(() => this.startSuggestAutoScroll(), 300);
       },
       error: () => {
         this.isLoadingHot = false;
@@ -94,6 +104,50 @@ export class HomeComponent implements OnInit, OnDestroy {
     }
   }
 
+  get itemWidth(): number {
+    if (!this.suggestContainer?.nativeElement) return 174;
+    const firstCard = this.suggestContainer.nativeElement.querySelector('.suggest-card') as HTMLElement;
+    return firstCard ? (firstCard.offsetWidth + 14) : 174;
+  }
+
+  startSuggestAutoScroll(): void {
+    this.stopSuggestAutoScroll();
+    this.suggestTimer = setInterval(() => {
+      if (this.isSuggestHovered || !this.suggestContainer?.nativeElement || this.isSliding) return;
+      this.scrollSuggest('right');
+    }, 3500);
+  }
+
+  stopSuggestAutoScroll(): void {
+    if (this.suggestTimer) {
+      clearInterval(this.suggestTimer);
+      this.suggestTimer = undefined;
+    }
+  }
+
+  onSuggestMouseEnter(): void {
+    this.isSuggestHovered = true;
+  }
+
+  onSuggestMouseLeave(): void {
+    this.isSuggestHovered = false;
+  }
+
+  onSuggestScroll(): void {
+    this.checkInfiniteLoopReset();
+  }
+
+  private checkInfiniteLoopReset(): void {
+    if (!this.suggestContainer?.nativeElement) return;
+    const el = this.suggestContainer.nativeElement;
+    const oneSetWidth = el.scrollWidth / 3;
+    if (oneSetWidth <= 0) return;
+
+    if (el.scrollLeft >= oneSetWidth * 2) {
+      el.scrollLeft -= oneSetWidth;
+    }
+  }
+
   selectSpotlight(index: number): void {
     this.activeSpotlightIndex = index;
     this.stopSpotlightAutoPlay();
@@ -118,10 +172,31 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   scrollSuggest(direction: 'left' | 'right'): void {
-    if (!this.suggestContainer?.nativeElement) return;
-    const container = this.suggestContainer.nativeElement;
-    const scrollAmount = direction === 'left' ? -380 : 380;
-    container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    if (!this.suggestContainer?.nativeElement || this.isSliding) return;
+    const el = this.suggestContainer.nativeElement;
+    const step = this.itemWidth * (el.clientWidth > 768 ? 2 : 1);
+    const oneSetWidth = el.scrollWidth / 3;
+
+    this.isSliding = true;
+
+    if (direction === 'left') {
+      if (el.scrollLeft <= 10 && oneSetWidth > 0) {
+        el.scrollLeft = oneSetWidth;
+      }
+      el.scrollBy({ left: -step, behavior: 'smooth' });
+    } else {
+      if (el.scrollLeft >= oneSetWidth * 2 && oneSetWidth > 0) {
+        el.scrollLeft -= oneSetWidth;
+      }
+      el.scrollBy({ left: step, behavior: 'smooth' });
+    }
+
+    setTimeout(() => {
+      this.isSliding = false;
+      this.checkInfiniteLoopReset();
+    }, 450);
+
+    this.startSuggestAutoScroll();
   }
 
   scrollToTop(): void {
