@@ -29,7 +29,7 @@
         <div class="chap-select-wrap">
           <select [(ngModel)]="selectedChapterId" (change)="onSelectChapter()">
             <option *ngFor="let ch of chapter.allChapters" [value]="ch.id">
-              Chapter {{ ch.chapterNumber }}
+              {{ getChapterLabel(ch) }}
             </option>
           </select>
           <i class="fa fa-angle-down select-arrow"></i>
@@ -94,7 +94,6 @@
           (error)="onImgError($event)"
           class="manga-page-img"
         />
-        <div class="page-num-pill">Trang {{ idx + 1 }} / {{ chapter.pages.length }}</div>
       </div>
     </div>
 
@@ -138,7 +137,7 @@
           <div class="end-select-box">
             <select [(ngModel)]="selectedChapterId" (change)="onSelectChapter()">
               <option *ngFor="let ch of chapter.allChapters" [value]="ch.id">
-                Chapter {{ ch.chapterNumber }}
+                {{ getChapterLabel(ch) }}
               </option>
             </select>
             <i class="fa fa-angle-down end-select-arrow"></i>

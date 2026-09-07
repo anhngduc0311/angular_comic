@@ -26,6 +26,29 @@
             <div class="stat-pill"><i class="fa fa-star text-amber"></i> {{ comic.rating || '5.0' }} / 5</div>
             <div class="stat-pill"><i class="fa fa-eye"></i> {{ formatViews(comic.views) }}</div>
           </div>
+
+          <!-- Mobile Read Actions (Đọc từ đầu & Đọc mới nhất) -->
+          <div class="cover-mobile-actions">
+            <a 
+              *ngIf="firstChapterNumber !== null" 
+              [routerLink]="['/read', comic.slug, 'chuong-' + firstChapterNumber]" 
+              class="btn-cta btn-read-first"
+              title="Đọc từ Chapter {{ firstChapterNumber }}"
+            >
+              <i class="fa fa-book-open"></i>
+              <span>Đọc Từ Đầu</span>
+            </a>
+
+            <a 
+              *ngIf="latestChapterNumber !== null" 
+              [routerLink]="['/read', comic.slug, 'chuong-' + latestChapterNumber]" 
+              class="btn-cta btn-read-latest"
+              title="Đọc Chapter {{ latestChapterNumber }} mới nhất"
+            >
+              <i class="fa fa-bolt"></i>
+              <span>Đọc Mới Nhất</span>
+            </a>
+          </div>
         </div>
 
         <!-- Details Info Column -->
@@ -102,7 +125,7 @@
             <a 
               *ngIf="firstChapterNumber !== null" 
               [routerLink]="['/read', comic.slug, 'chuong-' + firstChapterNumber]" 
-              class="btn-cta btn-read-first"
+              class="btn-cta btn-read-first desktop-only-cta"
               title="Đọc từ Chapter {{ firstChapterNumber }}"
             >
               <i class="fa fa-book-open"></i>
@@ -112,7 +135,7 @@
             <a 
               *ngIf="latestChapterNumber !== null" 
               [routerLink]="['/read', comic.slug, 'chuong-' + latestChapterNumber]" 
-              class="btn-cta btn-read-latest"
+              class="btn-cta btn-read-latest desktop-only-cta"
               title="Đọc Chapter {{ latestChapterNumber }} mới nhất"
             >
               <i class="fa fa-bolt"></i>

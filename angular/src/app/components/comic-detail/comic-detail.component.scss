@@ -105,6 +105,10 @@
         gap: 10px;
         width: 100%;
 
+        @media (max-width: 768px) {
+          display: none !important;
+        }
+
         .stat-pill {
           flex: 1;
           background: var(--bg-elevated);
@@ -117,6 +121,58 @@
           border: 1px solid var(--border-color);
 
           .text-amber { color: #f59e0b; }
+        }
+      }
+
+      .cover-mobile-actions {
+        display: none;
+        gap: 8px;
+        width: 100%;
+        max-width: 240px;
+
+        @media (max-width: 768px) {
+          display: flex;
+        }
+
+        .btn-cta {
+          flex: 1;
+          padding: 8px 12px;
+          border-radius: 8px;
+          font-size: 13px;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          cursor: pointer;
+          min-height: 38px;
+          white-space: nowrap;
+          text-decoration: none;
+          transition: var(--transition);
+
+          i {
+            font-size: 13px;
+          }
+
+          &.btn-read-first {
+            background: var(--grad-primary);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(253, 84, 0, 0.35);
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 8px 20px rgba(253, 84, 0, 0.45);
+            }
+          }
+
+          &.btn-read-latest {
+            background: var(--grad-cyan);
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 8px 20px rgba(14, 165, 233, 0.45);
+            }
+          }
         }
       }
     }
@@ -267,11 +323,17 @@
         flex-wrap: wrap;
         margin-top: 8px;
 
-        @media (max-width: 576px) {
+        @media (max-width: 768px) {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 6px;
+          gap: 8px;
           width: 100%;
+        }
+
+        .desktop-only-cta {
+          @media (max-width: 768px) {
+            display: none !important;
+          }
         }
 
         .btn-cta {

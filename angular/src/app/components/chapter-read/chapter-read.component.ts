@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, Location } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ComicService } from '../../services/comic.service';
@@ -7,7 +7,7 @@ import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
 import { ReportService } from '../../services/report.service';
 import { SeoService } from '../../services/seo.service';
-import { ChapterDetail } from '../../models/comic.model';
+import { Chapter, ChapterDetail } from '../../models/comic.model';
 import { ERROR_TYPE_OPTIONS } from '../../models/report.model';
 
 @Component({
@@ -85,7 +85,8 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     private userService: UserService,
     public authService: AuthService,
     private reportService: ReportService,
-    private seoService: SeoService
+    private seoService: SeoService,
+    private location: Location
   ) {}
 
   ngOnInit(): void {
@@ -368,6 +369,9 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
           detail.pages && detail.pages.length > 0 ? detail.pages[0].imageUrl : undefined
         );
         this.calculateNavChapters();
+        if (detail.comicSlug && detail.chapterNumber !== undefined) {
+          this.location.replaceState(`/read/${detail.comicSlug}/chuong-${detail.chapterNumber}`);
+        }
         this.trackHistory();
         this.restoreReadingPosition(id);
         this.prefetchCurrentChapterPages();
@@ -480,6 +484,14 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
     this.prevChapterId = currentIndex > 0 ? sorted[currentIndex - 1].id : null;
     this.nextChapterId = currentIndex < sorted.length - 1 ? sorted[currentIndex + 1].id : null;
+  }
+
+  getChapterLabel(ch: Chapter): string {
+    if (!ch) return '';
+    if (ch.title && ch.title !== `Chapter ${ch.chapterNumber}` && ch.title !== `Chương ${ch.chapterNumber}`) {
+      return `Chapter ${ch.chapterNumber} - ${ch.title}`;
+    }
+    return `Chapter ${ch.chapterNumber}`;
   }
 
   onSelectChapter(): void {

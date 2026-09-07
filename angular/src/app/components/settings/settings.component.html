@@ -1,257 +1,317 @@
-<div class="settings-container container">
-  <!-- Page Header -->
-  <div class="page-header glass-panel">
-    <div class="header-title-group">
-      <i class="fa-solid fa-gear header-icon"></i>
-      <div>
-        <h1 class="page-title">Cài Đặt Tài Khoản</h1>
-        <p class="page-subtitle">Quản lý thông tin cá nhân, bảo mật, giao diện và cài đặt thông báo</p>
+<div class="content settings-page">
+  <div class="div_middle">
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+      <li>
+        <a routerLink="/"><i class="fa fa-home"></i> <span>Trang Chủ</span></a>
+      </li>
+      <li>
+        <span class="active">Cài Đặt Tài Khoản</span>
+      </li>
+    </ol>
+
+    <!-- Page Header -->
+    <div class="page-header glass-panel">
+      <div class="header-title-group">
+        <div class="header-icon-box">
+          <i class="fa fa-cog"></i>
+        </div>
+        <div>
+          <h1 class="page-title">Cài Đặt Tài Khoản</h1>
+          <p class="page-subtitle">Quản lý thông tin cá nhân, bảo mật, giao diện và cài đặt thông báo</p>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Alert Message -->
-  <div class="alert" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
-    <i class="fa-solid" [class.fa-circle-check]="!isError" [class.fa-triangle-exclamation]="isError"></i>
-    <span>{{ message }}</span>
-  </div>
-
-  <!-- Settings Grid Layout -->
-  <div class="settings-grid">
-    <!-- Left Navigation Sidebar -->
-    <div class="settings-sidebar glass-panel">
-      <button 
-        class="nav-tab" 
-        [class.active]="activeTab === 'profile'" 
-        (click)="activeTab = 'profile'">
-        <i class="fa-solid fa-user-pen"></i> Thông tin cá nhân
-      </button>
-
-      <button 
-        class="nav-tab" 
-        [class.active]="activeTab === 'password'" 
-        (click)="activeTab = 'password'">
-        <i class="fa-solid fa-key"></i> Đổi mật khẩu
-      </button>
-
-      <button 
-        class="nav-tab" 
-        [class.active]="activeTab === 'theme'" 
-        (click)="activeTab = 'theme'">
-        <i class="fa-solid fa-circle-half-stroke"></i> Chế độ sáng / tối
-      </button>
-
-      <button 
-        class="nav-tab" 
-        [class.active]="activeTab === 'notifications'" 
-        (click)="activeTab = 'notifications'">
-        <i class="fa-solid fa-sliders"></i> Cài đặt thông báo
-      </button>
-
-      <button 
-        class="nav-tab danger-tab" 
-        [class.active]="activeTab === 'danger'" 
-        (click)="activeTab = 'danger'">
-        <i class="fa-solid fa-user-xmark"></i> Xóa tài khoản
-      </button>
+    <!-- Alert Message -->
+    <div class="alert glass-panel" [class.alert-success]="!isError" [class.alert-danger]="isError" *ngIf="message">
+      <i class="fa" [ngClass]="!isError ? 'fa-check-circle' : 'fa-exclamation-triangle'"></i>
+      <span>{{ message }}</span>
     </div>
 
-    <!-- Right Content Area -->
-    <div class="settings-content glass-panel">
-      <!-- TAB 1: THÔNG TIN CÁ NHÂN -->
-      <div class="tab-pane" *ngIf="activeTab === 'profile'">
-        <h2 class="pane-title"><i class="fa-solid fa-user-pen"></i> Thay đổi thông tin cá nhân</h2>
-        
-        <form (ngSubmit)="saveProfile()" class="settings-form">
-          <div class="avatar-preview-section">
-            <img 
-              [src]="profileForm.avatar || DEFAULT_AVATAR" 
-              (error)="onAvatarError($event)"
-              alt="Avatar Preview" 
-              class="avatar-img" 
-            />
-            <div class="avatar-input-group">
-              <label>URL Ảnh Đại Diện (Avatar)</label>
-              <input type="text" [(ngModel)]="profileForm.avatar" name="avatar" placeholder="https://..." />
-              <span class="field-hint">Dán đường dẫn ảnh đại diện của bạn.</span>
-            </div>
+    <!-- Settings Grid Layout -->
+    <div class="settings-grid">
+      <!-- Left Navigation Sidebar -->
+      <aside class="settings-sidebar glass-panel">
+        <nav class="nav-tabs-list">
+          <button 
+            class="nav-tab" 
+            [class.active]="activeTab === 'profile'" 
+            (click)="activeTab = 'profile'">
+            <i class="fa fa-user"></i>
+            <span>Thông tin cá nhân</span>
+          </button>
+
+          <button 
+            class="nav-tab" 
+            [class.active]="activeTab === 'password'" 
+            (click)="activeTab = 'password'">
+            <i class="fa fa-lock"></i>
+            <span>Đổi mật khẩu</span>
+          </button>
+
+          <button 
+            class="nav-tab" 
+            [class.active]="activeTab === 'theme'" 
+            (click)="activeTab = 'theme'">
+            <i class="fa fa-adjust"></i>
+            <span>Chế độ giao diện</span>
+          </button>
+
+          <button 
+            class="nav-tab" 
+            [class.active]="activeTab === 'notifications'" 
+            (click)="activeTab = 'notifications'">
+            <i class="fa fa-bell"></i>
+            <span>Cài đặt thông báo</span>
+          </button>
+
+          <button 
+            class="nav-tab danger-tab" 
+            [class.active]="activeTab === 'danger'" 
+            (click)="activeTab = 'danger'">
+            <i class="fa fa-trash"></i>
+            <span>Xóa tài khoản</span>
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Right Content Area -->
+      <main class="settings-content glass-panel">
+        <!-- TAB 1: THÔNG TIN CÁ NHÂN -->
+        <div class="tab-pane" *ngIf="activeTab === 'profile'">
+          <div class="pane-header">
+            <h2 class="pane-title"><i class="fa fa-user-circle icon-orange"></i> Thông Tin Cá Nhân</h2>
+            <p class="pane-subtitle">Cập nhật ảnh đại diện và thông tin hiển thị của bạn trên hệ thống.</p>
           </div>
-
-          <div class="form-group">
-            <label>Họ và tên / Tên hiển thị</label>
-            <input type="text" [(ngModel)]="profileForm.fullName" name="fullName" placeholder="Nhập tên hiển thị..." />
-          </div>
-
-          <div class="form-group">
-            <label>Địa chỉ Email</label>
-            <input type="email" [(ngModel)]="profileForm.email" name="email" placeholder="example@mail.com" />
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary" [disabled]="isSaving">
-              <i class="fa-solid fa-floppy-disk"></i> {{ isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi' }}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- TAB 2: ĐỔI MẬT KHẨU -->
-      <div class="tab-pane" *ngIf="activeTab === 'password'">
-        <h2 class="pane-title"><i class="fa-solid fa-key"></i> Đổi mật khẩu</h2>
-
-        <form (ngSubmit)="changePassword()" class="settings-form">
-          <div class="form-group">
-            <label>Mật khẩu hiện tại *</label>
-            <input type="password" [(ngModel)]="passwordForm.currentPassword" name="currentPassword" required placeholder="••••••••" />
-          </div>
-
-          <div class="form-group">
-            <label>Mật khẩu mới *</label>
-            <input type="password" [(ngModel)]="passwordForm.newPassword" name="newPassword" required placeholder="Tối thiểu 6 ký tự..." />
-          </div>
-
-          <div class="form-group">
-            <label>Xác nhận mật khẩu mới *</label>
-            <input type="password" [(ngModel)]="passwordForm.confirmPassword" name="confirmPassword" required placeholder="Nhập lại mật khẩu mới..." />
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" class="btn btn-primary" [disabled]="isSaving">
-              <i class="fa-solid fa-shield-halved"></i> {{ isSaving ? 'Đang cập nhật...' : 'Cập Nhật Mật Khẩu' }}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <!-- TAB 3: CHẾ ĐỘ SÁNG / TỐI -->
-      <div class="tab-pane" *ngIf="activeTab === 'theme'">
-        <h2 class="pane-title"><i class="fa-solid fa-circle-half-stroke"></i> Chế độ giao diện (Theme)</h2>
-        <p class="pane-subtitle">Tùy chỉnh màu sắc giao diện theo sở thích của bạn.</p>
-
-        <div class="theme-cards-grid">
-          <!-- Dark Card -->
-          <div 
-            class="theme-card dark-theme-card" 
-            [class.selected]="currentTheme === 'dark'"
-            (click)="setTheme('dark')"
-          >
-            <div class="theme-preview">
-              <div class="preview-header"></div>
-              <div class="preview-body">
-                <div class="preview-line"></div>
-                <div class="preview-block"></div>
+          
+          <form (ngSubmit)="saveProfile()" class="settings-form">
+            <div class="avatar-preview-section">
+              <div class="avatar-frame">
+                <img 
+                  [src]="profileForm.avatar || DEFAULT_AVATAR" 
+                  (error)="onAvatarError($event)"
+                  alt="Avatar Preview" 
+                  class="avatar-img" 
+                />
+              </div>
+              <div class="avatar-input-group">
+                <label>URL Ảnh Đại Diện (Avatar)</label>
+                <div class="input-wrapper">
+                  <i class="fa fa-link input-icon"></i>
+                  <input type="text" [(ngModel)]="profileForm.avatar" name="avatar" placeholder="https://..." />
+                </div>
+                <span class="field-hint">Dán đường dẫn ảnh đại diện trực tuyến (jpg, png, webp).</span>
               </div>
             </div>
-            <div class="theme-card-info">
-              <h3><i class="fa-solid fa-moon"></i> Giao diện Tối (Dark Cyberpunk)</h3>
-              <p>Mặc định với phong cách tối màu dịu mắt, hiệu ứng Neon sống động.</p>
-            </div>
-            <div class="check-icon" *ngIf="currentTheme === 'dark'">
-              <i class="fa-solid fa-circle-check"></i>
-            </div>
-          </div>
 
-          <!-- Light Card -->
-          <div 
-            class="theme-card light-theme-card" 
-            [class.selected]="currentTheme === 'light'"
-            (click)="setTheme('light')"
-          >
-            <div class="theme-preview">
-              <div class="preview-header"></div>
-              <div class="preview-body">
-                <div class="preview-line"></div>
-                <div class="preview-block"></div>
+            <div class="form-group">
+              <label>Họ và tên / Tên hiển thị</label>
+              <div class="input-wrapper">
+                <i class="fa fa-id-card-o input-icon"></i>
+                <input type="text" [(ngModel)]="profileForm.fullName" name="fullName" placeholder="Nhập tên hiển thị..." />
               </div>
             </div>
-            <div class="theme-card-info">
-              <h3><i class="fa-solid fa-sun"></i> Giao diện Sáng (Light Clean)</h3>
-              <p>Phong cách hiện đại, tinh tế với tone màu sáng thanh lịch.</p>
+
+            <div class="form-group">
+              <label>Địa chỉ Email</label>
+              <div class="input-wrapper">
+                <i class="fa fa-envelope input-icon"></i>
+                <input type="email" [(ngModel)]="profileForm.email" name="email" placeholder="example@mail.com" />
+              </div>
             </div>
-            <div class="check-icon" *ngIf="currentTheme === 'light'">
-              <i class="fa-solid fa-circle-check"></i>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-submit btn-save" [disabled]="isSaving">
+                <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                <span>{{ isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- TAB 2: ĐỔI MẬT KHẨU -->
+        <div class="tab-pane" *ngIf="activeTab === 'password'">
+          <div class="pane-header">
+            <h2 class="pane-title"><i class="fa fa-key icon-orange"></i> Đổi Mật Khẩu</h2>
+            <p class="pane-subtitle">Để bảo mật tài khoản, vui lòng sử dụng mật khẩu mạnh tối thiểu 6 ký tự.</p>
+          </div>
+
+          <form (ngSubmit)="changePassword()" class="settings-form">
+            <div class="form-group">
+              <label>Mật khẩu hiện tại *</label>
+              <div class="input-wrapper">
+                <i class="fa fa-lock input-icon"></i>
+                <input type="password" [(ngModel)]="passwordForm.currentPassword" name="currentPassword" required placeholder="Nhập mật khẩu hiện tại..." />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Mật khẩu mới *</label>
+              <div class="input-wrapper">
+                <i class="fa fa-shield input-icon"></i>
+                <input type="password" [(ngModel)]="passwordForm.newPassword" name="newPassword" required placeholder="Tối thiểu 6 ký tự..." />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Xác nhận mật khẩu mới *</label>
+              <div class="input-wrapper">
+                <i class="fa fa-check-square-o input-icon"></i>
+                <input type="password" [(ngModel)]="passwordForm.confirmPassword" name="confirmPassword" required placeholder="Nhập lại mật khẩu mới..." />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-submit btn-save" [disabled]="isSaving">
+                <i class="fa" [ngClass]="isSaving ? 'fa-spinner fa-spin' : 'fa-shield'"></i>
+                <span>{{ isSaving ? 'Đang cập nhật...' : 'Cập Nhật Mật Khẩu' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- TAB 3: CHẾ ĐỘ GIAO DIỆN -->
+        <div class="tab-pane" *ngIf="activeTab === 'theme'">
+          <div class="pane-header">
+            <h2 class="pane-title"><i class="fa fa-paint-brush icon-orange"></i> Chế Độ Giao Diện (Theme)</h2>
+            <p class="pane-subtitle">Tùy chỉnh tông màu giao diện đọc truyện theo sở thích của bạn.</p>
+          </div>
+
+          <div class="theme-cards-grid">
+            <!-- Dark Card -->
+            <div 
+              class="theme-card dark-theme-card" 
+              [class.selected]="currentTheme === 'dark'"
+              (click)="setTheme('dark')"
+            >
+              <div class="theme-preview">
+                <div class="preview-header"></div>
+                <div class="preview-body">
+                  <div class="preview-line"></div>
+                  <div class="preview-block"></div>
+                </div>
+              </div>
+              <div class="theme-card-info">
+                <h3><i class="fa fa-moon-o"></i> Giao diện Tối (Dark Cyberpunk)</h3>
+                <p>Mặc định với phong cách tối màu dịu mắt, điểm nhấn Cam Neon sống động.</p>
+              </div>
+              <div class="check-icon" *ngIf="currentTheme === 'dark'">
+                <i class="fa fa-check-circle"></i>
+              </div>
+            </div>
+
+            <!-- Light Card -->
+            <div 
+              class="theme-card light-theme-card" 
+              [class.selected]="currentTheme === 'light'"
+              (click)="setTheme('light')"
+            >
+              <div class="theme-preview">
+                <div class="preview-header"></div>
+                <div class="preview-body">
+                  <div class="preview-line"></div>
+                  <div class="preview-block"></div>
+                </div>
+              </div>
+              <div class="theme-card-info">
+                <h3><i class="fa fa-sun-o"></i> Giao diện Sáng (Light Clean)</h3>
+                <p>Phong cách sáng sủa, tinh tế với tone màu trang nhã, dễ nhìn ban ngày.</p>
+              </div>
+              <div class="check-icon" *ngIf="currentTheme === 'light'">
+                <i class="fa fa-check-circle"></i>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- TAB 4: CÀI ĐẶT THÔNG BÁO -->
-      <div class="tab-pane" *ngIf="activeTab === 'notifications'">
-        <h2 class="pane-title"><i class="fa-solid fa-sliders"></i> Cài đặt thông báo</h2>
-        <p class="pane-subtitle">Chọn loại thông báo bạn muốn nhận trên ứng dụng TruyenKomi.</p>
-
-        <div class="preferences-list">
-          <div class="pref-item">
-            <div class="pref-info">
-              <h3><i class="fa-solid fa-book-open"></i> Chapter mới từ truyện theo dõi</h3>
-              <p>Nhận thông báo khi bộ truyện bạn bookmark vừa ra chapter mới.</p>
-            </div>
-            <label class="switch">
-              <input type="checkbox" [(ngModel)]="notificationPrefs.notifyNewChapter" (change)="saveNotificationPrefs()" />
-              <span class="slider"></span>
-            </label>
+        <!-- TAB 4: CÀI ĐẶT THÔNG BÁO -->
+        <div class="tab-pane" *ngIf="activeTab === 'notifications'">
+          <div class="pane-header">
+            <h2 class="pane-title"><i class="fa fa-bell-o icon-orange"></i> Cài Đặt Thông Báo</h2>
+            <p class="pane-subtitle">Tùy chọn những thông báo bạn muốn nhận trên ứng dụng TruyenKomi.</p>
           </div>
 
-          <div class="pref-item">
-            <div class="pref-info">
-              <h3><i class="fa-solid fa-reply"></i> Phản hồi bình luận</h3>
-              <p>Nhận thông báo khi ai đó trả lời trực tiếp bình luận của bạn.</p>
+          <div class="preferences-list">
+            <div class="pref-item">
+              <div class="pref-info">
+                <h3><i class="fa fa-book icon-orange"></i> Chapter mới từ truyện theo dõi</h3>
+                <p>Nhận thông báo ngay khi bộ truyện trong danh sách Theo dõi có chương mới.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="notificationPrefs.notifyNewChapter" (change)="saveNotificationPrefs()" />
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="switch">
-              <input type="checkbox" [(ngModel)]="notificationPrefs.notifyCommentReply" (change)="saveNotificationPrefs()" />
-              <span class="slider"></span>
-            </label>
-          </div>
 
-          <div class="pref-item">
-            <div class="pref-info">
-              <h3><i class="fa-solid fa-heart"></i> Lượt thích bình luận</h3>
-              <p>Nhận thông báo khi bình luận của bạn được người khác thả tim.</p>
+            <div class="pref-item">
+              <div class="pref-info">
+                <h3><i class="fa fa-reply icon-cyan"></i> Phản hồi bình luận</h3>
+                <p>Nhận thông báo khi thành viên khác trả lời bình luận của bạn.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="notificationPrefs.notifyCommentReply" (change)="saveNotificationPrefs()" />
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="switch">
-              <input type="checkbox" [(ngModel)]="notificationPrefs.notifyCommentLike" (change)="saveNotificationPrefs()" />
-              <span class="slider"></span>
-            </label>
-          </div>
 
-          <div class="pref-item">
-            <div class="pref-info">
-              <h3><i class="fa-solid fa-bullhorn"></i> Thông báo từ hệ thống Admin</h3>
-              <p>Nhận các sự kiện, tin tức bảo trì hoặc thông báo chung từ ban quản trị.</p>
+            <div class="pref-item">
+              <div class="pref-info">
+                <h3><i class="fa fa-heart text-danger"></i> Lượt thích bình luận</h3>
+                <p>Nhận thông báo khi bình luận của bạn được người khác thả tim.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="notificationPrefs.notifyCommentLike" (change)="saveNotificationPrefs()" />
+                <span class="slider"></span>
+              </label>
             </div>
-            <label class="switch">
-              <input type="checkbox" [(ngModel)]="notificationPrefs.notifyAdminSystem" (change)="saveNotificationPrefs()" />
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-      </div>
 
-      <!-- TAB 5: XÓA TÀI KHOẢN -->
-      <div class="tab-pane danger-pane" *ngIf="activeTab === 'danger'">
-        <h2 class="pane-title text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Vùng Nguy Hiểm - Xóa Tài Khoản</h2>
-        
-        <div class="danger-banner">
-          <i class="fa-solid fa-circle-exclamation danger-banner-icon"></i>
-          <div>
-            <h3>Cảnh báo: Hành động này không thể hoàn tác!</h3>
-            <p>Toàn bộ danh sách truyện theo dõi, lịch sử đọc, bình luận và thông báo của bạn sẽ bị xóa vĩnh viễn khỏi hệ thống.</p>
+            <div class="pref-item">
+              <div class="pref-info">
+                <h3><i class="fa fa-bullhorn icon-amber"></i> Thông báo từ hệ thống Admin</h3>
+                <p>Nhận các tin tức bảo trì, cập nhật tính năng mới hoặc thông báo chung.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="notificationPrefs.notifyAdminSystem" (change)="saveNotificationPrefs()" />
+                <span class="slider"></span>
+              </label>
+            </div>
           </div>
         </div>
 
-        <form (ngSubmit)="deleteAccount()" class="settings-form">
-          <div class="form-group">
-            <label>Nhập mật khẩu của bạn để xác nhận xóa *</label>
-            <input type="password" [(ngModel)]="deleteForm.password" name="deletePassword" required placeholder="Nhập mật khẩu hiện tại..." />
+        <!-- TAB 5: XÓA TÀI KHOẢN -->
+        <div class="tab-pane danger-pane" *ngIf="activeTab === 'danger'">
+          <div class="pane-header">
+            <h2 class="pane-title text-danger"><i class="fa fa-exclamation-triangle"></i> Vùng Nguy Hiểm - Xóa Tài Khoản</h2>
+            <p class="pane-subtitle">Hành động này sẽ xóa vĩnh viễn toàn bộ dữ liệu của bạn.</p>
+          </div>
+          
+          <div class="danger-banner">
+            <i class="fa fa-exclamation-circle danger-banner-icon"></i>
+            <div>
+              <h3>Cảnh báo: Hành động này không thể hoàn tác!</h3>
+              <p>Toàn bộ danh sách truyện theo dõi, lịch sử đọc, bình luận và thông báo của bạn sẽ bị xóa vĩnh viễn khỏi hệ thống TruyenKomi.</p>
+            </div>
           </div>
 
-          <div class="form-actions">
-            <button type="submit" class="btn btn-danger" [disabled]="isSaving">
-              <i class="fa-solid fa-trash-can"></i> {{ isSaving ? 'Đang xử lý...' : 'Xóa Vĩnh Viễn Tài Khoản' }}
-            </button>
-          </div>
-        </form>
-      </div>
+          <form (ngSubmit)="deleteAccount()" class="settings-form">
+            <div class="form-group">
+              <label>Nhập mật khẩu hiện tại của bạn để xác nhận *</label>
+              <div class="input-wrapper">
+                <i class="fa fa-lock input-icon"></i>
+                <input type="password" [(ngModel)]="deleteForm.password" name="deletePassword" required placeholder="Nhập mật khẩu xác nhận..." />
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="btn-submit btn-delete" [disabled]="isSaving">
+                <i class="fa fa-trash-o"></i>
+                <span>{{ isSaving ? 'Đang xử lý...' : 'Xóa Vĩnh Viễn Tài Khoản' }}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   </div>
 </div>

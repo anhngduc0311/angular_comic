@@ -35,7 +35,6 @@ export class AuthComponent implements AfterViewInit {
   registerData = {
     username: '',
     email: '',
-    fullName: '',
     password: '',
     confirmPassword: ''
   };
@@ -153,7 +152,6 @@ export class AuthComponent implements AfterViewInit {
     this.authService.register({
       username: this.registerData.username,
       email: this.registerData.email,
-      fullName: this.registerData.fullName,
       password: this.registerData.password
     }).subscribe({
       next: () => {

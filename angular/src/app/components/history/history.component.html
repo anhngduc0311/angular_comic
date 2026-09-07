@@ -28,12 +28,12 @@
               <a [routerLink]="['/comic', item.comic.slug]">{{ item.comic.title }}</a>
             </h3>
             <p class="current-chapter" *ngIf="item.chapter">
-              Đang đọc: <a [routerLink]="['/read', item.chapterId]">Chapter {{ item.chapter.chapterNumber }} - {{ item.chapter.title }}</a>
+              Đang đọc: <a [routerLink]="['/read', item.comic.slug, 'chuong-' + item.chapter.chapterNumber]">Chapter {{ item.chapter.chapterNumber }} - {{ item.chapter.title }}</a>
             </p>
             <span class="read-date"><i class="fa fa-clock-o"></i> {{ item.lastReadAt | date:'dd/MM/yyyy HH:mm' }}</span>
           </div>
           <div class="action">
-            <a [routerLink]="['/read', item.chapterId]" class="btn-read-continue">
+            <a [routerLink]="['/read', item.comic.slug, 'chuong-' + item.chapter.chapterNumber]" class="btn-read-continue">
               Đọc Tiếp <i class="fa fa-angle-right"></i>
             </a>
           </div>

@@ -294,8 +294,7 @@ namespace TruyenKomi.API.Services
                     IsPublic = chapter.IsPublic,
                     PublishedAt = chapter.PublishedAt,
                     CreatedAt = chapter.CreatedAt,
-                    Pages = pageDtos,
-                    AllChapters = allChapters
+                    Pages = pageDtos
                 };
             }, TimeSpan.FromHours(24));
 
@@ -303,6 +302,28 @@ namespace TruyenKomi.API.Services
             {
                 _ = _cache.IncrementAsync($"chapter_views_count_{chapterId}");
                 _ = _cache.IncrementAsync($"comic_views_count_{cached.ComicId}");
+
+                // Always populate fresh AllChapters synchronized with comic
+                string comicChaptersCacheKey = $"comic_all_chapters_{cached.ComicId}";
+                cached.AllChapters = await _cache.GetOrSetAsync(comicChaptersCacheKey, async () =>
+                {
+                    return await _context.Chapters
+                        .AsNoTracking()
+                        .Where(ch => ch.ComicId == cached.ComicId && ch.IsPublic && (ch.PublishedAt == null || ch.PublishedAt <= DateTime.UtcNow))
+                        .OrderBy(ch => ch.ChapterNumber)
+                        .Select(ch => new ChapterDto
+                        {
+                            Id = ch.Id,
+                            ComicId = ch.ComicId,
+                            ChapterNumber = ch.ChapterNumber,
+                            Title = ch.Title,
+                            Views = ch.Views,
+                            IsPublic = ch.IsPublic,
+                            PublishedAt = ch.PublishedAt,
+                            CreatedAt = ch.CreatedAt
+                        })
+                        .ToListAsync();
+                }, TimeSpan.FromMinutes(10)) ?? new List<ChapterDto>();
             }
 
             return cached;
@@ -506,8 +527,8 @@ namespace TruyenKomi.API.Services
             await _cache.RemoveAsync("all_categories_cache");
             await _cache.RemoveByPatternAsync("*latest_comics_cache*");
             await _cache.RemoveByPatternAsync("*featured_comics*");
-            await _cache.RemoveByPatternAsync("*comics_cache*");
-            await _cache.RemoveByPatternAsync("*categories*");
+            await _cache.RemoveByPatternAsync("*comic_all_chapters_*");
+            await _cache.RemoveByPatternAsync("*chapter_detail_id_*");
 
             if (!string.IsNullOrEmpty(slug))
             {
@@ -922,7 +943,7 @@ namespace TruyenKomi.API.Services
             {
                 foreach (var uId in bookmarkedUserIds)
                 {
-                    var link = $"/read/{chapter.Id}";
+                    var link = $"/read/{comic.Slug}/chuong-{dto.ChapterNumber}";
                     var title = "Chapter mới!";
                     var message = $"Truyện '{comic.Title}' bạn theo dõi vừa có Chapter {dto.ChapterNumber}.";
                     await _notificationService.CreateNotificationAsync(uId, "NewChapter", title, message, link);

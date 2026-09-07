@@ -298,27 +298,6 @@
         backface-visibility: hidden;
         image-rendering: -webkit-optimize-contrast;
       }
-
-      .page-num-pill {
-        position: absolute;
-        bottom: 8px;
-        right: 8px;
-        background: rgba(0, 0, 0, 0.65);
-        color: rgba(255, 255, 255, 0.7);
-        backdrop-filter: blur(6px);
-        font-size: 10.5px;
-        font-weight: 600;
-        padding: 3px 8px;
-        border-radius: var(--radius-pill);
-        opacity: 0;
-        line-height: 1.4;
-        transition: opacity 0.2s ease;
-        pointer-events: none;
-      }
-
-      &:hover .page-num-pill {
-        opacity: 1;
-      }
     }
   }
 
