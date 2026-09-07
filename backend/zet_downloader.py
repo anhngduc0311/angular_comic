@@ -276,6 +276,8 @@ class BaseMangaDownloader:
         for group_idx, i in enumerate(range(0, len(image_paths), group_size), 1):
             group = image_paths[i:i + group_size]
             loaded_imgs = []
+            resized_imgs = []
+            combined = None
             try:
                 for p in group:
                     p_obj = Path(p)
@@ -293,7 +295,6 @@ class BaseMangaDownloader:
                     continue
 
                 max_width = max(im.width for im in loaded_imgs)
-                resized_imgs = []
                 total_height = 0
                 for im in loaded_imgs:
                     if im.width != max_width:
@@ -315,27 +316,24 @@ class BaseMangaDownloader:
                 combined.save(chunk_file, 'WEBP', quality=90, method=6)
                 merged_files.append(chunk_file)
 
-                # Dọn dẹp bộ nhớ an toàn
-                for im in loaded_imgs:
-                    try:
-                        im.close()
-                    except Exception:
-                        pass
-                for im in resized_imgs:
-                    if im not in loaded_imgs:
-                        try:
-                            im.close()
-                        except Exception:
-                            pass
-                try:
-                    combined.close()
-                except Exception:
-                    pass
             except Exception as e:
                 if HAS_RICH and console:
                     console.print(f"[yellow]  ⚠️ Lỗi khi ghép nhóm ảnh {group_idx}: {e}[/yellow]")
                 else:
                     print(f"  ⚠️ Lỗi khi ghép nhóm ảnh {group_idx}: {e}")
+            finally:
+                # Dọn dẹp bộ nhớ an toàn: dùng dict {id(im): im} để tránh Python gọi __eq__ trên Image đã đóng
+                to_close = {id(im): im for im in (loaded_imgs + resized_imgs)}
+                for im in to_close.values():
+                    try:
+                        im.close()
+                    except Exception:
+                        pass
+                if combined:
+                    try:
+                        combined.close()
+                    except Exception:
+                        pass
 
         return merged_files
 
