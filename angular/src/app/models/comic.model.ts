@@ -1,3 +1,5 @@
+import { RealmInfo } from './user.model';
+
 export interface Category {
   id: number;
   name: string;
@@ -48,6 +50,7 @@ export interface Comic {
   status: string;
   views: number;
   rating: number;
+  ratingCount?: number;
   isFeatured: boolean;
   isPublic?: boolean;
   totalChapters?: number;
@@ -75,6 +78,8 @@ export interface Comment {
   reportCount?: number;
   reportReason?: string;
   likesCount?: number;
+  userAvatarFrame?: string;
+  userRealm?: RealmInfo;
   createdAt: string;
 }
 
@@ -141,5 +146,36 @@ export interface PagedResult<T> {
   page: number;
   pageSize: number;
   totalPages: number;
+}
+
+export interface ComicReview {
+  id: number;
+  userId: number;
+  username: string;
+  fullName?: string;
+  avatar?: string;
+  avatarFrame?: string;
+  realm?: RealmInfo;
+  score: number;
+  review?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ComicRatingSummary {
+  comicId: number;
+  averageScore: number;
+  totalRatings: number;
+  fiveStarCount: number;
+  fourStarCount: number;
+  threeStarCount: number;
+  twoStarCount: number;
+  oneStarCount: number;
+  currentUserReview?: ComicReview;
+}
+
+export interface SubmitRatingPayload {
+  score: number;
+  review?: string;
 }
 

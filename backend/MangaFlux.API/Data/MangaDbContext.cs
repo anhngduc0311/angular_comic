@@ -19,6 +19,7 @@ namespace TruyenKomi.API.Data
         public DbSet<CommentLike> CommentLikes => Set<CommentLike>();
         public DbSet<Notification> Notifications => Set<Notification>();
         public DbSet<Report> Reports => Set<Report>();
+        public DbSet<ComicRating> ComicRatings => Set<ComicRating>();
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -153,6 +154,26 @@ namespace TruyenKomi.API.Data
             modelBuilder.Entity<Comic>().Property(c => c.Rating).HasPrecision(3, 2);
             modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.IsFeatured, c.UpdatedAt });
             modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.UpdatedAt });
+
+            // ComicRating Constraints & Relationships
+            modelBuilder.Entity<ComicRating>()
+                .HasIndex(cr => new { cr.UserId, cr.ComicId })
+                .IsUnique();
+
+            modelBuilder.Entity<ComicRating>()
+                .HasOne(cr => cr.User)
+                .WithMany(u => u.Ratings)
+                .HasForeignKey(cr => cr.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ComicRating>()
+                .HasOne(cr => cr.Comic)
+                .WithMany(c => c.Ratings)
+                .HasForeignKey(cr => cr.ComicId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // User Gamification Index for Leaderboard
+            modelBuilder.Entity<User>().HasIndex(u => u.Exp);
         }
     }
 }

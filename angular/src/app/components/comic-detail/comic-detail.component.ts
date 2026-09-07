@@ -6,7 +6,7 @@ import { ComicService } from '../../services/comic.service';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
 import { SeoService } from '../../services/seo.service';
-import { ComicDetail, Chapter } from '../../models/comic.model';
+import { ComicDetail, Chapter, ComicRatingSummary, ComicReview } from '../../models/comic.model';
 
 @Component({
   selector: 'app-comic-detail',
@@ -30,6 +30,18 @@ export class ComicDetailComponent implements OnInit {
   hasMoreComments: boolean = false;
   isLoadingComments: boolean = false;
   skeletonChapters: number[] = Array(8).fill(0);
+
+  // 5-Star Rating & Reviews State
+  ratingSummary: ComicRatingSummary | null = null;
+  userRatingScore: number = 5;
+  userHoverScore: number = 0;
+  userReviewText: string = '';
+  isSubmittingRating: boolean = false;
+  ratingSuccessMsg: string = '';
+  reviews: ComicReview[] = [];
+  reviewsPage: number = 1;
+  totalReviews: number = 0;
+  isLoadingReviews: boolean = false;
 
   chapterSearchQuery: string = '';
   sortOrder: 'desc' | 'asc' = 'desc';
@@ -67,6 +79,8 @@ export class ComicDetailComponent implements OnInit {
         this.seoService.setComicDetailSeo(detail);
         this.checkBookmarkStatus();
         this.loadComments(true);
+        this.loadRatingSummary(detail.id);
+        this.loadReviews(detail.id, 1);
       },
       error: () => {
         this.isLoading = false;
@@ -212,5 +226,78 @@ export class ComicDetailComponent implements OnInit {
     if (target && target.src !== 'assets/default-avatar.svg') {
       target.src = 'assets/default-avatar.svg';
     }
+  }
+
+  // ==================== 5-STAR RATING & REVIEWS ====================
+  loadRatingSummary(comicId: number): void {
+    this.comicService.getRatingSummary(comicId).subscribe({
+      next: (summary) => {
+        this.ratingSummary = summary;
+        if (summary.currentUserReview) {
+          this.userRatingScore = summary.currentUserReview.score;
+          this.userReviewText = summary.currentUserReview.review || '';
+        }
+      }
+    });
+  }
+
+  loadReviews(comicId: number, page: number = 1): void {
+    this.isLoadingReviews = true;
+    this.comicService.getComicReviews(comicId, page, 6).subscribe({
+      next: (res) => {
+        this.reviews = res.items || [];
+        this.totalReviews = res.totalCount;
+        this.reviewsPage = res.page;
+        this.isLoadingReviews = false;
+      },
+      error: () => {
+        this.isLoadingReviews = false;
+      }
+    });
+  }
+
+  setUserRatingScore(score: number): void {
+    this.userRatingScore = score;
+  }
+
+  setUserHoverScore(score: number): void {
+    this.userHoverScore = score;
+  }
+
+  get activeStars(): number {
+    return this.userHoverScore > 0 ? this.userHoverScore : this.userRatingScore;
+  }
+
+  submitRating(): void {
+    if (!this.comic || this.isSubmittingRating) return;
+    if (!this.authService.isLoggedIn) {
+      this.router.navigate(['/auth']);
+      return;
+    }
+
+    this.isSubmittingRating = true;
+    this.comicService.submitRating(this.comic.id, this.userRatingScore, this.userReviewText).subscribe({
+      next: (summary) => {
+        this.ratingSummary = summary;
+        this.isSubmittingRating = false;
+        this.ratingSuccessMsg = 'Cảm ơn bạn đã đánh giá truyện (+10 EXP)!';
+        if (this.comic) {
+          this.comic.rating = summary.averageScore;
+          this.comic.ratingCount = summary.totalRatings;
+        }
+        this.loadReviews(this.comic!.id, 1);
+        setTimeout(() => {
+          this.ratingSuccessMsg = '';
+        }, 4000);
+      },
+      error: () => {
+        this.isSubmittingRating = false;
+      }
+    });
+  }
+
+  getRatingPercent(count: number): number {
+    if (!this.ratingSummary || this.ratingSummary.totalRatings === 0) return 0;
+    return Math.round((count / this.ratingSummary.totalRatings) * 100);
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from './api.service';
-import { Comic, ComicDetail, Category, ChapterDetail, Comment, DashboardStats, SearchAutocompleteItem, SearchFilter, PagedResult } from '../models/comic.model';
+import { Comic, ComicDetail, Category, ChapterDetail, Comment, DashboardStats, SearchAutocompleteItem, SearchFilter, PagedResult, ComicRatingSummary, ComicReview } from '../models/comic.model';
 
 @Injectable({
   providedIn: 'root'
@@ -181,5 +181,18 @@ export class ComicService {
 
   deleteComment(id: number): Observable<{ success: boolean }> {
     return this.api.delete<{ success: boolean }>(`admin/comments/${id}`);
+  }
+
+  // Comic Rating & Reviews
+  submitRating(comicId: number, score: number, review?: string): Observable<ComicRatingSummary> {
+    return this.api.post<ComicRatingSummary>(`comics/${comicId}/ratings`, { score, review });
+  }
+
+  getRatingSummary(comicId: number): Observable<ComicRatingSummary> {
+    return this.api.get<ComicRatingSummary>(`comics/${comicId}/rating-summary`);
+  }
+
+  getComicReviews(comicId: number, page: number = 1, pageSize: number = 10): Observable<PagedResult<ComicReview>> {
+    return this.api.get<PagedResult<ComicReview>>(`comics/${comicId}/reviews?page=${page}&pageSize=${pageSize}`);
   }
 }

@@ -53,12 +53,18 @@ namespace TruyenKomi.API.Services
         private readonly MangaDbContext _context;
         private readonly INotificationService _notificationService;
         private readonly ICacheService _cache;
+        private readonly IGamificationService _gamificationService;
 
-        public ComicService(MangaDbContext context, INotificationService notificationService, ICacheService cache)
+        public ComicService(
+            MangaDbContext context, 
+            INotificationService notificationService, 
+            ICacheService cache,
+            IGamificationService gamificationService)
         {
             _context = context;
             _notificationService = notificationService;
             _cache = cache;
+            _gamificationService = gamificationService;
         }
 
         public async Task<List<ComicDto>> GetFeaturedComicsAsync()
@@ -456,6 +462,9 @@ namespace TruyenKomi.API.Services
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
 
+            // Reward +5 EXP for commenting
+            await _gamificationService.AddExpAsync(userId, 5, "Bình luận truyện");
+
             // Trigger notification if replying to a comment
             if (dto.ParentCommentId.HasValue)
             {
@@ -469,12 +478,16 @@ namespace TruyenKomi.API.Services
                 }
             }
 
+            var realm = user != null ? _gamificationService.CalculateRealm(user.Exp) : null;
+
             return new CommentDto
             {
                 Id = comment.Id,
                 UserId = user!.Id,
                 Username = user.Username,
                 UserAvatar = user.Avatar,
+                UserAvatarFrame = user != null ? (string.IsNullOrEmpty(user.AvatarFrame) ? realm?.FrameClass : user.AvatarFrame) : "avatar-frame-default",
+                UserRealm = realm,
                 ComicId = comment.ComicId,
                 ChapterId = comment.ChapterId,
                 ParentCommentId = comment.ParentCommentId,
@@ -535,18 +548,29 @@ namespace TruyenKomi.API.Services
 
             int totalCount = await query.CountAsync();
 
-            var comments = await query
+            var commentEntities = await query
                 .OrderByDescending(c => c.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Include(c => c.User)
                 .Include(c => c.Likes)
-                .Select(cm => new CommentDto
+                .ToListAsync();
+
+            var comments = commentEntities.Select(cm =>
+            {
+                var realm = cm.User != null ? _gamificationService.CalculateRealm(cm.User.Exp) : null;
+                var frame = cm.User != null 
+                    ? (string.IsNullOrEmpty(cm.User.AvatarFrame) ? realm?.FrameClass : cm.User.AvatarFrame) 
+                    : "avatar-frame-default";
+
+                return new CommentDto
                 {
                     Id = cm.Id,
                     UserId = cm.UserId,
                     Username = cm.User != null ? cm.User.Username : "Ẩn danh",
                     UserAvatar = cm.User != null ? cm.User.Avatar : null,
+                    UserAvatarFrame = frame,
+                    UserRealm = realm,
                     ComicId = cm.ComicId,
                     ChapterId = cm.ChapterId,
                     ParentCommentId = cm.ParentCommentId,
@@ -557,8 +581,8 @@ namespace TruyenKomi.API.Services
                     LikesCount = cm.Likes.Count,
                     IsLiked = currentUserId.HasValue && cm.Likes.Any(l => l.UserId == currentUserId.Value),
                     CreatedAt = cm.CreatedAt
-                })
-                .ToListAsync();
+                };
+            }).ToList();
 
             return new PagedSearchResultDto<CommentDto>
             {
@@ -1429,6 +1453,7 @@ namespace TruyenKomi.API.Services
                 Status = c.Status,
                 Views = c.Views,
                 Rating = c.Rating,
+                RatingCount = c.RatingCount,
                 IsFeatured = c.IsFeatured,
                 IsPublic = c.IsPublic,
                 TotalChapters = c.Chapters?.Count ?? 0,

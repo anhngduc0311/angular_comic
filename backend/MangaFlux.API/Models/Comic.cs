@@ -21,6 +21,7 @@ namespace TruyenKomi.API.Models
         public string Status { get; set; } = "Ongoing"; // "Ongoing", "Completed"
         public int Views { get; set; } = 0;
         public decimal Rating { get; set; } = 5.0m;
+        public int RatingCount { get; set; } = 0;
         public bool IsFeatured { get; set; } = false;
         public bool IsPublic { get; set; } = true;
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -32,6 +33,7 @@ namespace TruyenKomi.API.Models
         public ICollection<Bookmark> Bookmarks { get; set; } = new List<Bookmark>();
         public ICollection<ReadingHistory> ReadingHistories { get; set; } = new List<ReadingHistory>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public ICollection<ComicRating> Ratings { get; set; } = new List<ComicRating>();
     }
 
     public class ComicCategory

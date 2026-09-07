@@ -504,9 +504,18 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  expGainedToast: boolean = false;
+
   trackHistory(): void {
     if (this.authService.isLoggedIn && this.chapter) {
-      this.userService.trackHistory(this.chapter.comicId, this.chapter.id).subscribe();
+      this.userService.trackHistory(this.chapter.comicId, this.chapter.id).subscribe({
+        next: () => {
+          this.expGainedToast = true;
+          setTimeout(() => {
+            this.expGainedToast = false;
+          }, 3500);
+        }
+      });
     }
   }
 

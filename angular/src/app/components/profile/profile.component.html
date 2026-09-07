@@ -6,14 +6,20 @@
         <a routerLink="/"><i class="fa fa-home"></i> <span>Trang Chủ</span></a>
       </li>
       <li>
-        <span class="active">Trang Cá Nhân</span>
+        <span class="active">Trang Cá Nhân & Tu Vi</span>
       </li>
     </ol>
+
+    <!-- Notification Toast -->
+    <div class="gamification-toast glass-panel" *ngIf="toastMsg" [ngClass]="toastType">
+      <i class="fa" [ngClass]="toastType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'"></i>
+      <span>{{ toastMsg }}</span>
+    </div>
 
     <!-- Loading State -->
     <div class="loading-spinner glass-panel" *ngIf="isLoadingProfile">
       <i class="fa fa-circle-o-notch fa-spin"></i>
-      <p>Đang tải thông tin cá nhân...</p>
+      <p>Đang tải thông tin cá nhân & tu vi...</p>
     </div>
 
     <!-- Main Content -->
@@ -24,12 +30,14 @@
         
         <div class="profile-info-content">
           <div class="avatar-wrapper">
-            <img 
-              [src]="profile.avatar || defaultAvatar" 
-              (error)="onAvatarError($event)" 
-              alt="Avatar" 
-              class="profile-avatar" 
-            />
+            <div class="avatar-frame-container" [ngClass]="gamification?.activeFrame || profile.activeFrame || 'avatar-frame-luyen-khi'">
+              <img 
+                [src]="profile.avatar || defaultAvatar" 
+                (error)="onAvatarError($event)" 
+                alt="Avatar" 
+                class="profile-avatar" 
+              />
+            </div>
             <span class="role-badge" [class.admin-badge]="profile.role === 'Admin'">
               {{ profile.role === 'Admin' ? 'Quản trị viên' : 'Thành viên' }}
             </span>
@@ -41,6 +49,20 @@
                 {{ profile.fullName || profile.username }}
               </h1>
               <span class="username-sub">&#64;{{ profile.username }}</span>
+              
+              <!-- Realm Badge -->
+              <span 
+                *ngIf="gamification?.realm || profile.realm" 
+                class="realm-badge" 
+                [ngClass]="(gamification?.realm?.frameClass || profile.realm?.frameClass || 'realm-luyen-khi').replace('avatar-frame-', 'realm-')"
+              >
+                <i class="fa fa-shield"></i>
+                <span>{{ gamification?.realm?.title || profile.realm?.title }}</span>
+              </span>
+
+              <span *ngIf="profile.activeBadge" class="custom-badge-pill">
+                {{ profile.activeBadge }}
+              </span>
             </div>
 
             <div class="meta-row">
@@ -66,6 +88,33 @@
 
       <!-- Quick Stats Grid -->
       <div class="stats-grid">
+        <!-- EXP / Tu Vi -->
+        <div class="stat-card glass-panel cultivation-stat">
+          <div class="stat-icon-wrapper exp">
+            <i class="fa fa-bolt"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value text-exp">{{ (gamification?.exp ?? profile.exp ?? 0) | number }} EXP</span>
+            <span class="stat-label">Tổng Tu Vi Tích Lũy</span>
+          </div>
+          <div class="stat-badge exp-badge">{{ gamification?.realm?.name || 'Luyện Khí' }}</div>
+        </div>
+
+        <!-- Chuỗi Điểm Danh -->
+        <div class="stat-card glass-panel streak-stat">
+          <div class="stat-icon-wrapper streak">
+            <i class="fa fa-fire"></i>
+          </div>
+          <div class="stat-info">
+            <span class="stat-value text-streak">{{ (gamification?.attendanceStreak ?? profile.attendanceStreak ?? 0) }} Ngày</span>
+            <span class="stat-label">Chuỗi Điểm Danh Liên Tiếp</span>
+          </div>
+          <div class="stat-badge" [class.checked]="gamification?.hasCheckedInToday">
+            {{ gamification?.hasCheckedInToday ? 'Đã điểm danh ✔' : 'Chưa điểm danh' }}
+          </div>
+        </div>
+
+        <!-- Truyện Theo Dõi -->
         <div class="stat-card glass-panel">
           <div class="stat-icon-wrapper followed">
             <i class="fa fa-bookmark"></i>
@@ -79,6 +128,7 @@
           </a>
         </div>
 
+        <!-- Bình Luận -->
         <div class="stat-card glass-panel">
           <div class="stat-icon-wrapper comments">
             <i class="fa fa-comments"></i>
@@ -91,60 +141,244 @@
         </div>
       </div>
 
-      <!-- Comment History Section -->
-      <div class="section-container glass-panel">
-        <div class="section-header">
-          <h2 class="section-title">
-            <i class="fa fa-history title-icon"></i>
-            <span>Lịch sử bình luận</span>
-          </h2>
-          <span class="comment-count-badge" *ngIf="comments.length > 0">
-            {{ comments.length }} bình luận
-          </span>
-        </div>
+      <!-- Tab Navigation -->
+      <div class="profile-tabs glass-panel">
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'cultivation'" 
+          (click)="activeTab = 'cultivation'"
+        >
+          <i class="fa fa-bolt"></i>
+          <span>Cảnh Giới Tu Tiên</span>
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'frames'" 
+          (click)="activeTab = 'frames'"
+        >
+          <i class="fa fa-magic"></i>
+          <span>Khung Avatar & Huy Hiệu</span>
+          <span class="tab-badge" *ngIf="gamification?.unlockedFrames?.length">{{ gamification?.unlockedFrames?.length }}</span>
+        </button>
+        <button 
+          class="tab-btn" 
+          [class.active]="activeTab === 'comments'" 
+          (click)="activeTab = 'comments'"
+        >
+          <i class="fa fa-history"></i>
+          <span>Lịch Sử Bình Luận</span>
+          <span class="tab-badge" *ngIf="comments.length">{{ comments.length }}</span>
+        </button>
+      </div>
 
-        <!-- Loading Comments Spinner -->
-        <div class="loading-comments" *ngIf="isLoadingComments">
-          <i class="fa fa-spinner fa-spin"></i>
-          <span>Đang tải bình luận...</span>
-        </div>
+      <!-- TAB 1: CẢNH GIỚI TU TIÊN & ĐIỂM DANH -->
+      <div class="tab-content" *ngIf="activeTab === 'cultivation'">
+        <div class="cultivation-panel glass-panel">
+          <!-- Banner Cảnh Giới -->
+          <div class="cultivation-header">
+            <div class="realm-visual-wrap">
+              <div class="realm-orb" [ngClass]="(gamification?.realm?.frameClass || 'avatar-frame-luyen-khi').replace('avatar-frame-', 'orb-')">
+                <i class="fa fa-shield"></i>
+              </div>
+              <div class="realm-info-box">
+                <span class="realm-subtitle">Cảnh Giới Hiện Tại</span>
+                <h2 class="realm-title" [style.color]="gamification?.realm?.color || '#10b981'">
+                  {{ gamification?.realm?.title || 'Luyện Khí Sơ Kỳ - Cấp 1' }}
+                </h2>
+                <p class="realm-desc">{{ gamification?.realm?.auraDescription || 'Lục quang thanh sơ - Hộ thể sơ cấp' }}</p>
+              </div>
+            </div>
 
-        <!-- Empty State -->
-        <div class="empty-comments" *ngIf="!isLoadingComments && comments.length === 0">
-          <div class="empty-icon">
-            <i class="fa fa-commenting-o"></i>
+            <!-- Nút Điểm Danh Hàng Ngày -->
+            <div class="checkin-cta-box">
+              <button 
+                class="btn-checkin" 
+                [disabled]="isCheckingIn || gamification?.hasCheckedInToday"
+                (click)="checkIn()"
+              >
+                <i class="fa" [ngClass]="gamification?.hasCheckedInToday ? 'fa-check' : (isCheckingIn ? 'fa-spinner fa-spin' : 'fa-calendar-plus-o')"></i>
+                <span>{{ gamification?.hasCheckedInToday ? 'Đã Điểm Danh Hôm Nay' : (isCheckingIn ? 'Đang Điểm Danh...' : 'Điểm Danh Nhận +20 EXP') }}</span>
+              </button>
+              <div class="streak-subtext">
+                <i class="fa fa-fire text-streak"></i>
+                <span>Chuỗi {{ gamification?.attendanceStreak || 0 }} ngày liên tục (+10 EXP mốc 7 ngày)</span>
+              </div>
+            </div>
           </div>
-          <h3>Chưa có bình luận nào</h3>
-          <p>Bạn chưa tham gia bình luận truyện nào. Hãy khám phá và chia sẻ cảm nghĩ của bạn!</p>
-          <a routerLink="/comics" class="btn-explore-comics">
-            <i class="fa fa-book"></i> Khám phá truyện ngay
-          </a>
+
+          <!-- Thanh Tiến Trình Đột Phá -->
+          <div class="exp-progress-container" *ngIf="gamification">
+            <div class="exp-progress-meta">
+              <span class="progress-title">Tiến trình đột phá cấp tiếp theo</span>
+              <span class="progress-val">
+                <strong>{{ gamification.currentLevelExp }}</strong> / {{ gamification.expForNextLevel }} EXP 
+                ({{ gamification.progressPercent }}%)
+              </span>
+            </div>
+            <div class="progress-bar-track">
+              <div 
+                class="progress-bar-fill" 
+                [style.width.%]="gamification.progressPercent"
+                [style.background]="gamification.realm.color"
+              >
+                <div class="progress-glow"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quy Tắc Tu Tiên & Kiếm EXP -->
+          <div class="cultivation-guide-grid">
+            <div class="guide-card">
+              <div class="guide-icon read"><i class="fa fa-book-open"></i></div>
+              <div class="guide-info">
+                <h4>Đọc Chương Truyện</h4>
+                <p>Cộng <strong>+10 EXP</strong> cho mỗi chương đọc mới khi lật trang hoặc hoàn thành.</p>
+              </div>
+              <span class="exp-pill">+10 EXP</span>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-icon comment"><i class="fa fa-commenting-o"></i></div>
+              <div class="guide-info">
+                <h4>Gửi Bình Luận</h4>
+                <p>Cộng <strong>+5 EXP</strong> khi chia sẻ cảm nghĩ, thảo luận cùng cộng đồng.</p>
+              </div>
+              <span class="exp-pill">+5 EXP</span>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-icon checkin"><i class="fa fa-calendar-check-o"></i></div>
+              <div class="guide-info">
+                <h4>Điểm Danh Hàng Ngày</h4>
+                <p>Cộng <strong>+20 EXP</strong> mỗi ngày. Thưởng thêm +10 EXP chuỗi 7 ngày!</p>
+              </div>
+              <span class="exp-pill">+20 EXP</span>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-icon rating"><i class="fa fa-star"></i></div>
+              <div class="guide-info">
+                <h4>Đánh Giá Truyện 5 Sao</h4>
+                <p>Cộng <strong>+10 EXP</strong> cho mỗi lần đánh giá và review truyện mới.</p>
+              </div>
+              <span class="exp-pill">+10 EXP</span>
+            </div>
+          </div>
         </div>
+      </div>
 
-        <!-- Comments List -->
-        <div class="comments-list" *ngIf="!isLoadingComments && comments.length > 0">
-          <div class="comment-item" *ngFor="let comment of comments">
-            <a [routerLink]="['/comic', comment.comicSlug]" class="comic-thumb" *ngIf="comment.comicCover">
-              <img [src]="comment.comicCover" [alt]="comment.comicTitle" />
-            </a>
+      <!-- TAB 2: KHUNG AVATAR & HUY HIỆU -->
+      <div class="tab-content" *ngIf="activeTab === 'frames'">
+        <div class="section-container glass-panel">
+          <div class="section-header">
+            <div>
+              <h2 class="section-title">
+                <i class="fa fa-magic title-icon"></i>
+                <span>Tủ Khung Avatar Động</span>
+              </h2>
+              <p class="section-subtitle">Mở khóa khung viền phát sáng động theo cảnh giới tu tiên và thành tích đọc truyện.</p>
+            </div>
+          </div>
 
-            <div class="comment-main">
-              <div class="comment-meta">
-                <a [routerLink]="['/comic', comment.comicSlug]" class="comic-title">
-                  {{ comment.comicTitle }}
-                </a>
-
-                <span class="chapter-tag" *ngIf="comment.chapterNumber">
-                  <i class="fa fa-file-text-o"></i> Chap {{ comment.chapterNumber }}
-                </span>
-
-                <span class="comment-date">
-                  <i class="fa fa-clock-o"></i> {{ comment.createdAt | date:'HH:mm - dd/MM/yyyy' }}
-                </span>
+          <div class="frames-grid" *ngIf="gamification">
+            <div 
+              class="frame-card glass-panel" 
+              *ngFor="let frame of gamification.unlockedFrames"
+              [class.frame-active]="frame.isActive"
+              [class.frame-locked]="!frame.isUnlocked"
+            >
+              <div class="frame-preview-box">
+                <div class="avatar-frame-container" [ngClass]="frame.frameClass">
+                  <img [src]="profile.avatar || defaultAvatar" alt="Preview" class="preview-avatar" />
+                </div>
               </div>
 
-              <div class="comment-body">
-                {{ comment.content }}
+              <div class="frame-details">
+                <h4 class="frame-name">{{ frame.name }}</h4>
+                <p class="frame-desc">{{ frame.description }}</p>
+                <div class="frame-req">
+                  <i class="fa" [ngClass]="frame.isUnlocked ? 'fa-unlock text-success' : 'fa-lock text-warning'"></i>
+                  <span>Yêu cầu: {{ frame.requiredRealm }} ({{ frame.requiredExp }} EXP)</span>
+                </div>
+              </div>
+
+              <div class="frame-actions">
+                <button 
+                  *ngIf="frame.isUnlocked && !frame.isActive"
+                  class="btn-equip-frame" 
+                  [disabled]="isEquippingFrame"
+                  (click)="equipFrame(frame)"
+                >
+                  <i class="fa fa-check"></i> Trang Bị
+                </button>
+                <span *ngIf="frame.isActive" class="badge-equipped">
+                  <i class="fa fa-check-circle"></i> Đang Sử Dụng
+                </span>
+                <span *ngIf="!frame.isUnlocked" class="badge-locked">
+                  <i class="fa fa-lock"></i> Chưa Đủ Tu Vi
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: LỊCH SỬ BÌNH LUẬN -->
+      <div class="tab-content" *ngIf="activeTab === 'comments'">
+        <div class="section-container glass-panel">
+          <div class="section-header">
+            <h2 class="section-title">
+              <i class="fa fa-history title-icon"></i>
+              <span>Lịch sử bình luận</span>
+            </h2>
+            <span class="comment-count-badge" *ngIf="comments.length > 0">
+              {{ comments.length }} bình luận
+            </span>
+          </div>
+
+          <!-- Loading Comments Spinner -->
+          <div class="loading-comments" *ngIf="isLoadingComments">
+            <i class="fa fa-spinner fa-spin"></i>
+            <span>Đang tải bình luận...</span>
+          </div>
+
+          <!-- Empty State -->
+          <div class="empty-comments" *ngIf="!isLoadingComments && comments.length === 0">
+            <div class="empty-icon">
+              <i class="fa fa-commenting-o"></i>
+            </div>
+            <h3>Chưa có bình luận nào</h3>
+            <p>Bạn chưa tham gia bình luận truyện nào. Hãy khám phá và chia sẻ cảm nghĩ của bạn để nhận thêm +5 EXP tu vi!</p>
+            <a routerLink="/comics" class="btn-explore-comics">
+              <i class="fa fa-book"></i> Khám phá truyện ngay
+            </a>
+          </div>
+
+          <!-- Comments List -->
+          <div class="comments-list" *ngIf="!isLoadingComments && comments.length > 0">
+            <div class="comment-item" *ngFor="let comment of comments">
+              <a [routerLink]="['/comic', comment.comicSlug]" class="comic-thumb" *ngIf="comment.comicCover">
+                <img [src]="comment.comicCover" [alt]="comment.comicTitle" />
+              </a>
+
+              <div class="comment-main">
+                <div class="comment-meta">
+                  <a [routerLink]="['/comic', comment.comicSlug]" class="comic-title">
+                    {{ comment.comicTitle }}
+                  </a>
+
+                  <span class="chapter-tag" *ngIf="comment.chapterNumber">
+                    <i class="fa fa-file-text-o"></i> Chap {{ comment.chapterNumber }}
+                  </span>
+
+                  <span class="comment-date">
+                    <i class="fa fa-clock-o"></i> {{ comment.createdAt | date:'HH:mm - dd/MM/yyyy' }}
+                  </span>
+                </div>
+
+                <div class="comment-body">
+                  {{ comment.content }}
+                </div>
               </div>
             </div>
           </div>

@@ -39,6 +39,7 @@ namespace TruyenKomi.API.DTOs
         public string Status { get; set; } = "Ongoing";
         public int Views { get; set; }
         public decimal Rating { get; set; }
+        public int RatingCount { get; set; }
         public bool IsFeatured { get; set; }
         public bool IsPublic { get; set; } = true;
         public int TotalChapters { get; set; }
@@ -147,6 +148,8 @@ namespace TruyenKomi.API.DTOs
         public string? ReportReason { get; set; }
         public int LikesCount { get; set; }
         public bool IsLiked { get; set; }
+        public string? UserAvatarFrame { get; set; }
+        public RealmInfoDto? UserRealm { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 

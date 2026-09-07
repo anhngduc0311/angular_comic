@@ -230,6 +230,122 @@
         </ng-template>
       </section>
 
+      <!-- 5-STAR RATING & REVIEWS SECTION -->
+      <section class="section-block glass-card rating-section">
+        <div class="block-header">
+          <i class="fa fa-star icon-amber"></i>
+          <h3>Đánh Giá & Nhận Xét ({{ ratingSummary?.totalRatings || comic.ratingCount || 0 }})</h3>
+        </div>
+
+        <!-- Rating Overview Grid -->
+        <div class="rating-overview-grid">
+          <!-- Left: Big Score & Stars -->
+          <div class="score-summary-card">
+            <div class="big-score">{{ (ratingSummary?.averageScore || comic.rating || 5.0) | number:'1.1-1' }}</div>
+            <div class="stars-row">
+              <i class="fa fa-star" *ngFor="let s of [1,2,3,4,5]" [class.active]="s <= Math.round(ratingSummary?.averageScore || comic.rating || 5.0)"></i>
+            </div>
+            <span class="score-votes">{{ ratingSummary?.totalRatings || comic.ratingCount || 0 }} lượt đánh giá</span>
+          </div>
+
+          <!-- Right: Breakdown Bars (5 to 1) -->
+          <div class="breakdown-bars-card">
+            <div class="bar-row" *ngFor="let star of [5, 4, 3, 2, 1]">
+              <span class="bar-label">{{ star }} <i class="fa fa-star text-amber"></i></span>
+              <div class="bar-track">
+                <div 
+                  class="bar-fill" 
+                  [style.width.%]="getRatingPercent(
+                    star === 5 ? (ratingSummary?.fiveStarCount || 0) :
+                    star === 4 ? (ratingSummary?.fourStarCount || 0) :
+                    star === 3 ? (ratingSummary?.threeStarCount || 0) :
+                    star === 2 ? (ratingSummary?.twoStarCount || 0) :
+                    (ratingSummary?.oneStarCount || 0)
+                  )"
+                ></div>
+              </div>
+              <span class="bar-count">
+                {{ star === 5 ? (ratingSummary?.fiveStarCount || 0) :
+                   star === 4 ? (ratingSummary?.fourStarCount || 0) :
+                   star === 3 ? (ratingSummary?.threeStarCount || 0) :
+                   star === 2 ? (ratingSummary?.twoStarCount || 0) :
+                   (ratingSummary?.oneStarCount || 0) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive User Rating Box -->
+        <div class="user-rating-box glass-panel">
+          <div class="rating-box-header">
+            <h4>Đánh giá của bạn</h4>
+            <span class="rating-exp-hint"><i class="fa fa-bolt text-amber"></i> Nhận +10 EXP tu vi khi đánh giá</span>
+          </div>
+
+          <div class="star-rating-picker">
+            <span 
+              *ngFor="let star of [1, 2, 3, 4, 5]"
+              class="star-pick-item" 
+              [class.hovered]="star <= activeStars"
+              (click)="setUserRatingScore(star)"
+              (mouseenter)="setUserHoverScore(star)"
+              (mouseleave)="setUserHoverScore(0)"
+            >
+              <i class="fa fa-star"></i>
+            </span>
+            <span class="star-score-text">
+              {{ activeStars === 5 ? '⭐ Tuyệt vời! Cực phẩm truyện' : 
+                 activeStars === 4 ? '👍 Truyện rất hay' : 
+                 activeStars === 3 ? '👌 Truyện khá ổn' : 
+                 activeStars === 2 ? '👎 Truyện tạm được' : '💔 Truyện chưa hay' }}
+            </span>
+          </div>
+
+          <div class="review-input-row">
+            <textarea 
+              [(ngModel)]="userReviewText" 
+              placeholder="Viết nhận xét của bạn về cốt truyện, nét vẽ, bản dịch... (tùy chọn)"
+              rows="2"
+            ></textarea>
+            <button 
+              class="btn-submit-rating" 
+              [disabled]="isSubmittingRating"
+              (click)="submitRating()"
+            >
+              <i class="fa" [ngClass]="isSubmittingRating ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+              <span>{{ ratingSummary?.currentUserReview ? 'Cập Nhật Đánh Giá' : 'Gửi Đánh Giá' }}</span>
+            </button>
+          </div>
+
+          <div class="rating-toast-success" *ngIf="ratingSuccessMsg">
+            <i class="fa fa-check-circle"></i> {{ ratingSuccessMsg }}
+          </div>
+        </div>
+
+        <!-- Community Reviews List -->
+        <div class="reviews-list" *ngIf="reviews.length > 0">
+          <div class="review-card" *ngFor="let rev of reviews">
+            <div class="avatar-frame-container review-avatar" [ngClass]="rev.avatarFrame || 'avatar-frame-luyen-khi'">
+              <img [src]="rev.avatar || 'assets/default-avatar.svg'" (error)="onAvatarError($event)" alt="Avatar" />
+            </div>
+
+            <div class="review-content-box">
+              <div class="review-meta-row">
+                <span class="reviewer-name">{{ rev.fullName || rev.username }}</span>
+                <span *ngIf="rev.realm" class="realm-badge" [ngClass]="rev.realm.frameClass.replace('avatar-frame-', 'realm-')">
+                  {{ rev.realm.title }}
+                </span>
+                <div class="review-stars">
+                  <i class="fa fa-star" *ngFor="let s of [1,2,3,4,5]" [class.active]="s <= rev.score"></i>
+                </div>
+                <span class="review-date"><i class="fa fa-clock-o"></i> {{ rev.createdAt | date:'dd/MM/yyyy' }}</span>
+              </div>
+              <p class="review-text" *ngIf="rev.review">{{ rev.review }}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Comments Block -->
       <section class="section-block glass-card comments-section">
         <div class="block-header">
@@ -254,10 +370,15 @@
         <!-- Comments List -->
         <div class="comments-list" *ngIf="comments && comments.length > 0">
           <div class="comment-card" *ngFor="let cm of comments">
-            <img [src]="cm.userAvatar || 'assets/default-avatar.svg'" (error)="onAvatarError($event)" alt="Avatar" class="user-avatar" />
+            <div class="avatar-frame-container comment-avatar-frame" [ngClass]="cm.userAvatarFrame || 'avatar-frame-default'">
+              <img [src]="cm.userAvatar || 'assets/default-avatar.svg'" (error)="onAvatarError($event)" alt="Avatar" class="user-avatar" />
+            </div>
             <div class="comment-body">
               <div class="comment-user-row">
                 <span class="user-name">{{ cm.username }}</span>
+                <span *ngIf="cm.userRealm" class="realm-badge" [ngClass]="cm.userRealm.frameClass.replace('avatar-frame-', 'realm-')">
+                  {{ cm.userRealm.title }}
+                </span>
                 <span class="comment-time"><i class="fa fa-clock-o"></i> {{ cm.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
               </div>
               <p class="comment-text">{{ cm.content }}</p>

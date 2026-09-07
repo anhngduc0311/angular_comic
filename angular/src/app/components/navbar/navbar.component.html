@@ -68,6 +68,11 @@
         <span class="badge-dot dot-orange"></span>
         <span>Manga</span>
       </a>
+
+      <button (click)="openLeaderboard()" type="button" class="nav-tab nav-tab-btn">
+        <i class="fa fa-trophy text-amber"></i>
+        <span>BXH Tu Vi</span>
+      </button>
     </nav>
 
     <!-- CENTER-RIGHT: Smart Search Bar -->
@@ -151,7 +156,7 @@
 
         <!-- User Avatar Trigger -->
         <div class="user-avatar-wrapper" (click)="toggleUserDropdown($event)">
-          <div class="user-avatar-badge">
+          <div class="user-avatar-badge avatar-frame-container" [ngClass]="getUserFrame()">
             <img [src]="getUserAvatar()" (error)="onAvatarError($event)" alt="Avatar" class="avatar-img" />
           </div>
 
@@ -159,12 +164,18 @@
           <div class="user-dropdown-panel glass-panel" [class.is-visible]="isUserDropdownOpen">
             <div class="user-info-header">
               <span class="user-name">{{ authService.currentUserValue?.username || 'Thành viên' }}</span>
-              <span class="user-role-badge">VIP Member 👑</span>
+              <span *ngIf="getUserRealm()" class="realm-badge" [ngClass]="getUserRealm()!.frameClass.replace('avatar-frame-', 'realm-')">
+                <i class="fa fa-shield"></i> {{ getUserRealm()!.title }}
+              </span>
+              <span *ngIf="!getUserRealm()" class="user-role-badge">Độc Giả TruyenKomi</span>
             </div>
             <div class="user-dropdown-links">
               <a routerLink="/profile" (click)="closeUserDropdown()" class="dropdown-link">
-                <i class="fa fa-user-o"></i> <span>Tài Khoản</span>
+                <i class="fa fa-bolt text-amber"></i> <span>Tu Vi & Cảnh Giới</span>
               </a>
+              <button type="button" (click)="openLeaderboard()" class="dropdown-link btn-dropdown-action">
+                <i class="fa fa-trophy text-amber"></i> <span>Bảng Xếp Hạng Tu Vi</span>
+              </button>
               <a routerLink="/followed" (click)="closeUserDropdown()" class="dropdown-link">
                 <i class="fa fa-heart-o"></i> <span>Truyện Theo Dõi</span>
               </a>
@@ -304,6 +315,9 @@
 
   <!-- Mobile Auth / User CTA -->
   <div class="drawer-footer">
+    <button class="btn-leaderboard-drawer w-100 mb-2" (click)="openLeaderboard()">
+      <i class="fa fa-trophy text-amber"></i> Bảng Xếp Hạng Tu Vi
+    </button>
     <ng-container *ngIf="!authService.isLoggedIn">
       <button class="btn-primary-gradient w-100" routerLink="/auth" (click)="closeMobileMenu()">
         <i class="fa fa-user-circle"></i> Đăng Nhập / Đăng Ký
@@ -316,3 +330,74 @@
     </ng-container>
   </div>
 </div>
+
+<!-- LEADERBOARD MODAL -->
+<div class="leaderboard-modal-backdrop" *ngIf="isLeaderboardOpen" (click)="closeLeaderboard()">
+  <div class="leaderboard-modal glass-panel" (click)="$event.stopPropagation()">
+    <div class="leaderboard-modal-header">
+      <div class="header-title-box">
+        <i class="fa fa-trophy trophy-icon"></i>
+        <div>
+          <h2 class="modal-title">Bảng Xếp Hạng Tu Vi Độc Giả</h2>
+          <span class="modal-subtitle">Vinh danh cao thủ đọc truyện nhiều tu vi nhất TruyenKomi</span>
+        </div>
+      </div>
+      <button class="btn-close-modal" (click)="closeLeaderboard()" aria-label="Đóng">
+        <i class="fa fa-times"></i>
+      </button>
+    </div>
+
+    <div class="leaderboard-modal-body">
+      <div class="loading-leaderboard" *ngIf="isLoadingLeaderboard">
+        <i class="fa fa-circle-o-notch fa-spin"></i>
+        <span>Đang tải bảng xếp hạng cao thủ...</span>
+      </div>
+
+      <div class="leaderboard-list" *ngIf="!isLoadingLeaderboard">
+        <div 
+          class="leaderboard-item" 
+          *ngFor="let user of leaderboardUsers"
+          [class.rank-1]="user.rank === 1"
+          [class.rank-2]="user.rank === 2"
+          [class.rank-3]="user.rank === 3"
+        >
+          <!-- Rank Number / Trophy -->
+          <div class="rank-badge">
+            <span *ngIf="user.rank === 1" class="rank-trophy gold">🥇</span>
+            <span *ngIf="user.rank === 2" class="rank-trophy silver">🥈</span>
+            <span *ngIf="user.rank === 3" class="rank-trophy bronze">🥉</span>
+            <span *ngIf="user.rank > 3" class="rank-number">#{{ user.rank }}</span>
+          </div>
+
+          <!-- User Avatar with Animated Frame -->
+          <div class="avatar-frame-container item-avatar" [ngClass]="user.activeFrame">
+            <img [src]="user.avatar || DEFAULT_AVATAR" alt="Avatar" />
+          </div>
+
+          <!-- User Details -->
+          <div class="item-user-info">
+            <div class="name-row">
+              <span class="item-name">{{ user.fullName || user.username }}</span>
+              <span class="item-badge" *ngIf="user.activeBadge">{{ user.activeBadge }}</span>
+            </div>
+            <div class="sub-row">
+              <span class="realm-badge" [ngClass]="user.realm.frameClass.replace('avatar-frame-', 'realm-')">
+                {{ user.realm.title }}
+              </span>
+              <span class="item-streak" *ngIf="user.attendanceStreak > 0">
+                <i class="fa fa-fire text-danger"></i> {{ user.attendanceStreak }} ngày
+              </span>
+            </div>
+          </div>
+
+          <!-- EXP Total -->
+          <div class="item-exp">
+            <span class="exp-val">{{ user.exp | number }}</span>
+            <span class="exp-lbl">EXP</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+

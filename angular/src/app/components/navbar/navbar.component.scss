@@ -1052,3 +1052,275 @@
   0% { opacity: 0; }
   100% { opacity: 1; }
 }
+
+/* Nav Tab Button for BXH Tu Vi */
+.nav-tab-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-dropdown-action {
+  background: transparent;
+  border: none;
+  width: 100%;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+
+.btn-leaderboard-drawer {
+  height: 42px;
+  border-radius: var(--radius-pill);
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  transition: var(--transition-fast);
+
+  &:hover {
+    background: #f59e0b;
+    color: #ffffff;
+  }
+}
+
+/* ==================== LEADERBOARD MODAL ==================== */
+.leaderboard-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.25s ease;
+}
+
+.leaderboard-modal {
+  width: 100%;
+  max-width: 580px;
+  max-height: 85vh;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+  .leaderboard-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), transparent 70%);
+
+    .header-title-box {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+
+      .trophy-icon {
+        font-size: 28px;
+        color: #f59e0b;
+        filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.5));
+      }
+
+      .modal-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 800;
+        color: var(--text-main);
+      }
+
+      .modal-subtitle {
+        font-size: 12px;
+        color: var(--text-secondary);
+      }
+    }
+
+    .btn-close-modal {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition-fast);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: var(--text-main);
+      }
+    }
+  }
+
+  .leaderboard-modal-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    max-height: calc(85vh - 85px);
+
+    .loading-leaderboard {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      gap: 12px;
+      color: var(--primary-orange);
+      font-weight: 600;
+      i { font-size: 28px; }
+    }
+
+    .leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+
+      .leaderboard-item {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 12px 16px;
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        transition: var(--transition-fast);
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(245, 158, 11, 0.3);
+          transform: translateX(4px);
+        }
+
+        &.rank-1 {
+          background: linear-gradient(90deg, rgba(251, 191, 36, 0.12), transparent);
+          border-color: rgba(251, 191, 36, 0.4);
+        }
+
+        &.rank-2 {
+          background: linear-gradient(90deg, rgba(203, 213, 225, 0.1), transparent);
+          border-color: rgba(203, 213, 225, 0.35);
+        }
+
+        &.rank-3 {
+          background: linear-gradient(90deg, rgba(217, 119, 6, 0.1), transparent);
+          border-color: rgba(217, 119, 6, 0.35);
+        }
+
+        .rank-badge {
+          width: 32px;
+          text-align: center;
+          flex-shrink: 0;
+
+          .rank-trophy {
+            font-size: 22px;
+          }
+
+          .rank-number {
+            font-size: 14px;
+            font-weight: 800;
+            color: var(--text-muted);
+          }
+        }
+
+        .item-avatar {
+          width: 44px;
+          height: 44px;
+          flex-shrink: 0;
+
+          img {
+            width: 38px;
+            height: 38px;
+          }
+        }
+
+        .item-user-info {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+
+          .name-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .item-name {
+              font-size: 14px;
+              font-weight: 700;
+              color: var(--text-main);
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .item-badge {
+              font-size: 10px;
+              font-weight: 700;
+              padding: 1px 6px;
+              border-radius: var(--radius-pill);
+              background: rgba(245, 158, 11, 0.2);
+              color: #f59e0b;
+              white-space: nowrap;
+            }
+          }
+
+          .sub-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            .item-streak {
+              font-size: 11px;
+              color: var(--text-muted);
+            }
+          }
+        }
+
+        .item-exp {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          flex-shrink: 0;
+
+          .exp-val {
+            font-size: 15px;
+            font-weight: 800;
+            color: #f59e0b;
+            text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+          }
+
+          .exp-lbl {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+          }
+        }
+      }
+    }
+  }
+}
+

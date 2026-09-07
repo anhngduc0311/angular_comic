@@ -1,4 +1,9 @@
 <div class="reader-container" *ngIf="chapter && !isLoading; else readerSkeleton" (click)="onReaderClick($event)">
+  <!-- Floating EXP Notification Toast -->
+  <div class="exp-floating-toast" *ngIf="expGainedToast">
+    <i class="fa fa-bolt"></i> <span>+10 EXP Tu Vi Đọc Truyện!</span>
+  </div>
+
   <!-- ==================== 1. FLOATING TOP NAV BAR ==================== -->
   <header class="reader-header glass-panel" [class.is-hidden]="isHeaderHidden">
     <div class="div_middle reader-header-inner">

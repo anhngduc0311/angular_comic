@@ -1509,3 +1509,180 @@ button, input, select, textarea {
   to { opacity: 1; transform: scale(1); }
 }
 
+/* ============================================================================
+   GAMIFICATION & CULTIVATION REALM AVATAR FRAMES & BADGES
+   ============================================================================ */
+
+.avatar-frame-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  padding: 3px;
+  transition: all 0.3s ease;
+
+  img {
+    border-radius: 50%;
+    display: block;
+    object-fit: cover;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 1. Luyện Khí (Emerald green) */
+  &.avatar-frame-luyen-khi {
+    background: linear-gradient(135deg, #10b981, #34d399, #059669);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+    animation: luyenKhiPulse 3s infinite ease-in-out;
+  }
+
+  /* 2. Trúc Cơ (Cyan water) */
+  &.avatar-frame-truc-co {
+    background: linear-gradient(135deg, #06b6d4, #38bdf8, #0284c7);
+    box-shadow: 0 0 12px rgba(6, 182, 212, 0.55);
+    animation: trucCoWave 3.5s infinite linear;
+  }
+
+  /* 3. Kim Đan (Golden radiant) */
+  &.avatar-frame-kim-dan {
+    background: conic-gradient(from 0deg, #f59e0b, #fbbf24, #d97706, #fef08a, #f59e0b);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.65), inset 0 0 6px rgba(254, 240, 138, 0.5);
+    animation: kimDanRotate 4s infinite linear;
+  }
+
+  /* 4. Nguyên Anh (Astral purple) */
+  &.avatar-frame-nguyen-anh {
+    background: conic-gradient(from 0deg, #a855f7, #c084fc, #7e22ce, #e879f9, #a855f7);
+    box-shadow: 0 0 18px rgba(168, 85, 247, 0.7), 0 0 6px rgba(192, 132, 252, 0.6);
+    animation: nguyenAnhVortex 4.5s infinite linear;
+  }
+
+  /* 5. Hóa Thần (Crimson divine fire) */
+  &.avatar-frame-hoa-than {
+    background: linear-gradient(135deg, #ef4444, #f97316, #dc2626, #fb923c);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.75), 0 0 10px rgba(249, 115, 22, 0.5);
+    animation: hoaThanFlame 2.5s infinite ease-in-out;
+  }
+
+  /* 6. Độ Kiếp (Cosmic rainbow / lightning) */
+  &.avatar-frame-do-kiep {
+    background: conic-gradient(from 0deg, #ec4899, #8b5cf6, #3b82f6, #06b6d4, #10b981, #eab308, #ef4444, #ec4899);
+    box-shadow: 0 0 24px rgba(236, 72, 153, 0.8), 0 0 12px rgba(139, 92, 246, 0.6);
+    animation: doKiepCosmic 3s infinite linear;
+  }
+
+  /* 7. Top Độc Giả (Royal Crown) */
+  &.avatar-frame-top-reader {
+    background: conic-gradient(from 0deg, #fbbf24, #f59e0b, #d97706, #fffbeb, #fbbf24);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.75), 0 0 8px rgba(245, 158, 11, 0.8);
+
+    &::after {
+      content: '👑';
+      position: absolute;
+      top: -10px;
+      right: -6px;
+      font-size: 14px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+      animation: crownBounce 2s infinite ease-in-out;
+    }
+  }
+
+  &.avatar-frame-default {
+    border: 2px solid var(--border-color);
+  }
+}
+
+/* Realm Badge Pill */
+.realm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
+
+  &.realm-luyen-khi {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.35);
+  }
+
+  &.realm-truc-co {
+    background: rgba(6, 182, 212, 0.15);
+    color: #06b6d4;
+    border: 1px solid rgba(6, 182, 212, 0.35);
+  }
+
+  &.realm-kim-dan {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  }
+
+  &.realm-nguyen-anh {
+    background: rgba(168, 85, 247, 0.18);
+    color: #a855f7;
+    border: 1px solid rgba(168, 85, 247, 0.4);
+    text-shadow: 0 0 8px rgba(168, 85, 247, 0.35);
+  }
+
+  &.realm-hoa-than {
+    background: rgba(239, 68, 68, 0.18);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
+  }
+
+  &.realm-do-kiep {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(139, 92, 246, 0.2));
+    color: #ec4899;
+    border: 1px solid rgba(236, 72, 153, 0.5);
+    box-shadow: 0 0 10px rgba(236, 72, 153, 0.25);
+  }
+}
+
+/* Animations */
+@keyframes luyenKhiPulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(16, 185, 129, 0.4); }
+  50% { box-shadow: 0 0 16px rgba(16, 185, 129, 0.7); }
+}
+
+@keyframes trucCoWave {
+  0% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(25deg); }
+  100% { filter: hue-rotate(0deg); }
+}
+
+@keyframes kimDanRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes nguyenAnhVortex {
+  0% { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.6)) hue-rotate(0deg); }
+  50% { filter: drop-shadow(0 0 14px rgba(168, 85, 247, 0.9)) hue-rotate(30deg); }
+  100% { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.6)) hue-rotate(0deg); }
+}
+
+@keyframes hoaThanFlame {
+  0%, 100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.6), 0 0 4px rgba(249, 115, 22, 0.6); }
+  50% { box-shadow: 0 0 24px rgba(239, 68, 68, 0.9), 0 0 12px rgba(249, 115, 22, 0.8); }
+}
+
+@keyframes doKiepCosmic {
+  0% { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
+@keyframes crownBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+

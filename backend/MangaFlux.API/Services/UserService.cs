@@ -32,10 +32,12 @@ namespace TruyenKomi.API.Services
     public class UserService : IUserService
     {
         private readonly MangaDbContext _context;
+        private readonly IGamificationService _gamificationService;
 
-        public UserService(MangaDbContext context)
+        public UserService(MangaDbContext context, IGamificationService gamificationService)
         {
             _context = context;
+            _gamificationService = gamificationService;
         }
 
         public async Task<List<BookmarkDto>> GetUserBookmarksAsync(int userId)
@@ -150,9 +152,14 @@ namespace TruyenKomi.API.Services
                     ChapterId = chapterId,
                     LastReadAt = DateTime.UtcNow
                 });
+                await _gamificationService.AddExpAsync(userId, 10, "Đọc chương truyện");
             }
             else
             {
+                if (historyItem.ChapterId != chapterId)
+                {
+                    await _gamificationService.AddExpAsync(userId, 10, "Đọc chương mới");
+                }
                 historyItem.ChapterId = chapterId;
                 historyItem.LastReadAt = DateTime.UtcNow;
             }
@@ -169,6 +176,9 @@ namespace TruyenKomi.API.Services
             var followedCount = await _context.Bookmarks.AsNoTracking().CountAsync(b => b.UserId == userId);
             var commentsCount = await _context.Comments.AsNoTracking().CountAsync(c => c.UserId == userId);
 
+            var realm = _gamificationService.CalculateRealm(user.Exp);
+            var hasCheckedIn = _gamificationService.HasCheckedInToday(user.LastAttendanceDate);
+
             return new UserProfileDto
             {
                 Id = user.Id,
@@ -180,7 +190,13 @@ namespace TruyenKomi.API.Services
                 IsLocked = user.IsLocked,
                 CreatedAt = user.CreatedAt,
                 FollowedCount = followedCount,
-                CommentsCount = commentsCount
+                CommentsCount = commentsCount,
+                Exp = user.Exp,
+                Realm = realm,
+                AttendanceStreak = user.AttendanceStreak,
+                HasCheckedInToday = hasCheckedIn,
+                ActiveFrame = string.IsNullOrEmpty(user.AvatarFrame) ? realm.FrameClass : user.AvatarFrame,
+                ActiveBadge = user.ActiveBadge
             };
         }
 

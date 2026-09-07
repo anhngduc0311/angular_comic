@@ -115,6 +115,8 @@ builder.Services.AddHealthChecks()
     .AddCheck<StorageHealthCheck>("storage", tags: new[] { "ready", "storage" });
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IGamificationService, GamificationService>();
+builder.Services.AddScoped<IRatingService, RatingService>();
 builder.Services.AddScoped<IComicService, ComicService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();

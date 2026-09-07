@@ -43,6 +43,14 @@ namespace TruyenKomi.API.DTOs
         public DateTime CreatedAt { get; set; }
         public int FollowedCount { get; set; }
         public int CommentsCount { get; set; }
+
+        // Gamification Properties
+        public int Exp { get; set; }
+        public RealmInfoDto? Realm { get; set; }
+        public int AttendanceStreak { get; set; }
+        public bool HasCheckedInToday { get; set; }
+        public string ActiveFrame { get; set; } = "frame-default";
+        public string? ActiveBadge { get; set; }
     }
 
     public class UserRoleUpdateDto

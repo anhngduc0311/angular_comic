@@ -133,11 +133,20 @@ Tài liệu chi tiết phân loại các tác vụ cải thiện hiệu năng, t
 ## 🏆 Giai Đoạn 6: Gamification, Cộng Đồng & Đánh Giá Truyện (P3 - Community & Gamification)
 
 ### 6.1 Hệ Thống Cấp Bậc Độc Giả (User Leveling & EXP)
-- [ ] **Tính Điểm Kinh Nghiệm (EXP) & Cảnh Giới:**
-  - Cộng EXP khi đọc hết 1 chương (+10 EXP), bình luận (+5 EXP), điểm danh hàng ngày (+20 EXP).
-  - Hệ thống cấp bậc: *Luyện Khí ➔ Trúc Cơ ➔ Kim Đan ➔ Nguyên Anh ➔ Hóa Thần ➔ Độ Kiếp* (hoặc *Tân Thủ ➔ Đồng ➔ Bạc ➔ Vàng ➔ Kim Cương ➔ Tinh Anh*).
-- [ ] **Khung Avatar Phát Sáng & Huy Hiệu Độc Quyền:**
+- [x] **Tính Điểm Kinh Nghiệm (EXP) & Cảnh Giới:**
+  - Cộng EXP khi đọc hết 1 chương (+10 EXP), bình luận (+5 EXP), điểm danh hàng ngày (+20 EXP), đánh giá truyện (+10 EXP).
+  - Hệ thống cấp bậc: *Luyện Khí ➔ Trúc Cơ ➔ Kim Đan ➔ Nguyên Anh ➔ Hóa Thần ➔ Độ Kiếp*
+- [x] **Khung Avatar Phát Sáng & Huy Hiệu Độc Quyền:**
   - Mở khóa khung viền avatar động theo cấp bậc hoặc danh hiệu Top Độc Giả của tháng.
+  - Tủ khung avatar cho phép trang bị khung đã mở khóa tại trang Cá Nhân (`/profile`).
+  - Bảng Xếp Hạng Tu Vi Độc Giả (Leaderboard) vinh danh Top Độc Giả.
+
+### 6.2 Hệ Thống Đánh Giá Truyện & Reviews 5 Sao (Comic Rating & Reviews)
+- [x] **Đánh Giá Sao & Bài Nhận Xét Tương Tác:**
+  - Widget tương tác chọn 1 đến 5 sao mượt mà kèm nhập nhận xét tại `comic-detail`.
+  - Tự động tính điểm trung bình `Rating` và số lượt đánh giá `RatingCount`.
+  - Thanh phân bổ tỷ lệ phần trăm các mức đánh giá (5 sao đến 1 sao).
+  - Danh sách bài review cộng đồng hiển thị kèm Khung Avatar và Cảnh Giới Tu Vi của người đánh giá.
 
 ---
 

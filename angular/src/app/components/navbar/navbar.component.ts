@@ -9,6 +9,8 @@ import { NotificationService } from '../../services/notification.service';
 import { ComicService } from '../../services/comic.service';
 import { ThemeService } from '../../services/theme.service';
 import { SearchAutocompleteItem, Category } from '../../models/comic.model';
+import { GamificationService } from '../../services/gamification.service';
+import { UserGamificationProfile, LeaderboardUser, RealmInfo } from '../../models/user.model';
 
 @Component({
   selector: 'app-navbar',
@@ -22,8 +24,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
   public notificationService = inject(NotificationService);
   public themeService = inject(ThemeService);
   private comicService = inject(ComicService);
+  public gamificationService = inject(GamificationService);
   private router = inject(Router);
   private elementRef = inject(ElementRef);
+
+  gamificationProfile: UserGamificationProfile | null = null;
+  isLeaderboardOpen: boolean = false;
+  leaderboardUsers: LeaderboardUser[] = [];
+  isLoadingLeaderboard: boolean = false;
 
   searchQuery: string = '';
   isSearchOpen: boolean = false;
@@ -58,7 +66,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.authService.currentUser$.subscribe((user) => {
       if (user) {
         this.notificationService.fetchUnreadCount().subscribe();
+        this.gamificationService.getProfile().subscribe();
+      } else {
+        this.gamificationProfile = null;
       }
+    });
+
+    this.gamificationService.profile$.subscribe((profile) => {
+      this.gamificationProfile = profile;
     });
   }
 
@@ -292,11 +307,39 @@ export class NavbarComponent implements OnInit, OnDestroy {
   readonly DEFAULT_AVATAR = 'assets/default-avatar.svg';
 
   getUserAvatar(): string {
-    const avatar = this.authService.currentUserValue?.avatar;
+    const avatar = this.gamificationProfile?.avatar || this.authService.currentUserValue?.avatar;
     if (!avatar || !avatar.trim()) {
       return this.DEFAULT_AVATAR;
     }
     return avatar;
+  }
+
+  getUserFrame(): string {
+    return this.gamificationProfile?.activeFrame || 'avatar-frame-default';
+  }
+
+  getUserRealm(): RealmInfo | null {
+    return this.gamificationProfile?.realm || null;
+  }
+
+  openLeaderboard(): void {
+    this.isLeaderboardOpen = true;
+    this.isLoadingLeaderboard = true;
+    this.closeUserDropdown();
+    this.closeMobileMenu();
+    this.gamificationService.getLeaderboard(20).subscribe({
+      next: (data) => {
+        this.leaderboardUsers = data;
+        this.isLoadingLeaderboard = false;
+      },
+      error: () => {
+        this.isLoadingLeaderboard = false;
+      }
+    });
+  }
+
+  closeLeaderboard(): void {
+    this.isLeaderboardOpen = false;
   }
 
   onAvatarError(event: Event): void {
