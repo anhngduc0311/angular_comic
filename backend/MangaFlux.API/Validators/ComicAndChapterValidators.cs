@@ -29,7 +29,7 @@ namespace TruyenKomi.API.Validators
         public ChapterCreateDtoValidator()
         {
             RuleFor(x => x.ComicId)
-                .GreaterThan(0).WithMessage("ComicId không hợp lệ.");
+                .GreaterThanOrEqualTo(0).WithMessage("ComicId không hợp lệ.");
 
             RuleFor(x => x.ChapterNumber)
                 .GreaterThanOrEqualTo(0).WithMessage("Số thứ tự chapter phải lớn hơn hoặc bằng 0.");

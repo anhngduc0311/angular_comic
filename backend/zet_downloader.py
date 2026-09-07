@@ -191,6 +191,8 @@ def sync_chapter_to_web_api(
     }
     try:
         res = requests.post(url, json=payload, headers=headers, timeout=20)
+        if res.status_code not in (200, 201):
+            print(f"Sync API status {res.status_code}: {res.text}")
         return res.status_code in (200, 201)
     except Exception as e:
         print(f"Sync API error: {e}")
