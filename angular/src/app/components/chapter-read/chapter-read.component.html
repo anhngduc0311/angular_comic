@@ -108,34 +108,7 @@
     </ng-template>
   </main>
 
-  <!-- ==================== 3. FLOATING BOTTOM NAVIGATION DOCK ==================== -->
-  <div class="floating-bottom-dock glass-panel">
-    <button 
-      class="dock-nav-btn" 
-      [disabled]="!prevChapterId" 
-      (click)="navigateToChapter(prevChapterId)"
-    >
-      <i class="fa fa-arrow-left"></i> Chap Trước
-    </button>
 
-    <div class="dock-center-info">
-      <span class="dock-chap-text">Chap {{ chapter.chapterNumber }}</span>
-      <span class="dock-total-pages" *ngIf="chapter.pages">{{ chapter.pages.length }} trang</span>
-    </div>
-
-    <button 
-      class="dock-nav-btn dock-next" 
-      [disabled]="!nextChapterId" 
-      (click)="navigateToChapter(nextChapterId)"
-    >
-      Chap Tiếp <i class="fa fa-arrow-right"></i>
-    </button>
-  </div>
-
-  <!-- FLOATING SCROLL TOP -->
-  <button id="back-to-top" *ngIf="showScrollTop" (click)="scrollToTop()" title="Lên đầu trang">
-    <i class="fa fa-arrow-up"></i>
-  </button>
 </div>
 
 <!-- ==================== 4. REPORT MODAL ==================== -->
