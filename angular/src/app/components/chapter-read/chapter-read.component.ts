@@ -539,7 +539,20 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   onImgError(event: Event): void {
     const target = event.target as HTMLImageElement;
     if (target) {
-      target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=800&q=80';
+      const currentSrc = target.src || '';
+      const retryCount = parseInt(target.getAttribute('data-retries') || '0', 10);
+      // Tự động thử lại đến 3 lần với timestamp để vượt cache lỗi của CDN
+      if (retryCount < 3 && !currentSrc.includes('data:image/svg+xml')) {
+        target.setAttribute('data-retries', (retryCount + 1).toString());
+        const cleanBase = currentSrc.split('?')[0];
+        setTimeout(() => {
+          target.src = `${cleanBase}?v=${Date.now()}`;
+        }, 1200 * (retryCount + 1));
+        return;
+      }
+
+      // Khi đã thử lại 3 lần mà CDN vẫn chưa có file, hiển thị thông báo thân thiện thay vì ảnh ngoài
+      target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" viewBox="0 0 800 400"><rect width="800" height="400" fill="%2314141e"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" fill="%23e94560" font-family="sans-serif" font-size="20" font-weight="bold">⚠️ Đang xử lý trang truyện này...</text><text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle" fill="%23888899" font-family="sans-serif" font-size="15">Trang truyện đang được đồng bộ lên máy chủ. Vui lòng thử lại sau giây lát.</text></svg>';
     }
   }
 
