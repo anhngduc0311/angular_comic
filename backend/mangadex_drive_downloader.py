@@ -401,11 +401,21 @@ class GoogleDriveUploader:
             log_info(f"Sử dụng Google Drive API qua Service Account: {self.service_account_path}")
             return "google_api"
 
-        if shutil.which("rclone"):
-            log_info(f"Sử dụng Rclone đồng bộ trực tiếp lên Google Drive (remote: {self.rclone_remote}).")
-            return "rclone"
+        rclone_path = shutil.which("rclone")
+        if rclone_path:
+            try:
+                res = subprocess.run([rclone_path, "listremotes"], capture_output=True, text=True)
+                if f"{self.rclone_remote}:" in res.stdout:
+                    log_info(f"Đã liên kết Google Drive qua Rclone remote '{self.rclone_remote}:' (Folder ID: {self.folder_id}).")
+                    return "rclone"
+                else:
+                    log_warning(f"Rclone đã cài nhưng CHƯA cấu hình remote '{self.rclone_remote}:'!")
+                    log_warning(f"👉 Vui lòng chọn mục [6] trên Menu './tai_mangadex_drive.sh' để đăng nhập Google Drive.")
+                    return "rclone_not_configured"
+            except Exception:
+                return "rclone"
 
-        log_warning("Không tìm thấy Rclone hoặc Service Account. Ảnh sẽ lưu tạm ở thư mục cục bộ.")
+        log_warning("Không tìm thấy Rclone. Ảnh sẽ lưu tạm ở thư mục máy chủ.")
         return "local_fallback"
 
     def sync_cover_to_drive(self, cover_file: Path) -> bool:
@@ -444,14 +454,13 @@ class GoogleDriveUploader:
                 "--retries", "3"
             ]
             res = subprocess.run(cmd, capture_output=True, text=True)
-            return res.returncode == 0
-        elif self.backend == "mount":
-            target = self.drive_path / "chapters" / slug / f"chap{chap_num_str}"
-            target.mkdir(parents=True, exist_ok=True)
-            for item in local_chap_dir.glob("*.webp"):
-                shutil.copy2(str(item), str(target / item.name))
+            if res.returncode != 0:
+                log_error(f"Lỗi đẩy Drive Chương {chap_num_str}: {res.stderr.strip()[:150]}")
+                return False
             return True
-        return True
+        elif self.backend == "rclone_not_configured":
+            log_warning(f"Chưa cấu hình Rclone remote '{self.rclone_remote}:' -> Không thể đẩy lên Google Drive.")
+            return False
 
 
 # =============================================================================
