@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 💾 TRUYENKOMI - TỰ ĐỘNG BACKUP DATABASE POSTGRESQL & ĐỒNG BỘ GOOGLE DRIVE
+# 💾 TRUYENKOMI - TỰ ĐỘNG BACKUP DATABASE POSTGRESQL & CLOUDFLARE R2 STORAGE
 # ==============================================================================
 set -e
 
@@ -20,58 +20,89 @@ echo "" >> "$LOG_FILE"
 echo "================================================================" >> "$LOG_FILE"
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Bắt đầu tiến trình sao lưu Database TruyenKomiDb..." >> "$LOG_FILE"
 
-# 1. Kiểm tra container PostgreSQL có đang chạy hay không
+# 1. Kiểm tra container PostgreSQL có đang hoạt động hay không
 if ! docker ps --format '{{.Names}}' | grep -q "^truyenkomi-postgres$"; then
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] Container 'truyenkomi-postgres' không chạy! Hủy sao lưu." >> "$LOG_FILE"
     echo "[LỖI] Container truyenkomi-postgres không hoạt động. Vui lòng chạy 'docker compose up -d postgres'."
     exit 1
 fi
 
-# 2. Lấy password từ .env nếu có, fallback mật khẩu mặc định
+# 2. Đọc biến môi trường từ .env nếu có
 DB_PASS="TruyenKomiDbPassword2026!"
+CF_ENDPOINT="7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com"
+CF_ACCESS_KEY="b55550a4f61f223173b5c5b742867416"
+CF_SECRET_KEY="2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3"
+CF_BUCKET="truyenkomi"
+
 if [ -f "$SCRIPT_DIR/.env" ]; then
-    ENV_PASS=$(grep -E "^POSTGRES_PASSWORD=" "$SCRIPT_DIR/.env" | cut -d'=' -f2- | tr -d '\r' | tr -d '"' | tr -d "'")
-    if [ -n "$ENV_PASS" ]; then
-        DB_PASS="$ENV_PASS"
-    fi
+    get_env_val() {
+        grep -E "^$1=" "$SCRIPT_DIR/.env" | head -n1 | cut -d'=' -f2- | tr -d '\r' | tr -d '"' | tr -d "'"
+    }
+    
+    VAL_PASS=$(get_env_val "POSTGRES_PASSWORD")
+    [ -n "$VAL_PASS" ] && DB_PASS="$VAL_PASS"
+
+    VAL_ENDPOINT=$(get_env_val "CF_R2_ENDPOINT")
+    [ -z "$VAL_ENDPOINT" ] && VAL_ENDPOINT=$(get_env_val "R2_ENDPOINT")
+    [ -n "$VAL_ENDPOINT" ] && CF_ENDPOINT="$VAL_ENDPOINT"
+
+    VAL_KEY=$(get_env_val "CF_R2_ACCESS_KEY")
+    [ -z "$VAL_KEY" ] && VAL_KEY=$(get_env_val "R2_ACCESS_KEY")
+    [ -n "$VAL_KEY" ] && CF_ACCESS_KEY="$VAL_KEY"
+
+    VAL_SECRET=$(get_env_val "CF_R2_SECRET_KEY")
+    [ -z "$VAL_SECRET" ] && VAL_SECRET=$(get_env_val "R2_SECRET_KEY")
+    [ -n "$VAL_SECRET" ] && CF_SECRET_KEY="$VAL_SECRET"
+
+    VAL_BUCKET=$(get_env_val "CF_R2_BUCKET")
+    [ -z "$VAL_BUCKET" ] && VAL_BUCKET=$(get_env_val "R2_BUCKET_NAME")
+    [ -n "$VAL_BUCKET" ] && CF_BUCKET="$VAL_BUCKET"
 fi
 
-# 3. Xuất database ra file nén gzip
+# Chuẩn hóa Endpoint (loại bỏ https:// nếu có)
+CF_ENDPOINT=$(echo "$CF_ENDPOINT" | sed 's|https://||; s|http://||; s|/*$||')
+
+# 3. Xuất database PostgreSQL ra file nén gzip
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang trích xuất dữ liệu từ PostgreSQL..." >> "$LOG_FILE"
 if docker exec -e PGPASSWORD="$DB_PASS" -i truyenkomi-postgres pg_dump -U postgres TruyenKomiDb 2>>"$LOG_FILE" | gzip > "$BACKUP_FILE"; then
     FILE_SIZE=$(ls -lh "$BACKUP_FILE" 2>/dev/null | awk '{print $5}')
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] Đã tạo bản backup thành công ($FILE_SIZE): $BACKUP_FILE" >> "$LOG_FILE"
-    echo "[THÀNH CÔNG] Đã tạo file backup database ($FILE_SIZE) tại: $BACKUP_FILE"
+    echo "  -> [THÀNH CÔNG] Đã tạo file backup database ($FILE_SIZE) tại: $BACKUP_FILE"
 else
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] Xuất dữ liệu Database thất bại!" >> "$LOG_FILE"
-    echo "[LỖI] Xuất dữ liệu thất bại. Xem chi tiết tại $LOG_FILE"
+    echo "  -> [LỖI] Xuất dữ liệu thất bại. Xem chi tiết tại $LOG_FILE"
     exit 1
 fi
 
-# 4. Tự động đồng bộ lên Google Drive qua Rclone (nếu có remote gdrive)
+# 4. Tự động đồng bộ lên Cloudflare R2 Storage qua Rclone (S3 Protocol)
 if command -v rclone >/dev/null 2>&1; then
-    # Nếu chưa có cấu hình ở HOME nhưng có file rclone.conf ở repo thì nạp tự động
-    if [ ! -f "$HOME/.config/rclone/rclone.conf" ] && [ -f "$SCRIPT_DIR/rclone.conf" ]; then
-        mkdir -p "$HOME/.config/rclone"
-        cp "$SCRIPT_DIR/rclone.conf" "$HOME/.config/rclone/rclone.conf"
-        chmod 600 "$HOME/.config/rclone/rclone.conf"
-    fi
+    # Cấu hình Rclone Remote 'r2' tự động từ API Key
+    mkdir -p "$HOME/.config/rclone"
+    cat << R2EOF > "$HOME/.config/rclone/rclone.conf"
+[r2]
+type = s3
+provider = Cloudflare
+access_key_id = $CF_ACCESS_KEY
+secret_access_key = $CF_SECRET_KEY
+endpoint = https://$CF_ENDPOINT
+acl = private
+R2EOF
+    chmod 600 "$HOME/.config/rclone/rclone.conf"
 
-    if rclone listremotes 2>/dev/null | grep -q "^gdrive:"; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang tải bản backup lên Google Drive (gdrive:TruyenKomi_Backups/)..." >> "$LOG_FILE"
-        if rclone copy "$BACKUP_FILE" gdrive:TruyenKomi_Backups/ >> "$LOG_FILE" 2>&1; then
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] Đã đẩy bản backup lên Google Drive thành công!" >> "$LOG_FILE"
-            echo "[THÀNH CÔNG] Đã sao lưu an toàn lên Google Drive: TruyenKomi_Backups/TruyenKomiDb_${TIMESTAMP}.sql.gz"
-        else
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] Tải lên Google Drive thất bại (kiểm tra token/mạng)." >> "$LOG_FILE"
-            echo "[CẢNH BÁO] Không thể tải lên Google Drive. Vui lòng kiểm tra lại cấu hình rclone hoặc token."
-        fi
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang tải bản backup lên Cloudflare R2 (r2:${CF_BUCKET}/backups/)..." >> "$LOG_FILE"
+    if rclone copy "$BACKUP_FILE" "r2:${CF_BUCKET}/backups/" >> "$LOG_FILE" 2>&1; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] Đã sao lưu an toàn lên Cloudflare R2 thành công!" >> "$LOG_FILE"
+        echo "  -> [THÀNH CÔNG] Đã lưu lên Cloudflare R2: r2:${CF_BUCKET}/backups/TruyenKomiDb_${TIMESTAMP}.sql.gz"
+        
+        # Tự động dọn dẹp các bản backup cũ hơn 30 ngày trên Cloudflare R2
+        rclone delete --min-age 30d "r2:${CF_BUCKET}/backups/" 2>/dev/null || true
     else
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Rclone chưa cấu hình remote 'gdrive:'. Đã lưu trữ cục bộ tại VPS." >> "$LOG_FILE"
-        echo "[INFO] Chưa cấu hình remote 'gdrive:'. File backup hiện được lưu an toàn tại VPS: $BACKUP_DIR"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] Tải lên Cloudflare R2 thất bại (kiểm tra key/mạng)." >> "$LOG_FILE"
+        echo "  -> [CẢNH BÁO] Chưa thể tải lên Cloudflare R2. Vui lòng kiểm tra lại Access Key hoặc đường truyền mạng."
     fi
 else
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Máy chủ chưa cài đặt Rclone. File backup chỉ lưu tại VPS." >> "$LOG_FILE"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Chưa cài đặt Rclone. Bản backup chỉ lưu trữ cục bộ trên VPS." >> "$LOG_FILE"
+    echo "  -> [INFO] Máy chủ chưa có Rclone. File backup hiện được lưu tại VPS: $BACKUP_DIR"
 fi
 
 # 5. Tự động xóa các file backup trên VPS cũ hơn 14 ngày để chống tràn ổ cứng

@@ -87,18 +87,10 @@ $SUDO apt-get install -y git curl ufw htop ca-certificates gnupg lsb-release cro
 $SUDO systemctl enable cron 2>/dev/null || true
 $SUDO systemctl start cron 2>/dev/null || true
 
-# Cài đặt Rclone chính thức nếu chưa có (phục vụ đẩy backup lên Google Drive)
+# Cài đặt Rclone chính thức nếu chưa có (phục vụ đẩy backup lên Cloudflare R2)
 if ! command -v rclone >/dev/null 2>&1; then
-    log_info "Đang cài đặt Rclone chính thức để hỗ trợ đồng bộ Google Drive..."
+    log_info "Đang cài đặt Rclone chính thức để hỗ trợ sao lưu Cloudflare R2..."
     curl -fsSL https://rclone.org/install.sh | $SUDO bash 2>/dev/null || true
-fi
-
-# Tự động nạp cấu hình Google Drive từ rclone.conf trong project nếu có
-if [ -f "$TARGET_DIR/rclone.conf" ]; then
-    mkdir -p "$HOME/.config/rclone"
-    cp "$TARGET_DIR/rclone.conf" "$HOME/.config/rclone/rclone.conf"
-    chmod 600 "$HOME/.config/rclone/rclone.conf"
-    log_success "Đã tự động nạp cấu hình Google Drive từ rclone.conf!"
 fi
 
 log_success "Đã cập nhật hệ điều hành và cài đặt gói phụ trợ thành công!"
@@ -241,9 +233,9 @@ else
 fi
 
 # ==============================================================================
-# BƯỚC 7: TỰ ĐỘNG THIẾT LẬP BACKUP DATABASE HÀNG NGÀY (CRONJOB) & GOOGLE DRIVE
+# BƯỚC 7: TỰ ĐỘNG THIẾT LẬP BACKUP DATABASE HÀNG NGÀY (CRONJOB) & CLOUDFLARE R2
 # ==============================================================================
-log_step "BƯỚC 7/8: Cấu hình tự động Backup Database (Cronjob) & Đẩy lên Google Drive"
+log_step "BƯỚC 7/8: Cấu hình tự động Backup Database (Cronjob) & Đẩy lên Cloudflare R2"
 
 BACKUP_SCRIPT="$TARGET_DIR/backup_db.sh"
 
@@ -256,7 +248,7 @@ else
     cat << 'EOF' > "$BACKUP_SCRIPT"
 #!/usr/bin/env bash
 # ==============================================================================
-# 💾 TRUYENKOMI - TỰ ĐỘNG BACKUP DATABASE POSTGRESQL & ĐỒNG BỘ GOOGLE DRIVE
+# 💾 TRUYENKOMI - TỰ ĐỘNG BACKUP DATABASE POSTGRESQL & CLOUDFLARE R2 STORAGE
 # ==============================================================================
 set -e
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
@@ -279,12 +271,32 @@ if ! docker ps --format '{{.Names}}' | grep -q "^truyenkomi-postgres$"; then
 fi
 
 DB_PASS="TruyenKomiDbPassword2026!"
+CF_ENDPOINT="7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com"
+CF_ACCESS_KEY="b55550a4f61f223173b5c5b742867416"
+CF_SECRET_KEY="2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3"
+CF_BUCKET="truyenkomi"
+
 if [ -f "$SCRIPT_DIR/.env" ]; then
-    ENV_PASS=$(grep -E "^POSTGRES_PASSWORD=" "$SCRIPT_DIR/.env" | cut -d'=' -f2- | tr -d '\r' | tr -d '"' | tr -d "'")
-    if [ -n "$ENV_PASS" ]; then
-        DB_PASS="$ENV_PASS"
-    fi
+    get_env_val() {
+        grep -E "^$1=" "$SCRIPT_DIR/.env" | head -n1 | cut -d'=' -f2- | tr -d '\r' | tr -d '"' | tr -d "'"
+    }
+    VAL_PASS=$(get_env_val "POSTGRES_PASSWORD")
+    [ -n "$VAL_PASS" ] && DB_PASS="$VAL_PASS"
+    VAL_ENDPOINT=$(get_env_val "CF_R2_ENDPOINT")
+    [ -z "$VAL_ENDPOINT" ] && VAL_ENDPOINT=$(get_env_val "R2_ENDPOINT")
+    [ -n "$VAL_ENDPOINT" ] && CF_ENDPOINT="$VAL_ENDPOINT"
+    VAL_KEY=$(get_env_val "CF_R2_ACCESS_KEY")
+    [ -z "$VAL_KEY" ] && VAL_KEY=$(get_env_val "R2_ACCESS_KEY")
+    [ -n "$VAL_KEY" ] && CF_ACCESS_KEY="$VAL_KEY"
+    VAL_SECRET=$(get_env_val "CF_R2_SECRET_KEY")
+    [ -z "$VAL_SECRET" ] && VAL_SECRET=$(get_env_val "R2_SECRET_KEY")
+    [ -n "$VAL_SECRET" ] && CF_SECRET_KEY="$VAL_SECRET"
+    VAL_BUCKET=$(get_env_val "CF_R2_BUCKET")
+    [ -z "$VAL_BUCKET" ] && VAL_BUCKET=$(get_env_val "R2_BUCKET_NAME")
+    [ -n "$VAL_BUCKET" ] && CF_BUCKET="$VAL_BUCKET"
 fi
+
+CF_ENDPOINT=$(echo "$CF_ENDPOINT" | sed 's|https://||; s|http://||; s|/*$||')
 
 if docker exec -e PGPASSWORD="$DB_PASS" -i truyenkomi-postgres pg_dump -U postgres TruyenKomiDb 2>>"$LOG_FILE" | gzip > "$BACKUP_FILE"; then
     FILE_SIZE=$(ls -lh "$BACKUP_FILE" 2>/dev/null | awk '{print $5}')
@@ -295,19 +307,24 @@ else
 fi
 
 if command -v rclone >/dev/null 2>&1; then
-    if [ ! -f "$HOME/.config/rclone/rclone.conf" ] && [ -f "$SCRIPT_DIR/rclone.conf" ]; then
-        mkdir -p "$HOME/.config/rclone"
-        cp "$SCRIPT_DIR/rclone.conf" "$HOME/.config/rclone/rclone.conf"
-        chmod 600 "$HOME/.config/rclone/rclone.conf"
-    fi
+    mkdir -p "$HOME/.config/rclone"
+    cat << R2EOF > "$HOME/.config/rclone/rclone.conf"
+[r2]
+type = s3
+provider = Cloudflare
+access_key_id = $CF_ACCESS_KEY
+secret_access_key = $CF_SECRET_KEY
+endpoint = https://$CF_ENDPOINT
+acl = private
+R2EOF
+    chmod 600 "$HOME/.config/rclone/rclone.conf"
 
-    if rclone listremotes 2>/dev/null | grep -q "^gdrive:"; then
-        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang tải bản backup lên Google Drive (gdrive:TruyenKomi_Backups/)..." >> "$LOG_FILE"
-        if rclone copy "$BACKUP_FILE" gdrive:TruyenKomi_Backups/ >> "$LOG_FILE" 2>&1; then
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] Đã sao lưu an toàn lên Google Drive thành công!" >> "$LOG_FILE"
-        else
-            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] Tải lên Google Drive thất bại (kiểm tra token/mạng)." >> "$LOG_FILE"
-        fi
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang tải bản backup lên Cloudflare R2 (r2:${CF_BUCKET}/backups/)..." >> "$LOG_FILE"
+    if rclone copy "$BACKUP_FILE" "r2:${CF_BUCKET}/backups/" >> "$LOG_FILE" 2>&1; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] Đã sao lưu an toàn lên Cloudflare R2 thành công!" >> "$LOG_FILE"
+        rclone delete --min-age 30d "r2:${CF_BUCKET}/backups/" 2>/dev/null || true
+    else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] Tải lên Cloudflare R2 thất bại (kiểm tra key/mạng)." >> "$LOG_FILE"
     fi
 fi
 
@@ -374,9 +391,10 @@ echo -e "  • ${CYAN}Trình tìm kiếm Meilisearch:${NC}       ${BOLD}http://$
 echo -e "\n${BOLD}💾 QUẢN LÝ DỮ LIỆU & SAO LƯU (BACKUP & RESTORE):${NC}"
 echo -e "  • ${CYAN}Tự động sao lưu:${NC}               02:00 sáng mỗi ngày (Cronjob)"
 echo -e "  • ${CYAN}Thư mục backup trên VPS:${NC}        ${BOLD}${HOME}/db_backups/${NC}"
-echo -e "  • ${CYAN}Thư mục trên Google Drive:${NC}      ${BOLD}gdrive:TruyenKomi_Backups/${NC}"
+echo -e "  • ${CYAN}Lưu trữ Cloudflare R2:${NC}          ${BOLD}r2:${CF_BUCKET:-truyenkomi}/backups/${NC}"
 echo -e "  • ${CYAN}File nhật ký sao lưu:${NC}           ${BOLD}${HOME}/backup_truyenkomi.log${NC}"
 echo -e "  • ${YELLOW}Chạy backup thủ công ngay:${NC}       cd $TARGET_DIR && ./backup_db.sh"
+echo -e "  • ${YELLOW}Xem danh sách backup trên R2:${NC}    rclone ls r2:${CF_BUCKET:-truyenkomi}/backups/"
 echo -e "  • ${YELLOW}Khôi phục Database (Restore):${NC}    gunzip -c ~/db_backups/<ten_file>.sql.gz | docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb"
 
 echo -e "\n${BOLD}🛠️ CÁC LỆNH HỮU ÍCH QUẢN TRỊ DOCKER:${NC}"

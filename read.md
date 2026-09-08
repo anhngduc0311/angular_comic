@@ -39,12 +39,20 @@ chmod +x tai_mangadex_drive.sh
 # 1. Chạy sao lưu Database thủ công bất kỳ lúc nào:
 ./backup_db.sh
 
-# 2. Khôi phục dữ liệu Database từ bản backup khi cần:
-# gunzip -c ~/db_backups/<ten_file>.sql.gz | docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb
+# 2. Xem danh sách backup đã lưu trên Cloudflare R2:
+# rclone ls r2:truyenkomi/backups/
 
-# 3. Khởi động lại hoặc cập nhật (KHÔNG MẤT DỮ LIỆU):
+# 3. Tải file backup từ Cloudflare R2 về VPS khi cần:
+# rclone copy r2:truyenkomi/backups/<ten_file>.sql.gz ~/db_backups/
+
+# 4. Khôi phục dữ liệu Database từ bản backup khi cần:
+# gunzip -c ~/db_backups/<ten_file>.sql.gz | docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb
+# docker compose restart api
+
+# 5. Khởi động lại hoặc cập nhật (KHÔNG MẤT DỮ LIỆU):
 # docker compose down && ./deploy.sh
 
 # ⚠️ CẢNH BÁO: Lệnh dưới đây sẽ XÓA SẠCH toàn bộ Database và công cào truyện:
 # xoa docker (chi dung khi muon reset trang web tu dau):
 # docker compose down -v
+
