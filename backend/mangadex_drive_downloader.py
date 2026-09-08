@@ -113,28 +113,28 @@ TEMP_DOWNLOAD_DIR = "mangadex_temp_cache"
 
 def log_info(msg: str):
     if HAS_RICH and console:
-        console.print(f"[bold cyan]ℹ️  {msg}[/bold cyan]", flush=True)
+        console.print(f"[bold cyan]ℹ️  {msg}[/bold cyan]")
     else:
         print(f"ℹ️  {msg}", flush=True)
 
 
 def log_success(msg: str):
     if HAS_RICH and console:
-        console.print(f"[bold green]✅ {msg}[/bold green]", flush=True)
+        console.print(f"[bold green]✅ {msg}[/bold green]")
     else:
         print(f"✅ {msg}", flush=True)
 
 
 def log_warning(msg: str):
     if HAS_RICH and console:
-        console.print(f"[bold yellow]⚠️  {msg}[/bold yellow]", flush=True)
+        console.print(f"[bold yellow]⚠️  {msg}[/bold yellow]")
     else:
         print(f"⚠️  {msg}", flush=True)
 
 
 def log_error(msg: str):
     if HAS_RICH and console:
-        console.print(f"[bold red]❌ {msg}[/bold red]", flush=True)
+        console.print(f"[bold red]❌ {msg}[/bold red]")
     else:
         print(f"❌ {msg}", flush=True)
 
