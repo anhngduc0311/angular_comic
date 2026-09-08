@@ -3,13 +3,14 @@
 # 🚀 TRUYENKOMI - ALL-IN-ONE VPS DEPLOYMENT SCRIPT (DOCKER)
 # ==============================================================================
 # Script tự động hóa toàn bộ quá trình triển khai hệ thống TruyenKomi:
-# 1. Cập nhật hệ điều hành & cài đặt gói bổ trợ cần thiết
+# 1. Cập nhật hệ điều hành & cài đặt gói bổ trợ cần thiết (git, curl, cron, rclone...)
 # 2. Tạo 4GB Swap Memory (chống tràn RAM khi build .NET 9 & Angular 17)
 # 3. Cài đặt Docker & Docker Compose mới nhất
 # 4. Kiểm tra & khởi tạo file cấu hình môi trường .env
-# 5. Build và khởi chạy toàn bộ Container (API .NET, Angular UI, Nginx, SQL Server, Redis, Meilisearch)
+# 5. Build và khởi chạy toàn bộ Container (API .NET, Angular UI, Nginx, PostgreSQL, Redis, Meilisearch)
 # 6. Tự động kiểm tra & nạp Database schema (01_CreateDatabase.sql & 02_SeedData.sql)
-# 7. Kiểm tra Healthcheck & dọn dẹp Docker images rác
+# 7. Tự động thiết lập Backup Database hàng ngày (Cronjob) & Đẩy lên Google Drive
+# 8. Kiểm tra Healthcheck & dọn dẹp Docker images rác
 # ==============================================================================
 
 set -e # Dừng ngay lập tức nếu có lệnh bị lỗi
@@ -77,17 +78,35 @@ log_info "Thư mục làm việc: ${BOLD}${TARGET_DIR}${NC}"
 # ==============================================================================
 # BƯỚC 1: CẬP NHẬT HỆ ĐIỀU HÀNH & CÁC CÔNG CỤ CẦN THIẾT
 # ==============================================================================
-log_step "BƯỚC 1/7: Cập nhật hệ điều hành & cài đặt gói tiện ích"
-log_info "Đang cập nhật danh sách gói apt & cài đặt git, curl, ufw, htop, ca-certificates..."
+log_step "BƯỚC 1/8: Cập nhật hệ điều hành & cài đặt gói tiện ích"
+log_info "Đang cập nhật danh sách gói apt & cài đặt git, curl, ufw, htop, cron, ca-certificates..."
 $SUDO apt-get update -y
-$SUDO apt-get install -y git curl ufw htop ca-certificates gnupg lsb-release
+$SUDO apt-get install -y git curl ufw htop ca-certificates gnupg lsb-release cron
+
+# Kích hoạt Cron daemon cho tác vụ tự động sao lưu
+$SUDO systemctl enable cron 2>/dev/null || true
+$SUDO systemctl start cron 2>/dev/null || true
+
+# Cài đặt Rclone chính thức nếu chưa có (phục vụ đẩy backup lên Google Drive)
+if ! command -v rclone >/dev/null 2>&1; then
+    log_info "Đang cài đặt Rclone chính thức để hỗ trợ đồng bộ Google Drive..."
+    curl -fsSL https://rclone.org/install.sh | $SUDO bash 2>/dev/null || true
+fi
+
+# Tự động nạp cấu hình Google Drive từ rclone.conf trong project nếu có
+if [ -f "$TARGET_DIR/rclone.conf" ]; then
+    mkdir -p "$HOME/.config/rclone"
+    cp "$TARGET_DIR/rclone.conf" "$HOME/.config/rclone/rclone.conf"
+    chmod 600 "$HOME/.config/rclone/rclone.conf"
+    log_success "Đã tự động nạp cấu hình Google Drive từ rclone.conf!"
+fi
 
 log_success "Đã cập nhật hệ điều hành và cài đặt gói phụ trợ thành công!"
 
 # ==============================================================================
 # BƯỚC 2: KIỂM TRA VÀ TẠO BỘ NHỚ ẢO SWAP (4GB)
 # ==============================================================================
-log_step "BƯỚC 2/7: Kiểm tra cấu hình bộ nhớ ảo Swap (Chống tràn RAM khi build)"
+log_step "BƯỚC 2/8: Kiểm tra cấu hình bộ nhớ ảo Swap (Chống tràn RAM khi build)"
 SWAP_TOTAL=$(free -m 2>/dev/null | awk '/^Swap:/ {print $2}' || echo "0")
 
 if [ -z "$SWAP_TOTAL" ] || [ "$SWAP_TOTAL" -lt 3500 ]; then
@@ -113,7 +132,7 @@ fi
 # ==============================================================================
 # BƯỚC 3: CÀI ĐẶT DOCKER & DOCKER COMPOSE NẾU CHƯA CÓ
 # ==============================================================================
-log_step "BƯỚC 3/7: Kiểm tra & cài đặt Docker Engine & Docker Compose"
+log_step "BƯỚC 3/8: Kiểm tra & cài đặt Docker Engine & Docker Compose"
 
 if ! command -v docker >/dev/null 2>&1; then
     log_info "Docker chưa được cài đặt. Đang tải và cài đặt Docker chính thức..."
@@ -156,7 +175,7 @@ log_success "Docker Compose khả dụng: $($DOCKER_COMPOSE_CMD version)"
 # ==============================================================================
 # BƯỚC 4: THIẾT LẬP FILE MÔI TRƯỜNG .ENV
 # ==============================================================================
-log_step "BƯỚC 4/7: Kiểm tra cấu hình biến môi trường (.env)"
+log_step "BƯỚC 4/8: Kiểm tra cấu hình biến môi trường (.env)"
 cd "$TARGET_DIR"
 
 if [ ! -f ".env" ]; then
@@ -172,7 +191,7 @@ fi
 # ==============================================================================
 # BƯỚC 5: BUILD VÀ KHỞI CHẠY TẤT CẢ CONTAINERS
 # ==============================================================================
-log_step "BƯỚC 5/7: Build và khởi chạy toàn bộ dịch vụ TruyenKomi bằng Docker Compose"
+log_step "BƯỚC 5/8: Build và khởi chạy toàn bộ dịch vụ TruyenKomi bằng Docker Compose"
 log_info "Đang thực thi: $DOCKER_COMPOSE_CMD up -d --build (postgres, redis, meilisearch, api, frontend, nginx)..."
 
 $DOCKER_COMPOSE_CMD up -d --build
@@ -182,7 +201,7 @@ log_success "Tất cả các dịch vụ container đã được build và khở
 # ==============================================================================
 # BƯỚC 6: TỰ ĐỘNG KIỂM TRA & KHỞI TẠO DATABASE SCHEMA
 # ==============================================================================
-log_step "BƯỚC 6/7: Tự động kiểm tra & Khởi tạo Database PostgreSQL"
+log_step "BƯỚC 6/8: Tự động kiểm tra & Khởi tạo Database PostgreSQL"
 
 log_info "Đang chờ PostgreSQL container sẵn sàng nhận kết nối..."
 PG_READY=false
@@ -222,9 +241,108 @@ else
 fi
 
 # ==============================================================================
-# BƯỚC 7: HEALTH CHECK & DỌN DẸP DOCKER IMAGES CŨ
+# BƯỚC 7: TỰ ĐỘNG THIẾT LẬP BACKUP DATABASE HÀNG NGÀY (CRONJOB) & GOOGLE DRIVE
 # ==============================================================================
-log_step "BƯỚC 7/7: Kiểm tra trạng thái hệ thống & Dọn dẹp tài nguyên"
+log_step "BƯỚC 7/8: Cấu hình tự động Backup Database (Cronjob) & Đẩy lên Google Drive"
+
+BACKUP_SCRIPT="$TARGET_DIR/backup_db.sh"
+
+# Đảm bảo file backup_db.sh có quyền thực thi
+if [ -f "$BACKUP_SCRIPT" ]; then
+    chmod +x "$BACKUP_SCRIPT"
+    log_success "Tìm thấy script sao lưu: $BACKUP_SCRIPT"
+else
+    log_warning "Chưa có backup_db.sh trong thư mục, đang tự động tạo..."
+    cat << 'EOF' > "$BACKUP_SCRIPT"
+#!/usr/bin/env bash
+# ==============================================================================
+# 💾 TRUYENKOMI - TỰ ĐỘNG BACKUP DATABASE POSTGRESQL & ĐỒNG BỘ GOOGLE DRIVE
+# ==============================================================================
+set -e
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BACKUP_DIR="${HOME}/db_backups"
+LOG_FILE="${HOME}/backup_truyenkomi.log"
+
+mkdir -p "$BACKUP_DIR"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+BACKUP_FILE="${BACKUP_DIR}/TruyenKomiDb_${TIMESTAMP}.sql.gz"
+
+echo "" >> "$LOG_FILE"
+echo "================================================================" >> "$LOG_FILE"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Bắt đầu tiến trình sao lưu Database TruyenKomiDb..." >> "$LOG_FILE"
+
+if ! docker ps --format '{{.Names}}' | grep -q "^truyenkomi-postgres$"; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] Container 'truyenkomi-postgres' không chạy! Hủy sao lưu." >> "$LOG_FILE"
+    exit 1
+fi
+
+DB_PASS="TruyenKomiDbPassword2026!"
+if [ -f "$SCRIPT_DIR/.env" ]; then
+    ENV_PASS=$(grep -E "^POSTGRES_PASSWORD=" "$SCRIPT_DIR/.env" | cut -d'=' -f2- | tr -d '\r' | tr -d '"' | tr -d "'")
+    if [ -n "$ENV_PASS" ]; then
+        DB_PASS="$ENV_PASS"
+    fi
+fi
+
+if docker exec -e PGPASSWORD="$DB_PASS" -i truyenkomi-postgres pg_dump -U postgres TruyenKomiDb 2>>"$LOG_FILE" | gzip > "$BACKUP_FILE"; then
+    FILE_SIZE=$(ls -lh "$BACKUP_FILE" 2>/dev/null | awk '{print $5}')
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] Đã tạo bản backup thành công ($FILE_SIZE): $BACKUP_FILE" >> "$LOG_FILE"
+else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] Xuất dữ liệu Database thất bại!" >> "$LOG_FILE"
+    exit 1
+fi
+
+if command -v rclone >/dev/null 2>&1; then
+    if [ ! -f "$HOME/.config/rclone/rclone.conf" ] && [ -f "$SCRIPT_DIR/rclone.conf" ]; then
+        mkdir -p "$HOME/.config/rclone"
+        cp "$SCRIPT_DIR/rclone.conf" "$HOME/.config/rclone/rclone.conf"
+        chmod 600 "$HOME/.config/rclone/rclone.conf"
+    fi
+
+    if rclone listremotes 2>/dev/null | grep -q "^gdrive:"; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang tải bản backup lên Google Drive (gdrive:TruyenKomi_Backups/)..." >> "$LOG_FILE"
+        if rclone copy "$BACKUP_FILE" gdrive:TruyenKomi_Backups/ >> "$LOG_FILE" 2>&1; then
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] Đã sao lưu an toàn lên Google Drive thành công!" >> "$LOG_FILE"
+        else
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] Tải lên Google Drive thất bại (kiểm tra token/mạng)." >> "$LOG_FILE"
+        fi
+    fi
+fi
+
+find "$BACKUP_DIR" -type f -name "TruyenKomiDb_*.sql.gz" -mtime +14 -delete 2>/dev/null || true
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] Hoàn tất tiến trình sao lưu cơ sở dữ liệu." >> "$LOG_FILE"
+EOF
+    chmod +x "$BACKUP_SCRIPT"
+    log_success "Đã khởi tạo script sao lưu: $BACKUP_SCRIPT"
+fi
+
+# Thiết lập Cronjob tự động chạy lúc 02:00 sáng mỗi ngày
+CRON_ENTRY="0 2 * * * bash $BACKUP_SCRIPT >/dev/null 2>&1"
+CURRENT_CRON=$(crontab -l 2>/dev/null || true)
+
+if echo "$CURRENT_CRON" | grep -F -q "$BACKUP_SCRIPT"; then
+    log_info "Cronjob sao lưu đã tồn tại trong hệ thống. Đang cập nhật..."
+    (echo "$CURRENT_CRON" | grep -F -v "$BACKUP_SCRIPT"; echo "$CRON_ENTRY") | crontab -
+else
+    log_info "Đang thêm tác vụ tự động sao lưu vào Crontab (02:00 sáng hàng ngày)..."
+    (echo "$CURRENT_CRON"; echo "$CRON_ENTRY") | crontab -
+fi
+log_success "Cronjob đã được kích hoạt: Chạy tự động lúc 02:00 sáng mỗi ngày!"
+
+# Chạy thử nghiệm ngay 1 bản backup mẫu để xác nhận tính năng hoạt động hoàn hảo
+log_info "Đang chạy thử nghiệm 1 bản sao lưu tức thì (Test Backup)..."
+if bash "$BACKUP_SCRIPT"; then
+    log_success "Chạy thử nghiệm sao lưu thành công! Dữ liệu đã được lưu trữ an toàn."
+else
+    log_warning "Sao lưu thử nghiệm có thông báo cần lưu ý. Bạn có thể xem log tại: $HOME/backup_truyenkomi.log"
+fi
+
+# ==============================================================================
+# BƯỚC 8: HEALTH CHECK & DỌN DẸP DOCKER IMAGES CŨ
+# ==============================================================================
+log_step "BƯỚC 8/8: Kiểm tra trạng thái hệ thống & Dọn dẹp tài nguyên"
 
 log_info "Chờ 5 giây để toàn bộ dịch vụ ổn định..."
 sleep 5
@@ -253,6 +371,14 @@ echo -e "  • ${CYAN}Tài liệu Swagger Web API (.NET):${NC}  ${BOLD}http://${
 echo -e "  • ${CYAN}Kiểm tra Healthcheck API:${NC}        ${BOLD}http://${PUBLIC_IP}/health${NC}"
 echo -e "  • ${CYAN}Trình tìm kiếm Meilisearch:${NC}       ${BOLD}http://${PUBLIC_IP}:7700${NC}"
 
+echo -e "\n${BOLD}💾 QUẢN LÝ DỮ LIỆU & SAO LƯU (BACKUP & RESTORE):${NC}"
+echo -e "  • ${CYAN}Tự động sao lưu:${NC}               02:00 sáng mỗi ngày (Cronjob)"
+echo -e "  • ${CYAN}Thư mục backup trên VPS:${NC}        ${BOLD}${HOME}/db_backups/${NC}"
+echo -e "  • ${CYAN}Thư mục trên Google Drive:${NC}      ${BOLD}gdrive:TruyenKomi_Backups/${NC}"
+echo -e "  • ${CYAN}File nhật ký sao lưu:${NC}           ${BOLD}${HOME}/backup_truyenkomi.log${NC}"
+echo -e "  • ${YELLOW}Chạy backup thủ công ngay:${NC}       cd $TARGET_DIR && ./backup_db.sh"
+echo -e "  • ${YELLOW}Khôi phục Database (Restore):${NC}    gunzip -c ~/db_backups/<ten_file>.sql.gz | docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb"
+
 echo -e "\n${BOLD}🛠️ CÁC LỆNH HỮU ÍCH QUẢN TRỊ DOCKER:${NC}"
 echo -e "  • ${YELLOW}Xem log realtime toàn bộ:${NC}         cd $TARGET_DIR && $DOCKER_COMPOSE_CMD logs -f"
 echo -e "  • ${YELLOW}Xem log backend .NET API:${NC}         cd $TARGET_DIR && $DOCKER_COMPOSE_CMD logs -f api"
@@ -262,3 +388,4 @@ echo -e "  • ${YELLOW}Dừng toàn bộ hệ thống:${NC}           cd $TARGE
 echo -e "  • ${YELLOW}Cập nhật lại source mới & re-build:${NC} git pull && ./deploy.sh"
 
 echo -e "\n${GREEN}================================================================${NC}\n"
+
