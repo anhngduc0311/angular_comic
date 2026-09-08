@@ -265,6 +265,16 @@ def upload_file_to_cloud(local_path: Path, object_name: str, content_type: str =
         raise Exception(f"Upload bucket failed HTTP {res.status_code}: {res.text[:100]}")
 
 
+def check_chapter_exists_on_cloud(slug: str, chap_num_str: str) -> bool:
+    """Kiểm tra xem chapter đã có sẵn trên Cloud Storage Bucket qua CDN hay chưa"""
+    try:
+        url = f"{CDN_BASE_URL}/chapters/{slug}/chap{chap_num_str}/page_001.webp"
+        res = requests.head(url, timeout=3)
+        return res.status_code == 200
+    except Exception:
+        return False
+
+
 def sync_chapter_to_web_api(
     api_base_url: str,
     comic_title: str,
@@ -357,6 +367,16 @@ class SyncStateManager:
 
     def is_completed(self, manga_id: str) -> bool:
         return manga_id in self.data.get("completed_manga", {})
+
+    def is_chapter_synced(self, manga_id: str, chap_num_str: str) -> bool:
+        chaps = self.data.setdefault("synced_chapters", {}).setdefault(manga_id, [])
+        return str(chap_num_str) in [str(x) for x in chaps]
+
+    def mark_chapter_synced(self, manga_id: str, chap_num_str: str):
+        chaps = self.data.setdefault("synced_chapters", {}).setdefault(manga_id, [])
+        if str(chap_num_str) not in [str(x) for x in chaps]:
+            chaps.append(str(chap_num_str))
+            self.save()
 
     def mark_completed(self, manga_id: str, title: str, slug: str, chapters_count: int, pages_count: int):
         self.data.setdefault("completed_manga", {})[manga_id] = {
@@ -876,12 +896,25 @@ class MangaDexDriveSynchronizer:
             chap_title = chap.get("title") or f"Chương {num_str}"
             chap_dir = local_comic_dir / f"chap{num_str}"
 
-            # Bỏ qua nếu đã có trên máy
-            if self.skip_existing and chap_dir.exists():
-                existing_webp = list(chap_dir.glob("page_*.webp")) or list(chap_dir.glob("*.webp"))
-                if len(existing_webp) >= 1:
+            # Bỏ qua nếu đã có trên Cloud Bucket, trong Checkpoint hoặc trên máy
+            if self.skip_existing:
+                if self.state.is_chapter_synced(manga_id, num_str):
+                    log_info(f"  ⏭️ [{idx}/{len(chapters)}] {chap_title} đã đồng bộ trước đó (State). Bỏ qua.")
                     skipped_chaps += 1
                     continue
+
+                if check_chapter_exists_on_cloud(slug, num_str):
+                    log_info(f"  ⏭️ [{idx}/{len(chapters)}] {chap_title} đã có sẵn trên Cloud Bucket ({GCS_BUCKET}). Bỏ qua.")
+                    self.state.mark_chapter_synced(manga_id, num_str)
+                    skipped_chaps += 1
+                    continue
+
+                if chap_dir.exists():
+                    existing_webp = list(chap_dir.glob("page_*.webp")) or list(chap_dir.glob("*.webp"))
+                    if len(existing_webp) >= 1:
+                        log_info(f"  ⏭️ [{idx}/{len(chapters)}] {chap_title} đã có sẵn trên máy. Bỏ qua.")
+                        skipped_chaps += 1
+                        continue
 
             chap_dir.mkdir(parents=True, exist_ok=True)
 
@@ -966,6 +999,9 @@ class MangaDexDriveSynchronizer:
                 drive_ok = self.uploader.sync_chapter_to_drive(chap_dir, slug, num_str)
                 if drive_ok:
                     log_success(f"    📁 Đã lưu {chap_title} vào Google Drive (luutruyenkomi)!")
+
+                # Ghi nhận hoàn thành chapter vào checkpoint
+                self.state.mark_chapter_synced(manga_id, num_str)
 
                 # 4. Dọn dẹp file tạm trên máy chủ để chống tràn ổ cứng
                 if self.delete_local:
