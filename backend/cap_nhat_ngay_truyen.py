@@ -21,7 +21,7 @@ if sys.platform == 'win32':
     except Exception:
         pass
 
-DEFAULT_API_URL = "https://truyenkomi.site/api"
+DEFAULT_API_URL = "https://truyenkomi.com/api"
 MANGADEX_API_BASE = "https://api.mangadex.org"
 SYNC_HEADERS = {
     "User-Agent": "TruyenKomi-Sync/2.0",

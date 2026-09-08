@@ -7,7 +7,7 @@
 Author: TruyenKomi Team
 Target Google Drive Folder ID: 1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef (luutruyenkomi)
 Target Cloud Storage Bucket: truyenkomi (Google Cloud Storage / R2)
-Web API: https://truyenkomi.site/api
+Web API: https://truyenkomi.com/api
 
 Thiết lập chuẩn:
   ☑️ Tự động tải lên Cloud Storage Bucket & Đồng bộ Web API: BẬT
@@ -89,7 +89,7 @@ GCS_ACCESS_KEY = os.getenv("R2_ACCESS_KEY", "GOOGQHRXVRS7YCR24JBLB33S")
 GCS_SECRET_KEY = os.getenv("R2_SECRET_KEY", "3Iamo8whmuUeT2B+CMtRnfW6qdIsmwXVec47tF52")
 GCS_BUCKET = os.getenv("R2_BUCKET_NAME", "truyenkomi")
 CDN_BASE_URL = os.getenv("R2_CDN_BASE_URL", "https://img.truyenkomi.site").rstrip("/")
-DEFAULT_API_BASE_URL = os.getenv("API_BASE_URL", "https://truyenkomi.site/api").rstrip("/")
+DEFAULT_API_BASE_URL = os.getenv("API_BASE_URL", "https://truyenkomi.com/api").rstrip("/")
 
 MANGADEX_API_BASE = "https://api.mangadex.org"
 MANGADEX_UPLOADS_BASE = "https://uploads.mangadex.org"
@@ -507,7 +507,7 @@ class MangaDexClient:
     def __init__(self, lang: str = DEFAULT_LANG):
         self.lang = lang
         self.session = requests.Session()
-        self.session.headers.update({"User-Agent": "TruyenKomi-Ubuntu-Sync/2.0 (https://truyenkomi.site)"})
+        self.session.headers.update({"User-Agent": "TruyenKomi-Ubuntu-Sync/2.0 (https://truyenkomi.com)"})
         self._last_request_time = 0.0
         self._min_interval = 0.22
 

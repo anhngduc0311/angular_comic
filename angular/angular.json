@@ -65,7 +65,7 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
             "buildTarget": "truyenkomi:build",
-            "allowedHosts": ["truyenkomi.site", "www.truyenkomi.site", ".truyenkomi.site", "hypermmo.site", "www.hypermmo.site", "localhost", "127.0.0.1", ".hypermmo.site"]
+            "allowedHosts": ["truyenkomi.com", "www.truyenkomi.com", ".truyenkomi.com", "truyenkomi.site", "www.truyenkomi.site", ".truyenkomi.site", "hypermmo.site", "www.hypermmo.site", "localhost", "127.0.0.1", ".hypermmo.site"]
           },
           "configurations": {
             "production": {

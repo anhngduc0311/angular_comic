@@ -239,7 +239,7 @@ class BaseMangaDownloader:
         self.genres = []
         self.http_session = requests.Session()
         self.http_session.headers.update({
-            "User-Agent": "TruyenKomi-Downloader/1.0 (https://truyenkomi.site)"
+            "User-Agent": "TruyenKomi-Downloader/1.0 (https://truyenkomi.com)"
         })
 
     def _sanitize_name(self, name: str) -> str:
@@ -1014,7 +1014,7 @@ class MangaDexDownloader(BaseMangaDownloader):
             params["title"] = query
 
         url = f"{MANGADEX_API_BASE}/manga"
-        headers = {"User-Agent": "TruyenKomi-Downloader/1.0 (https://truyenkomi.site)"}
+        headers = {"User-Agent": "TruyenKomi-Downloader/1.0 (https://truyenkomi.com)"}
         
         for retry in range(MAX_RETRIES):
             res = requests.get(url, params=params, headers=headers, timeout=TIMEOUT)
@@ -1109,7 +1109,7 @@ class MangaDexDownloader(BaseMangaDownloader):
                 params["order[latestUploadedChapter]"] = "desc"
 
             url = f"{MANGADEX_API_BASE}/manga"
-            headers = {"User-Agent": "TruyenKomi-Downloader/1.0 (https://truyenkomi.site)"}
+            headers = {"User-Agent": "TruyenKomi-Downloader/1.0 (https://truyenkomi.com)"}
 
             res = None
             for retry in range(MAX_RETRIES):

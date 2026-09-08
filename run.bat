@@ -50,7 +50,7 @@ start "TruyenKomi - Frontend Angular" cmd /k "cd /d ""%~dp0angular"" && npm run 
 echo.
 echo ===============================================================================
 echo DA KHOI CHAY XONG!
-echo  - Frontend Web : http://localhost:4200 (hoac https://truyenkomi.site)
+echo  - Frontend Web : http://localhost:4200 (hoac https://truyenkomi.com)
 echo  - Backend API  : http://localhost:5000 (Swagger: http://localhost:5000/swagger)
 echo ===============================================================================
 echo.

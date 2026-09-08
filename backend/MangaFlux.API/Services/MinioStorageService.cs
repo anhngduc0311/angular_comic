@@ -35,7 +35,7 @@ namespace TruyenKomi.API.Services
             var accessKey = Environment.GetEnvironmentVariable("R2_ACCESS_KEY") ?? config["Minio:AccessKey"] ?? "truyenkomi_admin";
             var secretKey = Environment.GetEnvironmentVariable("R2_SECRET_KEY") ?? config["Minio:SecretKey"] ?? "TruyenKomiSecretPassword2026!";
             _primaryBucket = Environment.GetEnvironmentVariable("R2_BUCKET_NAME") ?? config["Minio:BucketName"] ?? "comics";
-            _primaryCdnUrl = Environment.GetEnvironmentVariable("R2_CDN_BASE_URL") ?? config["Minio:CdnBaseUrl"] ?? "https://hypermmo.site";
+            _primaryCdnUrl = Environment.GetEnvironmentVariable("R2_CDN_BASE_URL") ?? config["Minio:CdnBaseUrl"] ?? "https://img.truyenkomi.site";
             var secureStr = Environment.GetEnvironmentVariable("R2_SECURE") ?? config["Minio:Secure"];
             var secure = bool.TryParse(secureStr, out var s) && s;
 

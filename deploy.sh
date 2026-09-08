@@ -407,7 +407,7 @@ echo -e "${GREEN}║           🎉 TRIỂN KHAI HỆ THỐNG TRUYENKOMI THÀNH 
 echo -e "${GREEN}╚══════════════════════════════════════════════════════════════════════╝${NC}\n"
 
 echo -e "${BOLD}🌐 CÁC ĐỊA CHỈ TRUY CẬP HỆ THỐNG:${NC}"
-echo -e "  • ${CYAN}Website Truyện Tranh (Angular UI):${NC} ${BOLD}http://${PUBLIC_IP}${NC} (hoặc https://truyenkomi.site)"
+echo -e "  • ${CYAN}Website Truyện Tranh (Angular UI):${NC} ${BOLD}http://${PUBLIC_IP}${NC} (hoặc https://truyenkomi.com)"
 echo -e "  • ${CYAN}Tài liệu Swagger Web API (.NET):${NC}  ${BOLD}http://${PUBLIC_IP}/swagger${NC} (hoặc http://${PUBLIC_IP}:5000/swagger)"
 echo -e "  • ${CYAN}Kiểm tra Healthcheck API:${NC}        ${BOLD}http://${PUBLIC_IP}/health${NC}"
 echo -e "  • ${CYAN}Trình tìm kiếm Meilisearch:${NC}       ${BOLD}http://${PUBLIC_IP}:7700${NC}"

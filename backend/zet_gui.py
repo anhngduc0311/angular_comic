@@ -1304,7 +1304,7 @@ class MangaDownloaderGUI(ctk.CTk):
                         ))
 
         elapsed = time.time() - start_time
-        public_domain = os.getenv("PUBLIC_DOMAIN", "https://truyenkomi.site").rstrip("/")
+        public_domain = os.getenv("PUBLIC_DOMAIN", "https://truyenkomi.com").rstrip("/")
         web_link = f"{public_domain}/comic/{slug}"
         self.after(0, lambda: self.progress_bar.set(1.0))
         self.after(0, lambda: self.log(f"\n=========================================="))
