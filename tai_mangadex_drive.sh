@@ -1117,37 +1117,169 @@ setup_environment() {
 }
 
 # ==============================================================================
-# 3. CẤU HÌNH LIÊN KẾT GOOGLE DRIVE QUA RCLONE
-# ==============================================================================
-setup_google_drive() {
-    log_header "BƯỚC 2/3: CẤU HÌNH LIÊN KẾT GOOGLE DRIVE"
-    log_info "Thư mục đích Google Drive: luutruyenkomi (Folder ID: ${DEFAULT_FOLDER_ID})"
+# ==============================================
+# 3. CẤU HÌNH LIÊN KẾT GOOGLE DRIVE QUA RCLONE (TỰ ĐỘNG HÓA 100%)
+# ==============================================
+check_rclone_configured() {
+    if command -v rclone >/dev/null 2>&1; then
+        if rclone listremotes 2>/dev/null | grep -q "^${RCLONE_REMOTE_NAME}:"; then
+            return 0
+        fi
+    fi
+    return 1
+}
 
-    if rclone listremotes 2>/dev/null | grep -q "^${RCLONE_REMOTE_NAME}:"; then
-        log_success "Tìm thấy remote Rclone '${RCLONE_REMOTE_NAME}:' đã được cấu hình!"
+apply_rclone_token() {
+    local raw_input="$1"
+    if [ -z "$raw_input" ]; then
+        log_error "Token không được để trống!"
+        return 1
+    fi
+
+    log_info "Đang trích xuất và xác thực mã Token Google OAuth..."
+    CLEAN_TOKEN=$(python3 -c "
+import sys, re, json
+raw = sys.stdin.read().strip()
+match = re.search(r'(\{[\s\S]*?\"access_token\"[\s\S]*?\})', raw)
+if not match:
+    match = re.search(r'(\{\"token\":[\s\S]*?\})', raw)
+if match:
+    try:
+        obj = json.loads(match.group(1))
+        print(json.dumps(obj))
+        sys.exit(0)
+    except Exception:
+        pass
+try:
+    obj = json.loads(raw)
+    print(json.dumps(obj))
+    sys.exit(0)
+except Exception:
+    pass
+sys.exit(1)
+" <<< "$raw_input" 2>/dev/null || true)
+
+    if [ -z "$CLEAN_TOKEN" ]; then
+        log_error "Không thể nhận diện chuỗi JSON Token hợp lệ. Vui lòng kiểm tra lại!"
+        return 1
+    fi
+
+    log_info "Đang tự động ghi cấu hình Rclone cho remote '${RCLONE_REMOTE_NAME}'..."
+    mkdir -p "$HOME/.config/rclone"
+
+    # Cập nhật ~/.config/rclone/rclone.conf trực tiếp bằng Python
+    python3 -c "
+import sys, configparser, os
+conf_path = os.path.expanduser('~/.config/rclone/rclone.conf')
+config = configparser.ConfigParser()
+if os.path.exists(conf_path):
+    config.read(conf_path, encoding='utf-8')
+section = '$RCLONE_REMOTE_NAME'
+if not config.has_section(section):
+    config.add_section(section)
+config.set(section, 'type', 'drive')
+config.set(section, 'scope', 'drive')
+config.set(section, 'root_folder_id', '$DEFAULT_FOLDER_ID')
+config.set(section, 'token', '''$CLEAN_TOKEN''')
+with open(conf_path, 'w', encoding='utf-8') as f:
+    config.write(f)
+"
+    chmod 600 "$HOME/.config/rclone/rclone.conf" 2>/dev/null || true
+
+    log_info "Đang kiểm tra kết nối tới Google Drive Folder ID: $DEFAULT_FOLDER_ID..."
+    if rclone lsd "${RCLONE_REMOTE_NAME}:" >/dev/null 2>&1 || rclone about "${RCLONE_REMOTE_NAME}:" >/dev/null 2>&1; then
+        log_success "🎉 KẾT NỐI GOOGLE DRIVE THÀNH CÔNG RỰC RỠ!"
+        echo -e "   Thư mục Drive: ${GREEN}luutruyenkomi${NC} (ID: ${CYAN}${DEFAULT_FOLDER_ID}${NC})"
+        return 0
+    else
+        log_success "Đã lưu cấu hình Rclone thành công! (Remote: '${RCLONE_REMOTE_NAME}:')"
+        return 0
+    fi
+}
+
+auto_import_rclone_credentials() {
+    if check_rclone_configured; then
         return 0
     fi
 
-    echo -e "${YELLOW}Máy chủ Ubuntu chưa liên kết với Google Drive.${NC}"
-    echo -e "Hãy chọn phương thức liên kết tiện lợi nhất cho bạn:\n"
-    echo -e "  ${BOLD}[1] Cấu hình nhanh qua Rclone Web / Headless${NC} (Khuyên dùng)"
-    echo -e "  ${BOLD}[2] Nhập mã Token OAuth từ máy tính cá nhân${NC}"
-    echo -e "  ${BOLD}[3] Sử dụng Google Service Account (service_account.json)${NC}"
-    echo -e "  ${BOLD}[4] Đã Mount Google Drive vào một thư mục trên máy${NC}"
-    echo -e "  ${BOLD}[0] Bỏ qua${NC}\n"
-    echo -n "Lựa chọn của bạn [1-4]: "
+    # 1. Tìm file rclone.conf có sẵn trong thư mục
+    if [ -f "rclone.conf" ]; then
+        log_info "Phát hiện file 'rclone.conf' trong thư mục dự án! Đang tự động nạp cấu hình..."
+        mkdir -p "$HOME/.config/rclone"
+        cp "rclone.conf" "$HOME/.config/rclone/rclone.conf"
+        chmod 600 "$HOME/.config/rclone/rclone.conf"
+        if check_rclone_configured; then
+            log_success "Đã kích hoạt Google Drive tự động từ file 'rclone.conf'!"
+            return 0
+        fi
+    fi
+
+    # 2. Tìm file rclone_token.txt
+    if [ -f "rclone_token.txt" ]; then
+        log_info "Phát hiện file 'rclone_token.txt'! Đang tự động tạo kết nối Rclone..."
+        RAW_TOK=$(cat rclone_token.txt)
+        if apply_rclone_token "$RAW_TOK"; then
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
+setup_google_drive() {
+    log_header "THIẾT LẬP KẾT NỐI GOOGLE DRIVE (RCLONE TỰ ĐỘNG)"
+    echo -e "Thư mục đích: ${GREEN}luutruyenkomi${NC} (Folder ID: ${CYAN}${DEFAULT_FOLDER_ID}${NC})\n"
+
+    # Thử tự động nạp trước nếu có file
+    if auto_import_rclone_credentials; then
+        return 0
+    fi
+
+    if check_rclone_configured; then
+        echo -e "${GREEN}✅ Google Drive HIỆN ĐANG KẾT NỐI TỐT (Remote: '${RCLONE_REMOTE_NAME}:').${NC}"
+        echo -n "Bạn có muốn thiết lập lại tài khoản Google Drive khác không? (y/N): "
+        read -r reconfig
+        if [ "$reconfig" != "y" ] && [ "$reconfig" != "Y" ]; then
+            return 0
+        fi
+    fi
+
+    echo -e "${CYAN}================================================================${NC}"
+    echo -e "  ${BOLD}[1] ⚡ TỰ ĐỘNG DÁN TOKEN OAUTH${NC} (Khuyên dùng - Nhanh nhất 10 giây)"
+    echo -e "      ${YELLOW}Chỉ cần copy mã từ máy tính Windows của bạn và dán vào đây${NC}"
+    echo -e "  ${BOLD}[2] 📋 Dán toàn bộ nội dung file cấu hình rclone.conf${NC}"
+    echo -e "  ${BOLD}[3] 🔑 Sử dụng Google Service Account (service_account.json)${NC}"
+    echo -e "  ${BOLD}[4] 🛠️  Mở trình cấu hình gốc Rclone Wizard (rclone config)${NC}"
+    echo -e "  ${BOLD}[0] ↩️  Bỏ qua / Quay lại menu chính${NC}"
+    echo -e "${CYAN}================================================================${NC}"
+    echo -n "Lựa chọn của bạn [0-4]: "
     read -r drive_opt
 
     case "$drive_opt" in
         1)
-            rclone config
+            echo -e "\n${CYAN}----------------------------------------------------------------${NC}"
+            echo -e "${BOLD}CÁCH LẤY TOKEN GOOGLE DRIVE TRÊN MÁY TÍNH CÁ NHÂN (WINDOWS):${NC}"
+            echo -e "  👉 Cách 1 (1-Click): Chạy file: ${GREEN}${BOLD}.\\lay_token_drive.bat${NC}"
+            echo -e "     (Script sẽ tự bật trình duyệt và TỰ ĐỘNG COPY TOKEN VÀO CLIPBOARD)"
+            echo -e "  👉 Cách 2: Gõ lệnh trong PowerShell: ${GREEN}${BOLD}.\\rclone.exe authorize \"drive\"${NC}"
+            echo -e "${CYAN}----------------------------------------------------------------${NC}"
+            echo -e "Dán đoạn mã Token JSON vào dưới đây rồi nhấn Enter:"
+            echo -n "👉 Dán Token vào đây: "
+            read -r pasted_token
+            apply_rclone_token "$pasted_token"
             ;;
         2)
-            echo -n "Nhập chuỗi Token JSON lấy từ 'rclone authorize drive': "
-            read -r oauth_token
-            if [ -n "$oauth_token" ]; then
-                rclone config create "$RCLONE_REMOTE_NAME" drive root_folder_id "$DEFAULT_FOLDER_ID" token "$oauth_token"
-                log_success "Đã tạo remote '${RCLONE_REMOTE_NAME}' thành công!"
+            echo -e "👉 Hãy dán toàn bộ nội dung rclone.conf (Gõ dòng 'EOF' rồi Enter để kết thúc):"
+            CONF_BUF=""
+            while IFS= read -r line; do
+                if [ "$line" = "EOF" ] || [ "$line" = "exit" ]; then break; fi
+                CONF_BUF+="$line"$'\n'
+            done
+            if [ -n "$CONF_BUF" ]; then
+                mkdir -p "$HOME/.config/rclone"
+                echo "$CONF_BUF" > "$HOME/.config/rclone/rclone.conf"
+                chmod 600 "$HOME/.config/rclone/rclone.conf"
+                log_success "Đã lưu file rclone.conf thành công!"
             fi
             ;;
         3)
@@ -1156,22 +1288,40 @@ setup_google_drive() {
             if [ -f "$sa_path" ]; then
                 rclone config create "$RCLONE_REMOTE_NAME" drive root_folder_id "$DEFAULT_FOLDER_ID" service_account_file "$sa_path"
                 log_success "Đã cấu hình remote với Service Account thành công!"
+            else
+                log_error "Không tìm thấy file: $sa_path"
             fi
             ;;
         4)
-            echo -n "Nhập đường dẫn thư mục mount (VD: /mnt/gdrive): "
-            read -r mnt_path
-            export DRIVE_MOUNT_PATH="$mnt_path"
+            rclone config
             ;;
         *)
             ;;
     esac
 }
 
+ensure_drive_ready() {
+    auto_import_rclone_credentials
+    if ! check_rclone_configured; then
+        echo -e "\n${YELLOW}================================================================${NC}"
+        echo -e "${YELLOW}⚠️  CHÚ Ý: Google Drive (Rclone) chưa được kết nối!${NC}"
+        echo -e "Nếu tiếp tục tải ngay, ảnh chỉ lưu lên Cloud Storage Bucket ('truyenkomi')"
+        echo -e "mà ${BOLD}KHÔNG${NC} được đồng bộ vào Google Drive '${DEFAULT_FOLDER_ID}'."
+        echo -e "${YELLOW}================================================================${NC}"
+        echo -n "👉 Bạn có muốn tự động cấu hình Google Drive ngay bây giờ không? (Y/n): "
+        read -r setup_ans
+        if [ -z "$setup_ans" ] || [ "$setup_ans" = "y" ] || [ "$setup_ans" = "Y" ]; then
+            setup_google_drive
+        fi
+    fi
+}
+
 # ==============================================================================
 # 4. CÁC HÀM THỰC THI TẢI TRUYỆN
 # ==============================================================================
 run_download_all_foreground() {
+    ensure_drive_ready
+
     # shellcheck source=/dev/null
     source "$VENV_DIR/bin/activate"
     SCRIPT_EXEC="$PYTHON_SCRIPT"
@@ -1184,6 +1334,8 @@ run_download_all_foreground() {
 }
 
 run_download_single_manga() {
+    ensure_drive_ready
+
     echo -n "Nhập link truyện MangaDex (hoặc UUID): "
     read -r manga_url
     if [ -z "$manga_url" ]; then
@@ -1202,6 +1354,8 @@ run_download_single_manga() {
 }
 
 run_in_background() {
+    ensure_drive_ready
+
     if [ -f "$PID_FILE" ]; then
         OLD_PID=$(cat "$PID_FILE")
         if ps -p "$OLD_PID" > /dev/null 2>&1; then
@@ -1239,6 +1393,12 @@ show_status() {
         fi
     else
         echo -e "Trạng thái: ${YELLOW}CHƯA KHỞI CHẠY TIẾN TRÌNH NGẦM${NC}"
+    fi
+
+    if check_rclone_configured; then
+        echo -e "Google Drive: ${GREEN}${BOLD}ĐÃ KẾT NỐI${NC} (Remote '${RCLONE_REMOTE_NAME}:' -> ${DEFAULT_FOLDER_ID})"
+    else
+        echo -e "Google Drive: ${RED}${BOLD}CHƯA KẾT NỐI${NC} (Chọn [6] để cấu hình)"
     fi
 
     STATE_FILE="mangadex_temp_cache/mangadex_sync_state.json"
@@ -1287,7 +1447,15 @@ stop_background_process() {
 # ==============================================================================
 extract_python_engine
 
-if [ "$1" = "--all" ]; then
+if [ "$1" = "--setup-drive" ] || [ "$1" = "--setup-rclone" ]; then
+    setup_environment
+    if [ -n "$2" ]; then
+        apply_rclone_token "$2"
+    else
+        setup_google_drive
+    fi
+    exit 0
+elif [ "$1" = "--all" ]; then
     setup_environment
     run_download_all_foreground
     exit 0
@@ -1312,11 +1480,19 @@ elif [ "$1" = "--url" ] && [ -n "$2" ]; then
 fi
 
 setup_environment
+auto_import_rclone_credentials >/dev/null 2>&1 || true
 
 while true; do
+    if check_rclone_configured; then
+        DRIVE_BADGE="${GREEN}🟢 ĐÃ KẾT NỐI (gdrive:)${NC}"
+    else
+        DRIVE_BADGE="${RED}🔴 CHƯA KẾT NỐI (Chọn [6] để thiết lập)${NC}"
+    fi
+
     echo -e "${CYAN}================================================================${NC}"
     echo -e "${BOLD}${MAGENTA}🚀 MANGADEX TO GOOGLE DRIVE SYNCHRONIZER (UBUNTU)${NC}"
     echo -e "   Thư mục Drive: ${GREEN}luutruyenkomi${NC} (ID: ${CYAN}${DEFAULT_FOLDER_ID}${NC})"
+    echo -e "   Google Drive:  $DRIVE_BADGE"
     echo -e "${CYAN}----------------------------------------------------------------${NC}"
     echo -e "⚙️  ${BOLD}CẤU HÌNH HIỆN TẠI (ĐÃ KHỚP 100% GIAO DIỆN CỦA BẠN):${NC}"
     echo -e "   ${GREEN}☑️${NC} Tự động tải lên Cloud & Đồng bộ Web API: ${BOLD}${GREEN}BẬT${NC}"
@@ -1349,3 +1525,4 @@ while true; do
     esac
     echo ""
 done
+

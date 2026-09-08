@@ -92,29 +92,32 @@ Chọn thao tác [0-6]:
 
 ---
 
-## ⚙️ Bước 3: Cấu Hình Kết Nối Google Drive (Chỉ Làm 1 Lần Đầu)
+## ⚙️ Bước 3: Cấu Hình Kết Nối Google Drive (CỰC KỲ ĐƠN GIẢN - 10 GIÂY)
 
-Chọn phím **`6`** trên menu để cấu hình liên kết Google Drive với thư mục `1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef`.
+Chọn phím **`6`** trên menu (hoặc script sẽ tự động nhắc khi bạn chọn tải truyện).
 
-### Cách phổ biến nhất: Rclone OAuth (Khuyên dùng)
-1. Chọn tùy chọn `1` (Khởi chạy cấu hình Rclone).
-2. Khi Rclone hỏi:
-   - `n/s/q> `: Nhập **`n`** (New remote)
-   - `name> `: Nhập **`gdrive`**
-   - `Storage> `: Tìm và nhập số tương ứng với **`drive`** (Google Drive)
-   - `client_id>` & `client_secret>`: **Ấn Enter** để mặc định
-   - `scope>`: Nhập **`1`** (Full access)
-   - `root_folder_id>`: Nhập chính xác: **`1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef`**
-   - `service_account_file>`: **Ấn Enter** để trống
-   - `Edit advanced config?>`: Nhập **`n`**
-   - `Use web browser to automatically authenticate?>`:
-     - Nếu máy Ubuntu có giao diện đồ họa / trình duyệt: Chọn **`y`**.
-     - Nếu là VPS qua SSH: Chọn **`n`**, rclone sẽ đưa cho bạn 1 câu lệnh để chạy trên máy cá nhân (`rclone authorize "drive" ...`) lấy chuỗi Token dán ngược lại vào VPS.
-   - `Configure this as a Shared Drive (Team Drive)?>`: Nhập **`n`**
-   - `y/e/d>`: Nhập **`y`** để lưu.
+### Cách 1: Tự động 100% bằng 1-Click (Khuyên Dùng Nhất - 10 Giây)
+1. **Trên máy tính Windows của bạn**:
+   - Chỉ cần chạy file **`lay_token_drive.bat`** trong thư mục dự án:
+     ```powershell
+     .\lay_token_drive.bat
+     ```
+   - Trình duyệt sẽ tự động mở trang cấp quyền Google Drive -> Bấm **"Cho phép" (Allow)**.
+   - Script sẽ **TỰ ĐỘNG COPY MÃ TOKEN VÀO BỘ NHỚ TẠM (CLIPBOARD)**!
+2. **Trên máy chủ Ubuntu**:
+   - Mở `./tai_mangadex_drive.sh` chọn mục **`[6]`** -> chọn tiếp **`[1]`**.
+   - Nhấn chuột phải (hoặc `Ctrl+Shift+V`) dán Token vào rồi Enter!
+   - Script tự động tạo cấu hình, kiểm tra kết nối tới thư mục `1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef` và báo thành công!
 
 > [!TIP]
-> Nếu bạn có tài khoản **Google Service Account** (`service_account.json`), chỉ cần chọn tùy chọn số `3` trong Menu cấu hình, nhập đường dẫn file JSON là xong ngay trong 5 giây mà không cần trình duyệt đăng nhập!
+> Bạn cũng có thể kích hoạt bằng 1 lệnh duy nhất trên Ubuntu:
+> ```bash
+> ./tai_mangadex_drive.sh --setup-drive '<CHUỖI_TOKEN_JSON>'
+> ```
+
+### Cách 2: Sử dụng Google Service Account (`service_account.json`)
+Nếu có file Service Account của Google Cloud, bạn chỉ cần chọn mục `[3]`, nhập đường dẫn file JSON là xong ngay không cần đăng nhập qua trình duyệt.
+
 
 ---
 

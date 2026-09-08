@@ -186,3 +186,12 @@ test-results/
 playwright-report/
 cypress/videos/
 cypress/screenshots/
+
+# ==========================================
+# Rclone & Cloud Credentials
+# ==========================================
+rclone.exe
+rclone.conf
+rclone_token.txt
+*.token
+
