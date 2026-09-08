@@ -46,6 +46,7 @@ namespace TruyenKomi.API.Services
         Task<bool> ReportCommentAsync(int commentId, string reason);
         Task<bool> ResolveCommentReportAsync(int commentId);
         Task<bool> DeleteCommentAsync(int commentId);
+        Task<int> FixAllComicDatesAsync();
     }
 
     public class ComicService : IComicService
@@ -777,13 +778,17 @@ namespace TruyenKomi.API.Services
             }
             if (createdAt.HasValue)
             {
-                comic.CreatedAt = createdAt.Value;
+                comic.CreatedAt = DateTime.SpecifyKind(createdAt.Value, DateTimeKind.Utc);
                 changed = true;
             }
-            if (updatedAt.HasValue && updatedAt.Value > comic.UpdatedAt)
+            if (updatedAt.HasValue)
             {
-                comic.UpdatedAt = updatedAt.Value;
-                changed = true;
+                var utcUpdated = DateTime.SpecifyKind(updatedAt.Value, DateTimeKind.Utc);
+                if (comic.UpdatedAt >= DateTime.UtcNow.AddHours(-24) || utcUpdated > comic.UpdatedAt)
+                {
+                    comic.UpdatedAt = utcUpdated;
+                    changed = true;
+                }
             }
 
             if (changed)
@@ -1015,7 +1020,11 @@ namespace TruyenKomi.API.Services
             var comic = await _context.Comics.Include(c => c.Chapters).FirstOrDefaultAsync(c => c.Id == dto.ComicId);
             if (comic != null)
             {
-                if (createdDate > comic.UpdatedAt)
+                if (comic.UpdatedAt >= DateTime.UtcNow.AddHours(-24) && comic.Chapters.Count <= 1)
+                {
+                    comic.UpdatedAt = createdDate;
+                }
+                else if (createdDate > comic.UpdatedAt)
                 {
                     comic.UpdatedAt = createdDate;
                 }
@@ -1414,6 +1423,59 @@ namespace TruyenKomi.API.Services
                 RecentChapters = recentChapters,
                 ReadingStats = readingStats
             };
+        }
+
+        public async Task<int> FixAllComicDatesAsync()
+        {
+            var comics = await _context.Comics
+                .Include(c => c.Chapters)
+                .ToListAsync();
+
+            int updatedCount = 0;
+            var now = DateTime.UtcNow;
+
+            foreach (var comic in comics)
+            {
+                if (comic.Chapters == null || !comic.Chapters.Any()) continue;
+
+                bool changed = false;
+                var validChapterDates = comic.Chapters
+                    .Select(c => c.PublishedAt ?? c.CreatedAt)
+                    .Where(d => d > DateTime.MinValue)
+                    .ToList();
+
+                if (!validChapterDates.Any()) continue;
+
+                var earliestChapter = validChapterDates.Min();
+                var latestChapter = validChapterDates.Max();
+
+                // If comic.CreatedAt is within last 3 days and chapter is older, fix CreatedAt
+                if (comic.CreatedAt >= now.AddDays(-3) && earliestChapter < comic.CreatedAt)
+                {
+                    comic.CreatedAt = earliestChapter;
+                    changed = true;
+                }
+
+                // If comic.UpdatedAt is within last 3 days and chapter is older, fix UpdatedAt
+                if (comic.UpdatedAt >= now.AddDays(-3) && latestChapter < comic.UpdatedAt)
+                {
+                    comic.UpdatedAt = latestChapter;
+                    changed = true;
+                }
+
+                if (changed)
+                {
+                    updatedCount++;
+                    await InvalidateComicCacheAsync(comic.Slug);
+                }
+            }
+
+            if (updatedCount > 0)
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return updatedCount;
         }
 
         private static ComicDto MapToComicDto(Comic c)

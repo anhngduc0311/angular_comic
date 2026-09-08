@@ -34,7 +34,8 @@ namespace TruyenKomi.Tests
             var mockCache = new Mock<ICacheService>();
             mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<System.Collections.Generic.List<CategoryDto>>>>(), It.IsAny<TimeSpan?>()))
                 .Returns<string, Func<Task<System.Collections.Generic.List<CategoryDto>>>, TimeSpan?>((key, cb, ttl) => cb());
-            var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object);
+            var mockGamification = new Mock<IGamificationService>();
+            var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object, mockGamification.Object);
 
             // Act
             var categories = await comicService.GetAllCategoriesAsync();

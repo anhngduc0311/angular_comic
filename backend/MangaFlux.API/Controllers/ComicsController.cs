@@ -122,6 +122,14 @@ namespace TruyenKomi.API.Controllers
             int comicId;
             if (existingComic == null)
             {
+                DateTime initCreatedAt = comicCreatedAt.HasValue
+                    ? DateTime.SpecifyKind(comicCreatedAt.Value, DateTimeKind.Utc)
+                    : (dto.CreatedAt.HasValue ? DateTime.SpecifyKind(dto.CreatedAt.Value, DateTimeKind.Utc) : (dto.PublishedAt.HasValue ? DateTime.SpecifyKind(dto.PublishedAt.Value, DateTimeKind.Utc) : DateTime.UtcNow));
+
+                DateTime initUpdatedAt = comicUpdatedAt.HasValue
+                    ? DateTime.SpecifyKind(comicUpdatedAt.Value, DateTimeKind.Utc)
+                    : (dto.PublishedAt.HasValue ? DateTime.SpecifyKind(dto.PublishedAt.Value, DateTimeKind.Utc) : (dto.CreatedAt.HasValue ? DateTime.SpecifyKind(dto.CreatedAt.Value, DateTimeKind.Utc) : initCreatedAt));
+
                 var created = await _comicService.CreateComicAsync(new ComicCreateUpdateDto
                 {
                     Title = comicTitle,
@@ -136,8 +144,8 @@ namespace TruyenKomi.API.Controllers
                     Status = "Ongoing",
                     IsFeatured = true,
                     IsPublic = true,
-                    CreatedAt = comicCreatedAt ?? DateTime.UtcNow,
-                    UpdatedAt = comicUpdatedAt ?? DateTime.UtcNow
+                    CreatedAt = initCreatedAt,
+                    UpdatedAt = initUpdatedAt
                 });
                 comicId = created.Id;
                 if ((comicViews.HasValue && comicViews.Value > 0) || comicCreatedAt.HasValue || comicUpdatedAt.HasValue)
@@ -194,6 +202,13 @@ namespace TruyenKomi.API.Controllers
 
             var updated = await _comicService.GetComicBySlugAsync(slug);
             return Ok(updated);
+        }
+
+        [HttpPost("fix-dates")]
+        public async Task<IActionResult> FixComicDates()
+        {
+            var count = await _comicService.FixAllComicDatesAsync();
+            return Ok(new { success = true, updatedComics = count });
         }
 
         [HttpGet("{id:int}/comments")]

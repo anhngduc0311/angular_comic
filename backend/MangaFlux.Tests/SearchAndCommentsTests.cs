@@ -51,7 +51,8 @@ namespace TruyenKomi.Tests
 
             var mockNotificationService = new Mock<INotificationService>();
             var mockCache = new Mock<ICacheService>();
-            var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object);
+            var mockGamification = new Mock<IGamificationService>();
+            var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object, mockGamification.Object);
 
             // Act: Page 1 (10 items)
             var page1 = await comicService.GetComicCommentsAsync(10, page: 1, pageSize: 10);

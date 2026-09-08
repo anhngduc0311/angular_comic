@@ -232,6 +232,9 @@ def sync_chapter_to_web_api(
     age_limit: str = None,
     views: int = 0,
     published_at: str = None,
+    created_at: str = None,
+    comic_created_at: str = None,
+    comic_updated_at: str = None,
     categories: list = None
 ) -> bool:
     """Đồng bộ chapter lên TruyenKomi Web API để hiển thị ngay trên Website"""
@@ -250,6 +253,10 @@ def sync_chapter_to_web_api(
         params["ageLimit"] = age_limit
     if categories:
         params["categories"] = ",".join(str(c) for c in categories if c)
+    if comic_created_at:
+        params["comicCreatedAt"] = comic_created_at
+    if comic_updated_at:
+        params["comicUpdatedAt"] = comic_updated_at
 
     query_str = urllib.parse.urlencode(params)
     url = f"{api_base_url.rstrip('/')}/comics/import-scraped?{query_str}"
@@ -260,7 +267,7 @@ def sync_chapter_to_web_api(
         "isPublic": True,
         "views": views or 0,
         "publishedAt": published_at,
-        "createdAt": published_at,
+        "createdAt": created_at or published_at,
         "imageUrls": image_urls
     }
     headers = {
@@ -609,7 +616,9 @@ class MangaDexClient:
                 item = {
                     "id": m_id, "title": title, "slug": slugify(title),
                     "author": ", ".join(authors) if authors else "Đang cập nhật",
-                    "cover_url": cover_url, "tags": tags, "total_available": total
+                    "cover_url": cover_url, "tags": tags, "total_available": total,
+                    "created_at": attr.get("createdAt"),
+                    "updated_at": attr.get("updatedAt")
                 }
                 yield item
                 fetched += 1
@@ -704,6 +713,8 @@ class MangaDexClient:
         return {
             "id": manga_id, "title": title, "slug": slug, "author": author,
             "other_names": alt_names[:5], "cover_url": cover_url, "genres": genres,
+            "created_at": attr.get("createdAt"),
+            "updated_at": attr.get("updatedAt"),
             "chapters": chapters
         }
 
@@ -925,6 +936,14 @@ class MangaDexDriveSynchronizer:
                 if valid_cdn_urls:
                     log_success(f"    ☁️ Đã lưu {len(valid_cdn_urls)} ảnh vào Bucket Cloud: truyenkomi")
                     # 2. Đồng bộ lên Web API
+                    # Lấy ngày tạo gốc của truyện (createdAt từ MangaDex), fallback ngày chapter đầu tiên
+                    manga_created_at = info.get("created_at")
+                    manga_updated_at = info.get("updated_at")
+                    if not manga_created_at and chapters:
+                        valid_pub = [c.get("published_at") for c in chapters if c.get("published_at")]
+                        if valid_pub:
+                            manga_created_at = min(valid_pub)
+
                     synced = sync_chapter_to_web_api(
                         api_base_url=self.api_base_url,
                         comic_title=title,
@@ -936,6 +955,9 @@ class MangaDexDriveSynchronizer:
                         author=info["author"],
                         translator_group=chap.get("group"),
                         published_at=chap.get("published_at"),
+                        created_at=chap.get("published_at"),
+                        comic_created_at=manga_created_at,
+                        comic_updated_at=manga_updated_at,
                         categories=info.get("genres", [])
                     )
                     if synced:
