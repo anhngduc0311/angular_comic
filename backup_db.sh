@@ -84,7 +84,7 @@ if ! command -v rclone >/dev/null 2>&1; then
 fi
 
 if command -v rclone >/dev/null 2>&1; then
-    # Cấu hình Rclone Remote 'r2' tự động từ API Key
+    # Cấu hình Rclone Remote 'r2' tự động từ API Key (Cloudflare R2 KHÔNG dùng ACL)
     mkdir -p "$HOME/.config/rclone"
     cat << R2EOF > "$HOME/.config/rclone/rclone.conf"
 [r2]
@@ -93,9 +93,18 @@ provider = Cloudflare
 access_key_id = $CF_ACCESS_KEY
 secret_access_key = $CF_SECRET_KEY
 endpoint = https://$CF_ENDPOINT
-acl = private
 R2EOF
     chmod 600 "$HOME/.config/rclone/rclone.conf"
+
+    # Tự động kiểm tra và nhận diện Bucket hợp lệ trên tài khoản R2
+    BUCKET_LIST=$(rclone lsd r2: 2>>"$LOG_FILE" | awk '{print $NF}' || true)
+    if [ -n "$BUCKET_LIST" ]; then
+        if ! echo "$BUCKET_LIST" | grep -q "^${CF_BUCKET}$"; then
+            FIRST_BUCKET=$(echo "$BUCKET_LIST" | head -n1)
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Bucket '${CF_BUCKET}' không có, tự động dùng: '${FIRST_BUCKET}'" >> "$LOG_FILE"
+            CF_BUCKET="$FIRST_BUCKET"
+        fi
+    fi
 
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang tải bản backup lên Cloudflare R2 (r2:${CF_BUCKET}/backups/)..." >> "$LOG_FILE"
     if rclone copy "$BACKUP_FILE" "r2:${CF_BUCKET}/backups/" >> "$LOG_FILE" 2>&1; then
@@ -106,7 +115,7 @@ R2EOF
         rclone delete --min-age 30d "r2:${CF_BUCKET}/backups/" 2>/dev/null || true
     else
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] Tải lên Cloudflare R2 thất bại (kiểm tra key/mạng)." >> "$LOG_FILE"
-        echo "  -> [CẢNH BÁO] Chưa thể tải lên Cloudflare R2. Vui lòng kiểm tra lại Access Key hoặc đường truyền mạng."
+        echo "  -> [CẢNH BÁO] Chưa thể tải lên Cloudflare R2. Vui lòng kiểm tra lại log: $LOG_FILE"
     fi
 else
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Chưa cài đặt Rclone. Bản backup chỉ lưu trữ cục bộ trên VPS." >> "$LOG_FILE"

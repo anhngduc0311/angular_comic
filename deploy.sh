@@ -323,9 +323,17 @@ provider = Cloudflare
 access_key_id = $CF_ACCESS_KEY
 secret_access_key = $CF_SECRET_KEY
 endpoint = https://$CF_ENDPOINT
-acl = private
 R2EOF
     chmod 600 "$HOME/.config/rclone/rclone.conf"
+
+    BUCKET_LIST=$(rclone lsd r2: 2>>"$LOG_FILE" | awk '{print $NF}' || true)
+    if [ -n "$BUCKET_LIST" ]; then
+        if ! echo "$BUCKET_LIST" | grep -q "^${CF_BUCKET}$"; then
+            FIRST_BUCKET=$(echo "$BUCKET_LIST" | head -n1)
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Bucket '${CF_BUCKET}' không có, tự động dùng: '${FIRST_BUCKET}'" >> "$LOG_FILE"
+            CF_BUCKET="$FIRST_BUCKET"
+        fi
+    fi
 
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang tải bản backup lên Cloudflare R2 (r2:${CF_BUCKET}/backups/)..." >> "$LOG_FILE"
     if rclone copy "$BACKUP_FILE" "r2:${CF_BUCKET}/backups/" >> "$LOG_FILE" 2>&1; then
