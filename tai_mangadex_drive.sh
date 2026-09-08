@@ -473,6 +473,8 @@ class Synchronizer:
             imgs = self.client.get_images(ch["id"], data_saver=self.data_saver)
             if not imgs: continue
 
+            print(f"  📥 [{idx}/{len(chapters)}] Đang tải Chương {n_str} ({len(imgs)} ảnh gốc)...", flush=True)
+
             # ☑️ Ghép ảnh Manhwa 5-in-1 khi chapter > 70 ảnh
             should_stitch = self.merge_slices and (len(imgs) > AUTO_STITCH_THRESHOLD)
             target_dir = c_dir / "_temp_slices" if should_stitch else c_dir
@@ -493,14 +495,13 @@ class Synchronizer:
                 merged = merge_images_vertical(downloaded, c_dir, group_size=STITCH_GROUP_SIZE)
                 total_pages += len(merged)
                 shutil.rmtree(target_dir, ignore_errors=True)
+                print(f"    ✓ Ghép 5-in-1: {len(merged)} trang WebP (Chương {n_str})", flush=True)
             else:
                 for p_i, r_p in enumerate(downloaded, 1):
                     w_p = c_dir / f"page_{p_i:03d}.webp"
                     self._to_webp(r_p, w_p)
                     total_pages += 1
-
-            if idx % 10 == 0 or idx == len(chapters):
-                print(f"  ✓ Đã tải {idx}/{len(chapters)} chương ({total_pages} trang WebP)...")
+                print(f"    ✓ Đã lưu {len(downloaded)} trang ảnh WebP (Chương {n_str})", flush=True)
 
         if skipped_cnt > 0:
             print(f"  ⏭️ Bỏ qua {skipped_cnt} chương đã tồn tại.")

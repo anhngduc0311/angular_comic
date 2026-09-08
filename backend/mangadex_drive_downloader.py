@@ -867,6 +867,9 @@ class MangaDexDriveSynchronizer:
             if not img_urls:
                 continue
 
+            chap_title = chap.get("title") or f"Chương {num_str}"
+            log_info(f"  📥 [{idx}/{len(chapters)}] Đang tải {chap_title} ({len(img_urls)} ảnh gốc)...")
+
             num_raw = len(img_urls)
             # ☑️ Ghép ảnh Manhwa 5-in-1 khi chapter > 70 ảnh hoặc khi bật merge_slices
             should_stitch = self.merge_slices and (num_raw > AUTO_STITCH_THRESHOLD)
@@ -892,14 +895,13 @@ class MangaDexDriveSynchronizer:
                 final_paths = merge_images_vertical(downloaded_raw, chap_dir, group_size=STITCH_GROUP_SIZE)
                 total_pages_downloaded += len(final_paths)
                 shutil.rmtree(download_dir, ignore_errors=True)
+                log_success(f"    ✓ Ghép 5-in-1 hoàn tất: {len(final_paths)} trang WebP cho {chap_title}")
             else:
                 for p_idx, p_file in enumerate(downloaded_raw, 1):
                     final_webp = chap_dir / f"page_{p_idx:03d}.webp"
                     self._convert_to_webp(p_file, final_webp, quality=90)
                     total_pages_downloaded += 1
-
-            if idx % 10 == 0 or idx == len(chapters):
-                log_info(f"  ✓ Tiến độ tải: {idx}/{len(chapters)} chapters (Đã lưu: {total_pages_downloaded} trang ảnh)...")
+                log_success(f"    ✓ Đã lưu xong {len(downloaded_raw)} trang ảnh WebP ({chap_title})")
 
         if skipped_chaps > 0:
             log_info(f"  ⏭️ Đã bỏ qua {skipped_chaps} chapters đã tồn tại trên máy.")
