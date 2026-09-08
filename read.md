@@ -19,7 +19,7 @@ deploy vps ubuntu 22.04
 sudo su -
 usermod -aG sudo akzan0311
 passwd akzan0311
-sudo apt update && sudo apt install -y git
+sudo apt update && sudo apt install -y git && sudo apt install nano -y
 
 git config --global credential.helper store
 git clone https://github.com/anhngduc0311/angular_comic.git
@@ -31,6 +31,9 @@ git branch -a
 git checkout truyenggclone
 chmod +x deploy.sh
 ./deploy.sh
+
+chmod +x tai_mangadex_drive.sh
+./tai_mangadex_drive.sh
 
 xoa docker
 docker compose down -v
