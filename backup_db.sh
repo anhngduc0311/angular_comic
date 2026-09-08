@@ -27,12 +27,12 @@ if ! docker ps --format '{{.Names}}' | grep -q "^truyenkomi-postgres$"; then
     exit 1
 fi
 
-# 2. Đọc biến môi trường từ .env nếu có
+# 2. Cấu hình Cloudflare R2 Storage (Mặc định dùng R2 từ cloudflare.md)
 DB_PASS="TruyenKomiDbPassword2026!"
 CF_ENDPOINT="7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com"
 CF_ACCESS_KEY="b55550a4f61f223173b5c5b742867416"
 CF_SECRET_KEY="2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3"
-CF_BUCKET="truyenkomi"
+CF_BUCKET="comics"
 
 if [ -f "$SCRIPT_DIR/.env" ]; then
     get_env_val() {
@@ -42,25 +42,30 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
     VAL_PASS=$(get_env_val "POSTGRES_PASSWORD")
     [ -n "$VAL_PASS" ] && DB_PASS="$VAL_PASS"
 
+    # Chỉ ghi đè nếu trong .env có khai báo rõ ràng CF_R2_*
     VAL_ENDPOINT=$(get_env_val "CF_R2_ENDPOINT")
-    [ -z "$VAL_ENDPOINT" ] && VAL_ENDPOINT=$(get_env_val "R2_ENDPOINT")
     [ -n "$VAL_ENDPOINT" ] && CF_ENDPOINT="$VAL_ENDPOINT"
 
     VAL_KEY=$(get_env_val "CF_R2_ACCESS_KEY")
-    [ -z "$VAL_KEY" ] && VAL_KEY=$(get_env_val "R2_ACCESS_KEY")
     [ -n "$VAL_KEY" ] && CF_ACCESS_KEY="$VAL_KEY"
 
     VAL_SECRET=$(get_env_val "CF_R2_SECRET_KEY")
-    [ -z "$VAL_SECRET" ] && VAL_SECRET=$(get_env_val "R2_SECRET_KEY")
     [ -n "$VAL_SECRET" ] && CF_SECRET_KEY="$VAL_SECRET"
 
     VAL_BUCKET=$(get_env_val "CF_R2_BUCKET")
-    [ -z "$VAL_BUCKET" ] && VAL_BUCKET=$(get_env_val "R2_BUCKET_NAME")
     [ -n "$VAL_BUCKET" ] && CF_BUCKET="$VAL_BUCKET"
 fi
 
 # Chuẩn hóa Endpoint (loại bỏ https:// nếu có)
 CF_ENDPOINT=$(echo "$CF_ENDPOINT" | sed 's|https://||; s|http://||; s|/*$||')
+
+# Tự động xác định Provider tương ứng với Endpoint
+S3_PROVIDER="Cloudflare"
+if [[ "$CF_ENDPOINT" == *"storage.googleapis.com"* ]]; then
+    S3_PROVIDER="GCS"
+elif [[ "$CF_ENDPOINT" == *"backblazeb2.com"* ]]; then
+    S3_PROVIDER="Backblaze"
+fi
 
 # 3. Xuất database PostgreSQL ra file nén gzip
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Đang trích xuất dữ liệu từ PostgreSQL..." >> "$LOG_FILE"
@@ -89,7 +94,7 @@ if command -v rclone >/dev/null 2>&1; then
     cat << R2EOF > "$HOME/.config/rclone/rclone.conf"
 [r2]
 type = s3
-provider = Cloudflare
+provider = $S3_PROVIDER
 access_key_id = $CF_ACCESS_KEY
 secret_access_key = $CF_SECRET_KEY
 endpoint = https://$CF_ENDPOINT
