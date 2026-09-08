@@ -629,13 +629,13 @@ class BaseMangaDownloader:
                         console=console
                     ) as progress:
                         task = progress.add_task(f"[green]Tải ảnh Chương {chap['number']}[/green]", total=len(images))
-                        res = self.download_chapter(chap, comic_dir, progress=progress, task_id=task, preloaded_images=images)
+                        res = self.download_chapter(chap, chapters_root_dir, progress=progress, task_id=task, preloaded_images=images)
                         total_downloaded += res["count"]
                 else:
                     console.print(f"[red]  ⚠️ Không lấy được ảnh cho {chap_title}[/red]")
             else:
                 print(f"▶ [{idx}/{len(target_chaps)}] Đang tải {chap_title}...")
-                res = self.download_chapter(chap, comic_dir)
+                res = self.download_chapter(chap, chapters_root_dir)
                 total_downloaded += res["count"]
                 print(f"  ✓ Đã tải xong {res['count']} trang ảnh.")
 
