@@ -75,6 +75,14 @@ else
 fi
 
 # 4. Tự động đồng bộ lên Cloudflare R2 Storage qua Rclone (S3 Protocol)
+if ! command -v rclone >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Rclone chưa có, đang tự động cài đặt gói rclone..." >> "$LOG_FILE"
+        sudo apt-get update -y >/dev/null 2>&1 || true
+        sudo apt-get install -y rclone >/dev/null 2>&1 || true
+    fi
+fi
+
 if command -v rclone >/dev/null 2>&1; then
     # Cấu hình Rclone Remote 'r2' tự động từ API Key
     mkdir -p "$HOME/.config/rclone"

@@ -81,19 +81,19 @@ log_info "Thư mục làm việc: ${BOLD}${TARGET_DIR}${NC}"
 log_step "BƯỚC 1/8: Cập nhật hệ điều hành & cài đặt gói tiện ích"
 log_info "Đang cập nhật danh sách gói apt & cài đặt git, curl, ufw, htop, cron, ca-certificates..."
 $SUDO apt-get update -y
-$SUDO apt-get install -y git curl ufw htop ca-certificates gnupg lsb-release cron
+$SUDO apt-get install -y git curl ufw htop ca-certificates gnupg lsb-release cron unzip rclone
 
 # Kích hoạt Cron daemon cho tác vụ tự động sao lưu
 $SUDO systemctl enable cron 2>/dev/null || true
 $SUDO systemctl start cron 2>/dev/null || true
 
-# Cài đặt Rclone chính thức nếu chưa có (phục vụ đẩy backup lên Cloudflare R2)
+# Kiểm tra lại Rclone
 if ! command -v rclone >/dev/null 2>&1; then
-    log_info "Đang cài đặt Rclone chính thức để hỗ trợ sao lưu Cloudflare R2..."
+    log_info "Đang cài đặt bổ trợ Rclone..."
     curl -fsSL https://rclone.org/install.sh | $SUDO bash 2>/dev/null || true
 fi
 
-log_success "Đã cập nhật hệ điều hành và cài đặt gói phụ trợ thành công!"
+log_success "Đã cập nhật hệ điều hành và cài đặt Rclone thành công!"
 
 # ==============================================================================
 # BƯỚC 2: KIỂM TRA VÀ TẠO BỘ NHỚ ẢO SWAP (4GB)
@@ -304,6 +304,14 @@ if docker exec -e PGPASSWORD="$DB_PASS" -i truyenkomi-postgres pg_dump -U postgr
 else
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] Xuất dữ liệu Database thất bại!" >> "$LOG_FILE"
     exit 1
+fi
+
+if ! command -v rclone >/dev/null 2>&1; then
+    if command -v apt-get >/dev/null 2>&1; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] Rclone chưa có, đang tự động cài đặt gói rclone..." >> "$LOG_FILE"
+        sudo apt-get update -y >/dev/null 2>&1 || true
+        sudo apt-get install -y rclone >/dev/null 2>&1 || true
+    fi
 fi
 
 if command -v rclone >/dev/null 2>&1; then
