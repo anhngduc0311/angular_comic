@@ -583,6 +583,7 @@ setup_environment() {
     if ! command -v pip3 >/dev/null 2>&1; then MISSING_PKGS+=("python3-pip"); fi
     if ! dpkg -s python3-venv >/dev/null 2>&1; then MISSING_PKGS+=("python3-venv"); fi
     if ! command -v curl >/dev/null 2>&1; then MISSING_PKGS+=("curl"); fi
+    if ! command -v unzip >/dev/null 2>&1; then MISSING_PKGS+=("unzip"); fi
 
     if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
         log_info "Đang cài đặt các gói hệ thống: ${MISSING_PKGS[*]}..."
@@ -591,8 +592,12 @@ setup_environment() {
     fi
 
     if ! command -v rclone >/dev/null 2>&1; then
-        log_info "Đang cài đặt Rclone chính hãng..."
-        curl https://rclone.org/install.sh | $SUDO bash
+        log_info "Đang cài đặt Rclone..."
+        if ! $SUDO apt-get install -y rclone; then
+            log_info "Đang cài đặt Rclone qua script chính thức..."
+            $SUDO apt-get install -y unzip
+            curl https://rclone.org/install.sh | $SUDO bash
+        fi
         log_success "Đã cài đặt Rclone thành công!"
     fi
 
