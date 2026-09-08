@@ -838,16 +838,10 @@ class MangaDexDriveSynchronizer:
             chap_title = chap.get("title") or f"Chương {num_str}"
             chap_dir = local_comic_dir / f"chap{num_str}"
 
-            # Bỏ qua nếu đã có trên Cloud Bucket, trong Checkpoint hoặc trên máy
+            # Bỏ qua nếu chapter đã được đồng bộ trong tiến trình hoặc còn trên máy
             if self.skip_existing:
                 if self.state.is_chapter_synced(manga_id, num_str):
-                    log_info(f"  ⏭️ [{idx}/{len(chapters)}] {chap_title} đã đồng bộ trước đó (State). Bỏ qua.")
-                    skipped_chaps += 1
-                    continue
-
-                if check_chapter_exists_on_cloud(slug, num_str):
-                    log_info(f"  ⏭️ [{idx}/{len(chapters)}] {chap_title} đã có sẵn trên Cloud Bucket ({GCS_BUCKET}). Bỏ qua.")
-                    self.state.mark_chapter_synced(manga_id, num_str)
+                    log_info(f"  ⏭️ [{idx}/{len(chapters)}] {chap_title} đã đồng bộ xong trước đó. Bỏ qua.")
                     skipped_chaps += 1
                     continue
 
