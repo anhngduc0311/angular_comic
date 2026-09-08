@@ -23,12 +23,16 @@ if sys.platform == 'win32':
 
 DEFAULT_API_URL = "https://truyenkomi.site/api"
 MANGADEX_API_BASE = "https://api.mangadex.org"
+SYNC_HEADERS = {
+    "User-Agent": "TruyenKomi-Sync/2.0",
+    "Content-Type": "application/json"
+}
 
 def fix_dates_via_api(api_url: str = DEFAULT_API_URL):
     endpoint = f"{api_url.rstrip('/')}/comics/fix-dates"
     print(f"🔄 Đang gửi yêu cầu chuẩn hóa ngày tạo tới: {endpoint}")
     try:
-        res = requests.post(endpoint, timeout=30)
+        res = requests.post(endpoint, headers=SYNC_HEADERS, timeout=30)
         if res.status_code == 200:
             data = res.json()
             print(f"✅ Thành công! Đã chuẩn hóa ngày cho {data.get('updatedComics', 0)} bộ truyện.")
@@ -43,7 +47,7 @@ def sync_manga_mangadex_date(slug: str, mangadex_id: str, api_url: str = DEFAULT
     print(f"🔍 Đang truy vấn thông tin gốc từ MangaDex (ID: {mangadex_id})...")
     md_url = f"{MANGADEX_API_BASE}/manga/{mangadex_id}"
     try:
-        res = requests.get(md_url, timeout=20)
+        res = requests.get(md_url, headers={"User-Agent": "TruyenKomi-Sync/2.0"}, timeout=20)
         if res.status_code != 200:
             print(f"⚠️ Không tìm thấy truyện trên MangaDex: {res.status_code}")
             return False
@@ -63,7 +67,7 @@ def sync_manga_mangadex_date(slug: str, mangadex_id: str, api_url: str = DEFAULT
             "comicCreatedAt": created_at,
             "comicUpdatedAt": updated_at
         }
-        sync_res = requests.post(sync_url, params=params, timeout=20)
+        sync_res = requests.post(sync_url, params=params, headers=SYNC_HEADERS, timeout=20)
         if sync_res.status_code == 200:
             print(f"🎉 Đã cập nhật thành công cho bộ truyện '{slug}' trên Web API!")
             return True

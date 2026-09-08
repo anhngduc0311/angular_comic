@@ -35,7 +35,9 @@ namespace TruyenKomi.API.Middleware
             // Allow Health checks, metrics, and internal crawler import API to pass without restriction
             if (path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase) ||
-                path.StartsWith("/api/comics/import-scraped", StringComparison.OrdinalIgnoreCase))
+                path.StartsWith("/api/comics/import-scraped", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/api/comics/fix-dates", StringComparison.OrdinalIgnoreCase) ||
+                path.Contains("/sync-metadata", StringComparison.OrdinalIgnoreCase))
             {
                 await _next(context);
                 return;
