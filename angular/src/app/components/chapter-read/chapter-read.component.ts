@@ -638,7 +638,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   reportPageIssue(index: number): void {
     this.openReportModal();
     this.selectedReportErrorType = 'IMAGE_FAILED';
-    this.reportDescription = `Trang ${index + 1} không tải được từ CDN (máy chủ ảnh).`;
+    this.reportDescription = `Trang ${index + 1} không tải được ảnh.`;
   }
 
   private updateCounters(): void {

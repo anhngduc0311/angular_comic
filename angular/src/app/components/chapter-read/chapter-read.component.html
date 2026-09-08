@@ -101,7 +101,7 @@
       <div class="cdn-error-banner glass-panel" *ngIf="totalFailedCount > 0">
         <div class="cdn-banner-left">
           <i class="fa fa-exclamation-triangle text-orange"></i>
-          <span>Máy chủ CDN phản hồi chậm: Có <strong>{{ totalFailedCount }}</strong> trang chưa tải được.</span>
+          <span>Có <strong>{{ totalFailedCount }}</strong> trang chưa tải được.</span>
         </div>
         <button class="btn-reload-all" (click)="retryAllFailedPages()">
           <i class="fa fa-refresh"></i> Tải lại tất cả ảnh lỗi
@@ -133,14 +133,10 @@
               <span class="badge-total">/ {{ chapter.pages.length }}</span>
             </div>
 
-            <div class="loader-status" *ngIf="!pageStates[idx]?.retrying">
-              <span class="loader-pulse-dot"></span>
-              <span>Đang tải trang truyện từ CDN...</span>
-            </div>
-
-            <div class="loader-status text-amber" *ngIf="pageStates[idx]?.retrying">
-              <i class="fa fa-refresh fa-spin"></i>
-              <span>CDN chậm, đang kết nối lại (Lần {{ pageStates[idx]?.retryCount }}/3)...</span>
+            <div class="loader-status">
+              <span class="loader-pulse-dot" *ngIf="!pageStates[idx]?.retrying"></span>
+              <i class="fa fa-refresh fa-spin text-amber" *ngIf="pageStates[idx]?.retrying"></i>
+              <span>Đang tải truyện...</span>
             </div>
           </div>
         </div>
@@ -156,7 +152,7 @@
               <span class="error-warn-badge">!</span>
             </div>
             <h4>Không thể tải Trang {{ idx + 1 }}</h4>
-            <p>Máy chủ CDN phản hồi quá hạn hoặc tệp ảnh đang được đồng bộ.</p>
+            <p>Đường truyền gián đoạn hoặc trang truyện đang được đồng bộ.</p>
             
             <div class="error-actions">
               <button class="btn-retry-page" (click)="retrySinglePage(idx)">
