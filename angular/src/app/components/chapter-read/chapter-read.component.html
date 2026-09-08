@@ -80,6 +80,16 @@
         >
           <i class="fa fa-flag-o"></i>
         </button>
+
+        <!-- CDN Retry Indicator button if any page failed -->
+        <button 
+          class="tool-btn btn-warning-cdn" 
+          *ngIf="totalFailedCount > 0" 
+          (click)="retryAllFailedPages()" 
+          [title]="'Có ' + totalFailedCount + ' trang bị lỗi CDN. Bấm để tải lại tất cả'"
+        >
+          <i class="fa fa-refresh text-orange fa-spin"></i>
+        </button>
       </div>
     </div>
   </header>
@@ -87,17 +97,89 @@
   <!-- ==================== 2. IMAGE STREAM VIEWPORT ==================== -->
   <main class="reader-main-stream" [style.max-width.px]="zoomWidth > 0 ? zoomWidth : '100%'">
     <div class="reading-images-list" *ngIf="chapter.pages && chapter.pages.length > 0; else noPages">
+      <!-- Global Failed Images Alert Banner -->
+      <div class="cdn-error-banner glass-panel" *ngIf="totalFailedCount > 0">
+        <div class="cdn-banner-left">
+          <i class="fa fa-exclamation-triangle text-orange"></i>
+          <span>Máy chủ CDN phản hồi chậm: Có <strong>{{ totalFailedCount }}</strong> trang chưa tải được.</span>
+        </div>
+        <button class="btn-reload-all" (click)="retryAllFailedPages()">
+          <i class="fa fa-refresh"></i> Tải lại tất cả ảnh lỗi
+        </button>
+      </div>
+
       <div 
         *ngFor="let page of chapter.pages; let idx = index" 
         class="page-image-wrapper"
+        [class.is-loaded]="pageStates[idx]?.loaded"
+        [class.is-error]="pageStates[idx]?.error"
         [id]="'page-' + (idx + 1)"
       >
+        <!-- 1. LOADING SKELETON PLACEHOLDER -->
+        <div 
+          class="manga-page-placeholder" 
+          *ngIf="!pageStates[idx]?.loaded && !pageStates[idx]?.error"
+        >
+          <div class="placeholder-shimmer"></div>
+          
+          <div class="placeholder-content">
+            <div class="manga-loader-box">
+              <div class="loader-spinner-ring" [class.is-retrying]="pageStates[idx]?.retrying"></div>
+              <i class="fa fa-book loader-icon"></i>
+            </div>
+
+            <div class="loader-page-badge">
+              <span class="badge-cur">Trang {{ idx + 1 }}</span>
+              <span class="badge-total">/ {{ chapter.pages.length }}</span>
+            </div>
+
+            <div class="loader-status" *ngIf="!pageStates[idx]?.retrying">
+              <span class="loader-pulse-dot"></span>
+              <span>Đang tải trang truyện từ CDN...</span>
+            </div>
+
+            <div class="loader-status text-amber" *ngIf="pageStates[idx]?.retrying">
+              <i class="fa fa-refresh fa-spin"></i>
+              <span>CDN chậm, đang kết nối lại (Lần {{ pageStates[idx]?.retryCount }}/3)...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. ERROR FALLBACK CARD IF CDN FAILS -->
+        <div 
+          class="manga-page-error-card glass-panel" 
+          *ngIf="pageStates[idx]?.error"
+        >
+          <div class="error-card-inner">
+            <div class="error-icon-box">
+              <i class="fa fa-picture-o"></i>
+              <span class="error-warn-badge">!</span>
+            </div>
+            <h4>Không thể tải Trang {{ idx + 1 }}</h4>
+            <p>Máy chủ CDN phản hồi quá hạn hoặc tệp ảnh đang được đồng bộ.</p>
+            
+            <div class="error-actions">
+              <button class="btn-retry-page" (click)="retrySinglePage(idx)">
+                <i class="fa fa-refresh" [class.fa-spin]="pageStates[idx]?.retrying"></i>
+                <span>Tải Lại Trang Này</span>
+              </button>
+              <button class="btn-report-page" (click)="reportPageIssue(idx)">
+                <i class="fa fa-flag-o"></i>
+                <span>Báo Lỗi Trang</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. ACTUAL MANGA IMAGE -->
         <img 
-          [src]="page.imageUrl" 
+          [src]="pageStates[idx]?.url || page.imageUrl" 
           [alt]="chapter.comicTitle + ' - Chap ' + chapter.chapterNumber + ' - Trang ' + (idx + 1)"
-          loading="lazy"
-          (error)="onImgError($event)"
+          [attr.loading]="idx < 2 ? 'eager' : 'lazy'"
+          (load)="onImgLoad(idx)"
+          (error)="onImgError(idx, $event)"
           class="manga-page-img"
+          [class.is-visible]="pageStates[idx]?.loaded"
         />
       </div>
     </div>

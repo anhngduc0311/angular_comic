@@ -10,6 +10,14 @@ import { SeoService } from '../../services/seo.service';
 import { Chapter, ChapterDetail } from '../../models/comic.model';
 import { ERROR_TYPE_OPTIONS } from '../../models/report.model';
 
+export interface PageLoadingState {
+  loaded: boolean;
+  error: boolean;
+  retrying: boolean;
+  retryCount: number;
+  url: string;
+}
+
 @Component({
   selector: 'app-chapter-read',
   standalone: true,
@@ -73,6 +81,11 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   reportSuccessMessage: string = '';
   reportErrorMessage: string = '';
   errorTypeOptions = ERROR_TYPE_OPTIONS;
+
+  // CDN Image Loading & Error Handling States
+  pageStates: { [index: number]: PageLoadingState | undefined } = {};
+  totalFailedCount: number = 0;
+  totalLoadedCount: number = 0;
 
   private onFullscreenChangeListener = () => {
     this.isFullscreen = !!document.fullscreenElement;
@@ -360,6 +373,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
         }
         this.chapter = detail;
         this.selectedChapterId = detail.id;
+        this.initPageStates(detail.pages);
         this.isLoading = false;
         this.seoService.setChapterReadSeo(
           detail.comicTitle, 
@@ -396,6 +410,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
         }
         this.chapter = detail;
         this.selectedChapterId = detail.id;
+        this.initPageStates(detail.pages);
         this.isLoading = false;
         this.seoService.setChapterReadSeo(
           detail.comicTitle, 
@@ -536,24 +551,105 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     this.showReportModal = false;
   }
 
-  onImgError(event: Event): void {
-    const target = event.target as HTMLImageElement;
-    if (target) {
-      const currentSrc = target.src || '';
-      const retryCount = parseInt(target.getAttribute('data-retries') || '0', 10);
-      // Tự động thử lại đến 3 lần với timestamp để vượt cache lỗi của CDN
-      if (retryCount < 3 && !currentSrc.includes('data:image/svg+xml')) {
-        target.setAttribute('data-retries', (retryCount + 1).toString());
-        const cleanBase = currentSrc.split('?')[0];
-        setTimeout(() => {
-          target.src = `${cleanBase}?v=${Date.now()}`;
-        }, 1200 * (retryCount + 1));
-        return;
-      }
+  initPageStates(pages: any[]): void {
+    this.pageStates = {};
+    this.totalFailedCount = 0;
+    this.totalLoadedCount = 0;
+    if (!pages) return;
+    pages.forEach((page, index) => {
+      this.pageStates[index] = {
+        loaded: false,
+        error: false,
+        retrying: false,
+        retryCount: 0,
+        url: page.imageUrl
+      };
+    });
+  }
 
-      // Khi đã thử lại 3 lần mà CDN vẫn chưa có file, hiển thị thông báo thân thiện thay vì ảnh ngoài
-      target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="400" viewBox="0 0 800 400"><rect width="800" height="400" fill="%2314141e"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" fill="%23e94560" font-family="sans-serif" font-size="20" font-weight="bold">⚠️ Đang xử lý trang truyện này...</text><text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle" fill="%23888899" font-family="sans-serif" font-size="15">Trang truyện đang được đồng bộ lên máy chủ. Vui lòng thử lại sau giây lát.</text></svg>';
+  onImgLoad(index: number): void {
+    const state = this.pageStates[index];
+    if (state) {
+      state.loaded = true;
+      state.error = false;
+      state.retrying = false;
+      this.updateCounters();
     }
+  }
+
+  onImgError(index: number, event?: Event): void {
+    const state = this.pageStates[index];
+    if (!state) return;
+
+    // Tự động thử lại tối đa 3 lần với timestamp để vượt cache lỗi của CDN
+    if (state.retryCount < 3) {
+      state.retrying = true;
+      state.loaded = false;
+      state.error = false;
+      state.retryCount++;
+
+      const retryDelay = 1200 * state.retryCount;
+      setTimeout(() => {
+        const pState = this.pageStates[index];
+        if (pState && pState.retrying) {
+          const original = this.chapter?.pages[index]?.imageUrl || pState.url;
+          const cleanBase = original.split('?')[0];
+          pState.url = `${cleanBase}?retry=${pState.retryCount}&t=${Date.now()}`;
+          pState.retrying = false;
+        }
+      }, retryDelay);
+    } else {
+      state.retrying = false;
+      state.error = true;
+      state.loaded = false;
+      this.updateCounters();
+    }
+  }
+
+  retrySinglePage(index: number): void {
+    const state = this.pageStates[index];
+    if (!state) return;
+    state.error = false;
+    state.retrying = true;
+    state.loaded = false;
+    state.retryCount = 0;
+
+    const original = this.chapter?.pages[index]?.imageUrl || state.url;
+    const cleanBase = original.split('?')[0];
+    state.url = `${cleanBase}?reload=${Date.now()}`;
+    setTimeout(() => {
+      const pState = this.pageStates[index];
+      if (pState) {
+        pState.retrying = false;
+      }
+    }, 300);
+    this.updateCounters();
+  }
+
+  retryAllFailedPages(): void {
+    if (!this.chapter || !this.chapter.pages) return;
+    this.chapter.pages.forEach((_, idx) => {
+      if (this.pageStates[idx]?.error) {
+        this.retrySinglePage(idx);
+      }
+    });
+  }
+
+  reportPageIssue(index: number): void {
+    this.openReportModal();
+    this.selectedReportErrorType = 'IMAGE_FAILED';
+    this.reportDescription = `Trang ${index + 1} không tải được từ CDN (máy chủ ảnh).`;
+  }
+
+  private updateCounters(): void {
+    let failed = 0;
+    let loaded = 0;
+    Object.values(this.pageStates).forEach(s => {
+      if (s?.error) failed++;
+      if (s?.loaded) loaded++;
+    });
+    this.totalFailedCount = failed;
+    this.totalLoadedCount = loaded;
   }
 
   submitReport(): void {
