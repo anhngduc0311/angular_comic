@@ -109,5 +109,51 @@ namespace TruyenKomi.Tests
             Assert.Equal(10, results.PageSize);
             Assert.Equal(3, results.TotalPages);
         }
+
+        [Fact]
+        public async Task GetFeaturedComicsAsync_Criteria_ShouldSortProperly()
+        {
+            // Arrange
+            var db = GetInMemoryDbContext();
+            // Comic 1: low views, old update, 3 chapters
+            var c1 = new Comic { Id = 1, Title = "C1", Slug = "c1", Views = 10, UpdatedAt = DateTime.UtcNow.AddDays(-10), IsPublic = true };
+            // Comic 2: highest views, middle update, 1 chapter
+            var c2 = new Comic { Id = 2, Title = "C2", Slug = "c2", Views = 9999, UpdatedAt = DateTime.UtcNow.AddDays(-5), IsPublic = true };
+            // Comic 3: middle views, latest update, 2 chapters
+            var c3 = new Comic { Id = 3, Title = "C3", Slug = "c3", Views = 500, UpdatedAt = DateTime.UtcNow, IsPublic = true };
+
+            db.Comics.AddRange(c1, c2, c3);
+
+            // Add chapters: c1 has 3 chapters, c2 has 1 chapter, c3 has 2 chapters
+            db.Chapters.Add(new Chapter { Id = 101, ComicId = 1, ChapterNumber = 1, Title = "C1-1" });
+            db.Chapters.Add(new Chapter { Id = 102, ComicId = 1, ChapterNumber = 2, Title = "C1-2" });
+            db.Chapters.Add(new Chapter { Id = 103, ComicId = 1, ChapterNumber = 3, Title = "C1-3" });
+
+            db.Chapters.Add(new Chapter { Id = 201, ComicId = 2, ChapterNumber = 1, Title = "C2-1" });
+
+            db.Chapters.Add(new Chapter { Id = 301, ComicId = 3, ChapterNumber = 1, Title = "C3-1" });
+            db.Chapters.Add(new Chapter { Id = 302, ComicId = 3, ChapterNumber = 2, Title = "C3-2" });
+
+            await db.SaveChangesAsync();
+
+            var mockNotificationService = new Mock<INotificationService>();
+            var mockCache = new Mock<ICacheService>();
+            mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<List<ComicDto>>>>(), It.IsAny<TimeSpan?>()))
+                .Returns<string, Func<Task<List<ComicDto>>>, TimeSpan?>((k, cb, ttl) => cb());
+            var mockGamification = new Mock<IGamificationService>();
+            var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object, mockGamification.Object);
+
+            // Act & Assert 1: Views (default)
+            var byViews = await comicService.GetFeaturedComicsAsync("views", 10);
+            Assert.Equal("c2", byViews[0].Slug); // C2 has highest views (9999)
+
+            // Act & Assert 2: Latest
+            var byLatest = await comicService.GetFeaturedComicsAsync("latest", 10);
+            Assert.Equal("c3", byLatest[0].Slug); // C3 is newest updated (UtcNow)
+
+            // Act & Assert 3: Chapters
+            var byChapters = await comicService.GetFeaturedComicsAsync("chapters", 10);
+            Assert.Equal("c1", byChapters[0].Slug); // C1 has 3 chapters
+        }
     }
 }

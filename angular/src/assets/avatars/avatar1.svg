@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="bg1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a3e635"/>
+      <stop offset="100%" stop-color="#4d7c0f"/>
+    </linearGradient>
+    <linearGradient id="hair1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#bef264"/>
+      <stop offset="100%" stop-color="#84cc16"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="50" fill="#18181b"/>
+  <!-- Hair back -->
+  <path d="M22 45 Q50 10 78 45 Q85 75 78 85 Q50 95 22 85 Z" fill="url(#hair1)"/>
+  <!-- Face -->
+  <path d="M28 42 Q50 32 72 42 Q75 68 50 82 Q25 68 28 42 Z" fill="#fde047"/>
+  <ellipse cx="50" cy="55" rx="22" ry="24" fill="#fef08a"/>
+  <!-- Eyes -->
+  <circle cx="41" cy="54" r="4" fill="#0f172a"/>
+  <circle cx="59" cy="54" r="4" fill="#0f172a"/>
+  <circle cx="42" cy="52" r="1.5" fill="#ffffff"/>
+  <circle cx="60" cy="52" r="1.5" fill="#ffffff"/>
+  <!-- Blush -->
+  <ellipse cx="36" cy="62" rx="4" ry="2" fill="#f43f5e" opacity="0.6"/>
+  <ellipse cx="64" cy="62" rx="4" ry="2" fill="#f43f5e" opacity="0.6"/>
+  <!-- Smile -->
+  <path d="M46 66 Q50 70 54 66" stroke="#0f172a" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Front Bangs -->
+  <path d="M26 38 Q50 20 74 38 Q65 48 50 34 Q35 48 26 38 Z" fill="url(#hair1)"/>
+  <!-- Headphone -->
+  <rect x="18" y="46" width="7" height="16" rx="3.5" fill="#a855f7"/>
+  <rect x="75" y="46" width="7" height="16" rx="3.5" fill="#a855f7"/>
+  <path d="M22 48 Q50 22 78 48" stroke="#a855f7" stroke-width="4" fill="none"/>
+</svg>

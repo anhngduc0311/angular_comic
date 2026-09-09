@@ -23,6 +23,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   activeSpotlightIndex: number = 0;
   private spotlightTimer?: any;
 
+
   selectedFilter: string = 'all';
   filterChips = [
     { label: 'Tất Cả', key: 'all', icon: 'fa-globe' },
@@ -68,13 +69,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.isLoadingHot = true;
 
-    // Load Hot / Featured Comics for Spotlight & Carousel
-    this.comicService.getFeaturedComics().subscribe({
+    // Load Hero Spotlight (Trending: kết hợp Nhiều lượt xem + Nhiều Chapter + Mới cập nhật)
+    this.comicService.getFeaturedComics('trending', 5).subscribe({
+      next: (data) => {
+        this.featuredComics = data;
+      }
+    });
+
+    // Load Hot Comics for Suggested Carousel (15 items)
+    this.comicService.getFeaturedComics('views', 15).subscribe({
       next: (data) => {
         this.hotComics = data;
         // Duplicate items for seamless continuous infinite loop (TruyenGG style)
         this.displayHotComics = data.length > 0 ? [...data, ...data, ...data] : [];
-        this.featuredComics = data.slice(0, 5);
         this.isLoadingHot = false;
         setTimeout(() => this.startSuggestAutoScroll(), 300);
       },

@@ -12,7 +12,7 @@ namespace TruyenKomi.API.Services
 {
     public interface IComicService
     {
-        Task<List<ComicDto>> GetFeaturedComicsAsync();
+        Task<List<ComicDto>> GetFeaturedComicsAsync(string? criteria = null, int count = 10);
         Task<List<ComicDto>> GetLatestComicsAsync(int count = 12);
         Task<PagedSearchResultDto<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null, int page = 1, int pageSize = 24);
         Task<ComicDetailDto?> GetComicBySlugAsync(string slug);
@@ -68,21 +68,48 @@ namespace TruyenKomi.API.Services
             _gamificationService = gamificationService;
         }
 
-        public async Task<List<ComicDto>> GetFeaturedComicsAsync()
+        public async Task<List<ComicDto>> GetFeaturedComicsAsync(string? criteria = null, int count = 10)
         {
-            const string cacheKey = "featured_comics_cache";
+            string crit = criteria?.Trim().ToLowerInvariant() ?? "trending";
+            string cacheKey = $"featured_comics_cache_{crit}_{count}";
             return (await _cache.GetOrSetAsync(cacheKey, async () =>
             {
-                var result = await _context.Comics
+                var query = _context.Comics
                     .AsNoTracking()
-                    .Where(c => c.IsFeatured && c.IsPublic)
+                    .Where(c => c.IsPublic && c.Chapters.Any())
+                    .AsQueryable();
+
+                query = crit switch
+                {
+                    "latest" => query.OrderByDescending(c => c.UpdatedAt),
+                    "chapters" => query.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.UpdatedAt),
+                    "views" => query.OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt),
+                    _ => query.OrderByDescending(c => c.Views)
+                              .ThenByDescending(c => c.Chapters.Count)
+                              .ThenByDescending(c => c.UpdatedAt)
+                };
+
+                var result = await query
+                    .Take(count)
                     .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                     .Include(c => c.Chapters)
-                    .Select(c => MapToComicDto(c))
                     .ToListAsync();
 
-                return result;
-            }, TimeSpan.FromMinutes(15))) ?? new List<ComicDto>();
+                if (result.Count == 0)
+                {
+                    result = await _context.Comics
+                        .AsNoTracking()
+                        .Where(c => c.IsPublic)
+                        .OrderByDescending(c => c.Views)
+                        .ThenByDescending(c => c.UpdatedAt)
+                        .Take(count)
+                        .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                        .Include(c => c.Chapters)
+                        .ToListAsync();
+                }
+
+                return result.Select(c => MapToComicDto(c)).ToList();
+            }, TimeSpan.FromMinutes(10))) ?? new List<ComicDto>();
         }
 
         public async Task<List<ComicDto>> GetLatestComicsAsync(int count = 12)

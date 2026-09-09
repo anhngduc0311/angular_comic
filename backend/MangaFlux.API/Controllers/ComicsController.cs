@@ -22,9 +22,9 @@ namespace TruyenKomi.API.Controllers
         }
 
         [HttpGet("featured")]
-        public async Task<IActionResult> GetFeatured()
+        public async Task<IActionResult> GetFeatured([FromQuery] string? criteria = null, [FromQuery] int count = 10)
         {
-            var comics = await _comicService.GetFeaturedComicsAsync();
+            var comics = await _comicService.GetFeaturedComicsAsync(criteria, count);
             return Ok(comics);
         }
 

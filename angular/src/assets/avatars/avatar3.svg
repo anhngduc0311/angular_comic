@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="hair3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="50" fill="#042f2e"/>
+  <!-- Hair spikes -->
+  <polygon points="20,45 35,20 40,35" fill="url(#hair3)"/>
+  <polygon points="35,28 50,15 55,30" fill="url(#hair3)"/>
+  <polygon points="52,28 68,18 68,36" fill="url(#hair3)"/>
+  <polygon points="65,35 80,28 75,50" fill="url(#hair3)"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="56" rx="22" ry="24" fill="#ffedd5"/>
+  <!-- Cyber VR Visor -->
+  <path d="M28 47 L72 47 L68 58 L32 58 Z" fill="#09090b"/>
+  <line x1="30" y1="52" x2="70" y2="52" stroke="#22d3ee" stroke-width="3" stroke-linecap="round"/>
+  <!-- Smile -->
+  <path d="M46 68 Q50 71 54 68" stroke="#0f172a" stroke-width="2" stroke-linecap="round" fill="none"/>
+  <!-- Bangs -->
+  <polygon points="30,44 42,48 40,40" fill="url(#hair3)"/>
+  <polygon points="45,40 52,48 55,38" fill="url(#hair3)"/>
+</svg>

@@ -9,8 +9,12 @@ import { Comic, ComicDetail, Category, ChapterDetail, Comment, DashboardStats, S
 export class ComicService {
   constructor(private api: ApiService) {}
 
-  getFeaturedComics(): Observable<Comic[]> {
-    return this.api.get<Comic[]>('comics/featured');
+  getFeaturedComics(criteria?: string, count: number = 10): Observable<Comic[]> {
+    const params = [];
+    if (criteria) params.push(`criteria=${encodeURIComponent(criteria)}`);
+    if (count) params.push(`count=${count}`);
+    const query = params.length ? `?${params.join('&')}` : '';
+    return this.api.get<Comic[]>(`comics/featured${query}`);
   }
 
   getLatestComics(count = 12): Observable<Comic[]> {

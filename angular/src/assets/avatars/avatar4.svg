@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="hair4" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3f3f46"/>
+      <stop offset="100%" stop-color="#18181b"/>
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="50" fill="#450a0a"/>
+  <!-- Dark hair -->
+  <polygon points="18,48 26,18 42,32" fill="url(#hair4)"/>
+  <polygon points="36,25 50,12 60,26" fill="url(#hair4)"/>
+  <polygon points="56,22 75,18 80,45" fill="url(#hair4)"/>
+  <!-- Face -->
+  <ellipse cx="50" cy="56" rx="22" ry="24" fill="#fef2f2"/>
+  <!-- Red anime eyes -->
+  <ellipse cx="40" cy="53" rx="4" ry="5" fill="#ef4444"/>
+  <circle cx="41" cy="52" r="1.5" fill="#ffffff"/>
+  <ellipse cx="60" cy="53" rx="4" ry="5" fill="#ef4444"/>
+  <circle cx="61" cy="52" r="1.5" fill="#ffffff"/>
+  <!-- High collar / cape -->
+  <polygon points="20,70 34,64 50,75 66,64 80,70 75,90 25,90" fill="#dc2626"/>
+  <polygon points="30,75 50,85 70,75 68,90 32,90" fill="#991b1b"/>
+</svg>
