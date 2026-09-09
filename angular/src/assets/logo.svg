@@ -122,15 +122,15 @@
   <!-- ==================== TYPOGRAPHY (RIGHT: X=106) ==================== -->
   <g transform="translate(106, 12)">
     <!-- Brand Title Text: TruyenKomi -->
-    <text x="0" y="46" font-family="'Quicksand', 'Plus Jakarta Sans', 'Segoe UI', sans-serif" font-size="44" font-weight="800" letter-spacing="-1">
-      <tspan fill="url(#textOrange)">Truyen</tspan><tspan fill="url(#textCyan)">Komi</tspan>
+    <text x="0" y="46" font-family="'Quicksand', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="44" font-weight="800" letter-spacing="-1">
+      <tspan fill="#fd5400">Truyen</tspan><tspan fill="#0ea5e9">Komi</tspan>
     </text>
 
     <!-- Subtitle Badge / Tagline -->
     <g transform="translate(2, 55)">
       <!-- Mini Pill Background -->
       <rect x="0" y="0" width="180" height="20" rx="6" fill="#fd5400" fill-opacity="0.12" />
-      <text x="9" y="14" font-family="'Quicksand', 'Segoe UI', sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.5" fill="#fd5400">
+      <text x="9" y="14" font-family="'Quicksand', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="10.5" font-weight="700" letter-spacing="1.5" fill="#fd5400">
         MANGA • MANHWA • MANHUA
       </text>
     </g>
