@@ -590,6 +590,23 @@ button, input, select, textarea {
           &:hover {
             color: var(--primary-orange);
           }
+
+          &.ch-updating {
+            color: var(--text-muted);
+            font-size: 11.5px;
+            font-style: italic;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+
+            i {
+              font-size: 11px;
+            }
+
+            &:hover {
+              color: var(--text-muted);
+            }
+          }
         }
 
         .ch-time {
@@ -645,6 +662,14 @@ button, input, select, textarea {
 
           .ch-name {
             font-size: 10.5px;
+
+            &.ch-updating {
+              font-size: 10px;
+
+              i {
+                font-size: 9px;
+              }
+            }
           }
 
           .ch-time {

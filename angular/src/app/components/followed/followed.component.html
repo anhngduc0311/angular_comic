@@ -50,12 +50,23 @@
                 </div>
               </div>
               <ng-template #singleLatestFollowed>
-                <div class="chapters-preview" *ngIf="b.comic.latestChapter">
+                <div class="chapters-preview" *ngIf="b.comic.latestChapter; else noChaptersFollowed">
                   <div class="chapter-row-clean">
                     <a [routerLink]="['/comic', b.comic.slug, 'chapter', b.comic.latestChapter.id]" class="ch-name">Chapter {{ b.comic.latestChapter.chapterNumber }}</a>
                     <span class="ch-time">{{ formatTimeAgo(b.comic.latestChapter.createdAt || b.comic.updatedAt) }}</span>
                   </div>
                 </div>
+                <ng-template #noChaptersFollowed>
+                  <div class="chapters-preview">
+                    <div class="chapter-row-clean no-chapter">
+                      <span class="ch-name ch-updating" *ngIf="b.comic.totalChapters && b.comic.totalChapters > 0; else comingSoonFollowed">Chapter {{ b.comic.totalChapters }}</span>
+                      <ng-template #comingSoonFollowed>
+                        <span class="ch-name ch-updating"><i class="fa fa-clock-o"></i> Đang cập nhật</span>
+                      </ng-template>
+                      <span class="ch-time">{{ formatTimeAgo(b.comic.updatedAt) }}</span>
+                    </div>
+                  </div>
+                </ng-template>
               </ng-template>
             </div>
           </li>

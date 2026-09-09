@@ -117,17 +117,16 @@ namespace TruyenKomi.API.Services
             string cacheKey = $"latest_comics_cache_{count}";
             return (await _cache.GetOrSetAsync(cacheKey, async () =>
             {
-                var result = await _context.Comics
+                var comics = await _context.Comics
                     .AsNoTracking()
                     .Where(c => c.IsPublic)
                     .OrderByDescending(c => c.UpdatedAt)
                     .Take(count)
                     .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                     .Include(c => c.Chapters)
-                    .Select(c => MapToComicDto(c))
                     .ToListAsync();
 
-                return result;
+                return comics.Select(c => MapToComicDto(c)).ToList();
             }, TimeSpan.FromMinutes(15))) ?? new List<ComicDto>();
         }
 
@@ -284,6 +283,25 @@ namespace TruyenKomi.API.Services
 
         private static ComicDetailDto MapToComicDetailDto(Comic comic)
         {
+            var chaptersList = (comic.Chapters ?? Enumerable.Empty<Chapter>())
+                .Where(ch => ch.IsPublic && (ch.PublishedAt == null || ch.PublishedAt <= DateTime.UtcNow))
+                .OrderBy(ch => ch.ChapterNumber)
+                .Select(ch => new ChapterDto
+                {
+                    Id = ch.Id,
+                    ComicId = ch.ComicId,
+                    ChapterNumber = ch.ChapterNumber,
+                    Title = ch.Title,
+                    Views = ch.Views,
+                    IsPublic = ch.IsPublic,
+                    PublishedAt = ch.PublishedAt,
+                    CreatedAt = ch.CreatedAt
+                }).ToList();
+
+            var descChapters = chaptersList.OrderByDescending(ch => ch.ChapterNumber).ToList();
+            var latestChapter = descChapters.FirstOrDefault();
+            var recentChapters = descChapters.Take(3).ToList();
+
             return new ComicDetailDto
             {
                 Id = comic.Id,
@@ -307,26 +325,15 @@ namespace TruyenKomi.API.Services
                 TotalChapters = comic.Chapters?.Count ?? 0,
                 CreatedAt = comic.CreatedAt,
                 UpdatedAt = comic.UpdatedAt,
+                LatestChapter = latestChapter,
+                RecentChapters = recentChapters,
                 Categories = comic.ComicCategories.Select(cc => new CategoryDto
                 {
                     Id = cc.Category.Id,
                     Name = cc.Category.Name,
                     Slug = cc.Category.Slug
                 }).ToList(),
-                Chapters = (comic.Chapters ?? Enumerable.Empty<Chapter>())
-                    .Where(ch => ch.IsPublic && (ch.PublishedAt == null || ch.PublishedAt <= DateTime.UtcNow))
-                    .OrderBy(ch => ch.ChapterNumber)
-                    .Select(ch => new ChapterDto
-                    {
-                        Id = ch.Id,
-                        ComicId = ch.ComicId,
-                        ChapterNumber = ch.ChapterNumber,
-                        Title = ch.Title,
-                        Views = ch.Views,
-                        IsPublic = ch.IsPublic,
-                        PublishedAt = ch.PublishedAt,
-                        CreatedAt = ch.CreatedAt
-                    }).ToList(),
+                Chapters = chaptersList,
                 Comments = comic.Comments != null
                     ? comic.Comments
                         .Where(cm => !cm.IsHidden)
@@ -650,12 +657,20 @@ namespace TruyenKomi.API.Services
         private async Task InvalidateComicCacheAsync(string? slug = null, int? chapterId = null)
         {
             await _cache.RemoveAsync("featured_comics_cache");
+            await _cache.RemoveAsync("featured_comics_cache_trending_5");
+            await _cache.RemoveAsync("featured_comics_cache_trending_10");
+            await _cache.RemoveAsync("featured_comics_cache_views_10");
+            await _cache.RemoveAsync("featured_comics_cache_views_15");
+            await _cache.RemoveAsync("featured_comics_cache_views_20");
+            await _cache.RemoveAsync("featured_comics_cache_latest_10");
+            await _cache.RemoveAsync("featured_comics_cache_chapters_10");
             await _cache.RemoveAsync("latest_comics_cache_12");
             await _cache.RemoveAsync("latest_comics_cache_6");
             await _cache.RemoveAsync("latest_comics_cache_24");
             await _cache.RemoveAsync("latest_comics_cache_48");
             await _cache.RemoveAsync("latest_comics_cache_100");
             await _cache.RemoveAsync("all_categories_cache");
+            await _cache.RemoveAsync("all_categories_active_cache");
             await _cache.RemoveByPatternAsync("*latest_comics_cache*");
             await _cache.RemoveByPatternAsync("*featured_comics*");
             await _cache.RemoveByPatternAsync("*comic_all_chapters_*");
@@ -1399,13 +1414,14 @@ namespace TruyenKomi.API.Services
             var totalChapterViews = await _context.Chapters.SumAsync(ch => (int?)ch.Views) ?? 0;
             var totalViews = totalComicViews + totalChapterViews;
 
-            var topViewedComics = await _context.Comics
+            var topViewedEntities = await _context.Comics
                 .OrderByDescending(c => c.Views)
                 .Take(5)
                 .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                 .Include(c => c.Chapters)
-                .Select(c => MapToComicDto(c))
                 .ToListAsync();
+
+            var topViewedComics = topViewedEntities.Select(c => MapToComicDto(c)).ToList();
 
             var recentChapters = await _context.Chapters
                 .Include(ch => ch.Comic)

@@ -102,12 +102,23 @@
                 </div>
               </div>
               <ng-template #singleLatestSearch>
-                <div class="chapters-preview" *ngIf="comic.latestChapter">
+                <div class="chapters-preview" *ngIf="comic.latestChapter; else noChaptersSearch">
                   <div class="chapter-row-clean">
                     <a [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]" class="ch-name">Chapter {{ comic.latestChapter.chapterNumber }}</a>
                     <span class="ch-time">{{ formatTimeAgo(comic.latestChapter.createdAt || comic.updatedAt) }}</span>
                   </div>
                 </div>
+                <ng-template #noChaptersSearch>
+                  <div class="chapters-preview">
+                    <div class="chapter-row-clean no-chapter">
+                      <span class="ch-name ch-updating" *ngIf="comic.totalChapters && comic.totalChapters > 0; else comingSoonSearch">Chapter {{ comic.totalChapters }}</span>
+                      <ng-template #comingSoonSearch>
+                        <span class="ch-name ch-updating"><i class="fa fa-clock-o"></i> Đang cập nhật</span>
+                      </ng-template>
+                      <span class="ch-time">{{ formatTimeAgo(comic.updatedAt) }}</span>
+                    </div>
+                  </div>
+                </ng-template>
               </ng-template>
             </div>
           </li>
