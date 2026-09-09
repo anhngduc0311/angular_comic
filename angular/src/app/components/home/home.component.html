@@ -2,9 +2,12 @@
   <!-- ==================== 1. HERO SPOTLIGHT CAROUSEL ==================== -->
   <section class="hero-spotlight-section" *ngIf="!isLoadingHot && featuredComics.length > 0">
     <div class="div_middle">
-      <div class="spotlight-carousel-card glass-panel" (mouseenter)="stopSpotlightAutoPlay()" (mouseleave)="startSpotlightAutoPlay()">
+      <div class="spotlight-carousel-card glass-panel" (mouseenter)="stopSpotlightAutoPlay()"
+        (mouseleave)="startSpotlightAutoPlay()">
         <!-- Background Blur Artwork -->
-        <div class="spotlight-backdrop" [style.background-image]="'url(' + (currentSpotlight?.bannerImage || currentSpotlight?.coverImage) + ')'"></div>
+        <div class="spotlight-backdrop"
+          [style.background-image]="'url(' + (currentSpotlight?.bannerImage || currentSpotlight?.coverImage) + ')'">
+        </div>
         <div class="spotlight-overlay"></div>
 
         <div class="spotlight-content-grid" *ngIf="currentSpotlight">
@@ -14,9 +17,12 @@
               <span class="spotlight-rank-badge">
                 <i class="fa fa-fire"></i> TOP #{{ activeSpotlightIndex + 1 }} THỊNH HÀNH
               </span>
-              <span class="spotlight-status-pill"><span class="pulse-dot"></span> {{ currentSpotlight.status || 'Đang Tiến Hành' }}</span>
-              <span class="spotlight-chapters-badge" *ngIf="currentSpotlight.totalChapters || currentSpotlight.latestChapter">
-                <i class="fa fa-book"></i> {{ currentSpotlight.totalChapters || (currentSpotlight.latestChapter ? currentSpotlight.latestChapter.chapterNumber : 0) }} Chapter
+              <span class="spotlight-status-pill"><span class="pulse-dot"></span> {{ currentSpotlight.status || 'Đang
+                Tiến Hành' }}</span>
+              <span class="spotlight-chapters-badge"
+                *ngIf="currentSpotlight.totalChapters || currentSpotlight.latestChapter">
+                <i class="fa fa-book"></i> {{ currentSpotlight.totalChapters || (currentSpotlight.latestChapter ?
+                currentSpotlight.latestChapter.chapterNumber : 0) }} Chapter
               </span>
             </div>
 
@@ -25,28 +31,34 @@
             </h1>
 
             <div class="spotlight-meta">
-              <span class="spotlight-rating"><i class="fa fa-star text-amber"></i> {{ currentSpotlight.rating || '5.0' }}</span>
-              <span class="spotlight-views"><i class="fa fa-eye"></i> {{ formatNumber(currentSpotlight.views || 0) }} lượt xem</span>
-              <span class="spotlight-author" *ngIf="currentSpotlight.author"><i class="fa fa-user-o"></i> {{ currentSpotlight.author }}</span>
+              <span class="spotlight-rating"><i class="fa fa-star text-amber"></i> {{ currentSpotlight.rating || '5.0'
+                }}</span>
+              <span class="spotlight-views"><i class="fa fa-eye"></i> {{ formatNumber(currentSpotlight.views || 0) }}
+                lượt xem</span>
+              <span class="spotlight-author" *ngIf="currentSpotlight.author"><i class="fa fa-user-o"></i> {{
+                currentSpotlight.author }}</span>
             </div>
 
             <!-- Genre Pills -->
             <div class="spotlight-genres">
-              <a *ngFor="let cat of currentSpotlight.categories | slice:0:4" [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }" class="genre-pill">
+              <a *ngFor="let cat of currentSpotlight.categories | slice:0:4" [routerLink]="['/comics']"
+                [queryParams]="{ category: cat.slug }" class="genre-pill">
                 {{ cat.name }}
               </a>
             </div>
 
             <!-- Description Preview -->
             <p class="spotlight-desc">
-              {{ currentSpotlight.description || 'Khám phá cuộc phiêu lưu kịch tính với chất lượng hình ảnh sắc nét chuẩn HD tại TruyenKomi...' }}
+              {{ currentSpotlight.description || 'Khám phá cuộc phiêu lưu kịch tính với chất lượng hình ảnh sắc nét
+              chuẩn HD tại TruyenKomi...' }}
             </p>
 
             <!-- Action Buttons -->
             <div class="spotlight-actions">
               <a [routerLink]="['/comic', currentSpotlight.slug]" class="btn-read-spotlight">
                 <i class="fa fa-play-circle"></i>
-                <span>Đọc Ngay {{ currentSpotlight.latestChapter ? 'Chap ' + currentSpotlight.latestChapter.chapterNumber : '' }}</span>
+                <span>Đọc Ngay {{ currentSpotlight.latestChapter ? 'Chap ' +
+                  currentSpotlight.latestChapter.chapterNumber : '' }}</span>
               </a>
               <a [routerLink]="['/comic', currentSpotlight.slug]" class="btn-detail-spotlight">
                 <i class="fa fa-info-circle"></i>
@@ -59,19 +71,16 @@
           <div class="spotlight-visual">
             <div class="spotlight-3d-cover">
               <a [routerLink]="['/comic', currentSpotlight.slug]">
-                <img [src]="currentSpotlight.coverImage" [alt]="currentSpotlight.title" (error)="onImgError($event)" class="cover-img" />
+                <img [src]="currentSpotlight.coverImage" [alt]="currentSpotlight.title" (error)="onImgError($event)"
+                  class="cover-img" />
               </a>
               <div class="cover-glow-aura"></div>
             </div>
 
             <!-- Thumbnail Selector Strip -->
             <div class="spotlight-thumbnails">
-              <div 
-                *ngFor="let item of featuredComics; let idx = index" 
-                class="thumb-item" 
-                [class.active]="idx === activeSpotlightIndex"
-                (click)="selectSpotlight(idx)"
-              >
+              <div *ngFor="let item of featuredComics; let idx = index" class="thumb-item"
+                [class.active]="idx === activeSpotlightIndex" (click)="selectSpotlight(idx)">
                 <img [src]="item.coverImage" [alt]="item.title" (error)="onImgError($event)" />
                 <div class="thumb-progress-bar" *ngIf="idx === activeSpotlightIndex"></div>
               </div>
@@ -102,10 +111,12 @@
             <span class="stack-badge">+1.2K</span>
           </div>
           <div class="card-social-links">
-            <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" class="social-round-btn fb-btn" aria-label="Facebook">
+            <a href="https://www.facebook.com/profile.php?id=61594125156375" target="_blank" rel="noopener noreferrer"
+              class="social-round-btn fb-btn" aria-label="Facebook">
               <i class="fa fa-facebook"></i>
             </a>
-            <a href="https://t.me/adstruyenkomi" target="_blank" rel="noopener noreferrer" class="social-round-btn tg-btn" aria-label="Telegram">
+            <a href="https://t.me/adstruyenkomi" target="_blank" rel="noopener noreferrer"
+              class="social-round-btn tg-btn" aria-label="Telegram">
               <i class="fa fa-paper-plane"></i>
             </a>
           </div>
@@ -122,15 +133,16 @@
         </div>
         <div class="card-row-bottom">
           <div class="card-chart">
-            <svg class="growth-chart-svg" viewBox="0 0 74 48" width="58" height="38" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <svg class="growth-chart-svg" viewBox="0 0 74 48" width="58" height="38" fill="none"
+              xmlns="http://www.w3.org/2000/svg">
               <defs>
                 <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.95"/>
-                  <stop offset="100%" stop-color="#0f766e" stop-opacity="0.6"/>
+                  <stop offset="0%" stop-color="#2dd4bf" stop-opacity="0.95" />
+                  <stop offset="100%" stop-color="#0f766e" stop-opacity="0.6" />
                 </linearGradient>
                 <linearGradient id="lineGrad" x1="0" y1="1" x2="1" y2="0">
-                  <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.4"/>
-                  <stop offset="100%" stop-color="#5eead4" stop-opacity="1"/>
+                  <stop offset="0%" stop-color="#14b8a6" stop-opacity="0.4" />
+                  <stop offset="100%" stop-color="#5eead4" stop-opacity="1" />
                 </linearGradient>
                 <filter id="chartGlow" x="-20%" y="-20%" width="140%" height="140%">
                   <feGaussianBlur stdDeviation="1.5" result="blur" />
@@ -143,13 +155,14 @@
               <rect x="44" y="14" width="7.5" height="34" rx="2" fill="url(#barGrad)" />
               <rect x="55" y="6" width="7.5" height="42" rx="2" fill="url(#barGrad)" />
               <!-- Upward Trend Line -->
-              <path d="M12 42 Q 38 38 67 7" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round" fill="none" filter="url(#chartGlow)"/>
+              <path d="M12 42 Q 38 38 67 7" stroke="url(#lineGrad)" stroke-width="2.5" stroke-linecap="round"
+                fill="none" filter="url(#chartGlow)" />
               <!-- Arrow Head -->
-              <polygon points="68,5 68,12 62,10" fill="#5eead4" filter="url(#chartGlow)"/>
+              <polygon points="68,5 68,12 62,10" fill="#5eead4" filter="url(#chartGlow)" />
               <!-- Glowing dots -->
-              <circle cx="26" cy="38" r="1.5" fill="#5eead4"/>
-              <circle cx="43" cy="27" r="1.5" fill="#5eead4"/>
-              <circle cx="58" cy="15" r="1.5" fill="#5eead4"/>
+              <circle cx="26" cy="38" r="1.5" fill="#5eead4" />
+              <circle cx="43" cy="27" r="1.5" fill="#5eead4" />
+              <circle cx="58" cy="15" r="1.5" fill="#5eead4" />
             </svg>
           </div>
           <a href="https://t.me/adstruyenkomi" target="_blank" rel="noopener noreferrer" class="btn-partner-tg">
@@ -173,23 +186,15 @@
         </a>
       </div>
 
-      <div class="suggest-carousel-wrapper" 
-        (mouseenter)="onSuggestMouseEnter()"
-        (mouseleave)="onSuggestMouseLeave()"
-        (touchstart)="onSuggestMouseEnter()"
-        (touchend)="onSuggestMouseLeave()"
-      >
+      <div class="suggest-carousel-wrapper" (mouseenter)="onSuggestMouseEnter()" (mouseleave)="onSuggestMouseLeave()"
+        (touchstart)="onSuggestMouseEnter()" (touchend)="onSuggestMouseLeave()">
         <!-- Floating Left Arrow Overlay -->
         <button class="slider-nav-btn nav-prev" (click)="scrollSuggest('left')" aria-label="Trước">
           <i class="fa fa-angle-left"></i>
         </button>
 
         <!-- Viewport & Track -->
-        <div 
-          class="suggest-slider-viewport" 
-          #suggestContainer
-          (scroll)="onSuggestScroll()"
-        >
+        <div class="suggest-slider-viewport" #suggestContainer (scroll)="onSuggestScroll()">
           <div class="suggest-slider-track">
             <!-- Original & Cloned items for seamless infinite loop -->
             <div class="comic-card-v3 suggest-card" *ngFor="let comic of displayHotComics; let i = index">
@@ -205,7 +210,8 @@
                 </div>
                 <div class="cover-stats-overlay">
                   <span class="stat-item"><i class="fa fa-eye"></i> {{ formatNumber(comic.views || 0) }}</span>
-                  <span class="stat-item"><i class="fa fa-heart"></i> {{ formatNumber(comic.likesCount || (comic.views ? (comic.views / 50) : 0)) }}</span>
+                  <span class="stat-item"><i class="fa fa-heart"></i> {{ formatNumber(comic.likesCount || (comic.views ?
+                    (comic.views / 50) : 0)) }}</span>
                 </div>
               </div>
               <div class="book_info">
@@ -244,12 +250,8 @@
 
       <!-- Quick Filter Chips Bar -->
       <div class="filter-chips-bar">
-        <button 
-          *ngFor="let chip of filterChips"
-          class="chip-btn" 
-          [class.active]="selectedFilter === chip.key"
-          (click)="setFilter(chip.key)"
-        >
+        <button *ngFor="let chip of filterChips" class="chip-btn" [class.active]="selectedFilter === chip.key"
+          (click)="setFilter(chip.key)">
           <i class="fa" [ngClass]="chip.icon"></i>
           <span>{{ chip.label }}</span>
         </button>
@@ -267,8 +269,10 @@
             </div>
             <div class="cover-stats-overlay">
               <span class="stat-item"><i class="fa fa-eye"></i> {{ formatNumber(comic.views || 0) }}</span>
-              <span class="stat-item"><i class="fa fa-comment-o"></i> {{ formatNumber(comic.commentsCount || 0) }}</span>
-              <span class="stat-item"><i class="fa fa-heart"></i> {{ formatNumber(comic.likesCount || (comic.views ? (comic.views / 50) : 0)) }}</span>
+              <span class="stat-item"><i class="fa fa-comment-o"></i> {{ formatNumber(comic.commentsCount || 0)
+                }}</span>
+              <span class="stat-item"><i class="fa fa-heart"></i> {{ formatNumber(comic.likesCount || (comic.views ?
+                (comic.views / 50) : 0)) }}</span>
             </div>
           </div>
 
@@ -279,23 +283,28 @@
               </h3>
             </div>
 
-            <div class="chapters-preview" *ngIf="comic.recentChapters && comic.recentChapters.length > 0; else singleLatestGrid">
+            <div class="chapters-preview"
+              *ngIf="comic.recentChapters && comic.recentChapters.length > 0; else singleLatestGrid">
               <div class="chapter-row-clean" *ngFor="let ch of comic.recentChapters | slice:0:3">
-                <a [routerLink]="['/comic', comic.slug, 'chapter', ch.id]" class="ch-name">Chapter {{ ch.chapterNumber }}</a>
+                <a [routerLink]="['/comic', comic.slug, 'chapter', ch.id]" class="ch-name">Chapter {{ ch.chapterNumber
+                  }}</a>
                 <span class="ch-time">{{ formatTimeAgo(ch.createdAt || comic.updatedAt) }}</span>
               </div>
             </div>
             <ng-template #singleLatestGrid>
               <div class="chapters-preview" *ngIf="comic.latestChapter; else noChaptersGrid">
                 <div class="chapter-row-clean">
-                  <a [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]" class="ch-name">Chapter {{ comic.latestChapter.chapterNumber }}</a>
+                  <a [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]" class="ch-name">Chapter {{
+                    comic.latestChapter.chapterNumber }}</a>
                   <span class="ch-time">{{ formatTimeAgo(comic.latestChapter.createdAt || comic.updatedAt) }}</span>
                 </div>
               </div>
               <ng-template #noChaptersGrid>
                 <div class="chapters-preview">
                   <div class="chapter-row-clean no-chapter">
-                    <span class="ch-name ch-updating" *ngIf="comic.totalChapters && comic.totalChapters > 0; else comingSoonHome">Chapter {{ comic.totalChapters }}</span>
+                    <span class="ch-name ch-updating"
+                      *ngIf="comic.totalChapters && comic.totalChapters > 0; else comingSoonHome">Chapter {{
+                      comic.totalChapters }}</span>
                     <ng-template #comingSoonHome>
                       <span class="ch-name ch-updating"><i class="fa fa-clock-o"></i> Đang cập nhật</span>
                     </ng-template>
