@@ -360,12 +360,41 @@ class SyncStateManager:
         self.load()
 
     def load(self):
+        if not self.state_file_path.exists():
+            self._try_restore_from_cloud()
+
         if self.state_file_path.exists():
             try:
                 with open(self.state_file_path, "r", encoding="utf-8") as f:
                     self.data = json.load(f)
             except Exception as e:
                 log_warning(f"Lỗi đọc file tiến trình: {e}. Tạo mới.")
+
+    def _try_restore_from_cloud(self):
+        """Tự động khôi phục checkpoint từ Cloud Bucket nếu đổi sang VPS mới"""
+        try:
+            url = f"{CDN_BASE_URL}/metadata/{STATE_FILE_NAME}"
+            res = requests.get(url, timeout=5)
+            if res.status_code == 200 and len(res.content) > 10:
+                self.state_file_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(self.state_file_path, "wb") as f:
+                    f.write(res.content)
+                log_success(f"☁️ Đã tự động khôi phục lịch sử tải ({STATE_FILE_NAME}) từ Cloud Bucket!")
+        except Exception:
+            pass
+
+    def backup_to_cloud(self, session: requests.Session = None):
+        """Tự động sao lưu file tiến trình lên Cloud Bucket để đồng bộ xuyên suốt các VPS"""
+        try:
+            if self.state_file_path.exists():
+                upload_file_to_cloud(
+                    self.state_file_path,
+                    f"metadata/{STATE_FILE_NAME}",
+                    content_type="application/json",
+                    session=session
+                )
+        except Exception:
+            pass
 
     def save(self):
         self.data["last_updated"] = datetime.now(timezone.utc).isoformat()
@@ -406,6 +435,8 @@ class SyncStateManager:
         stats["total_chapters"] += chapters_count
         stats["total_pages"] += pages_count
         self.save()
+        if len(self.data["completed_manga"]) % 10 == 0:
+            self.backup_to_cloud()
 
     def mark_failed(self, manga_id: str, title: str, error_msg: str):
         self.data.setdefault("failed_manga", {})[manga_id] = {
@@ -564,10 +595,12 @@ class MangaDexClient:
             order_norm = (order_by or "oldest").lower()
             if order_norm in ("oldest", "asc"):
                 params["order[createdAt]"] = "asc"
-            elif order_norm in ("latest_uploaded", "chapter_desc"):
-                params["order[latestUploadedChapter]"] = "desc"
-            else:
+            elif order_norm in ("newest_created", "created_desc"):
                 params["order[createdAt]"] = "desc"
+            else:
+                # "latest", "newest", "latest_uploaded", "chapter_desc", "updated"
+                # Mặc định khi tải mới nhất: Ưu tiên truyện có chapter mới vừa upload
+                params["order[latestUploadedChapter]"] = "desc"
 
             res = self._rate_limited_get(f"{MANGADEX_API_BASE}/manga", params=params)
             if not res or res.status_code != 200:
@@ -1066,10 +1099,10 @@ class MangaDexSynchronizer:
         order_norm = (order_by or "oldest").lower()
         if order_norm in ("oldest", "asc"):
             order_label = "CŨ NHẤT ➔ MỚI NHẤT (Oldest first)"
-        elif order_norm in ("latest_uploaded", "chapter_desc"):
-            order_label = "CHAPTER MỚI NHẤT ➔ CŨ NHẤT (Latest uploaded chapter)"
+        elif order_norm in ("newest_created", "created_desc"):
+            order_label = "TRUYỆN MỚI TẠO ➔ CŨ NHẤT (Newest created manga)"
         else:
-            order_label = "MỚI NHẤT ➔ CŨ NHẤT (Newest first)"
+            order_label = "CHAPTER MỚI NHẤT ➔ CŨ NHẤT (Latest uploaded chapters)"
 
         log_info(f"🚀 BẮT ĐẦU ĐỒNG BỘ TOÀN BỘ MANGADEX TIẾNG VIỆT")
         log_info(f"• Thứ tự duyệt truyện: {order_label}")
@@ -1095,6 +1128,8 @@ class MangaDexSynchronizer:
                 last_chap_str = item.get("last_chapter")
                 comp_info = self.state.get_completed_info(m_id) or {}
                 prev_count = comp_info.get("chapters_count", 0)
+                synced_at = comp_info.get("synced_at")
+                manga_updated_at = item.get("updated_at")
 
                 has_new = False
                 if last_chap_str:
@@ -1104,11 +1139,19 @@ class MangaDexSynchronizer:
                     except Exception:
                         pass
 
+                if not has_new and manga_updated_at and synced_at:
+                    try:
+                        if manga_updated_at > synced_at:
+                            has_new = True
+                    except Exception:
+                        pass
+
                 if not has_new:
                     log_info(f"[{count}] ⏭️ Đã hoàn tất ({prev_count} chaps): {title} (Bỏ qua)")
                     continue
                 else:
-                    log_info(f"[{count}] 🔄 Phát hiện chapter mới cho: {title} ({prev_count} ➔ {last_chap_str}). Đang cập nhật...")
+                    new_hint = f"{prev_count} ➔ {last_chap_str}" if last_chap_str else f"Đã lưu: {prev_count} chaps"
+                    log_info(f"[{count}] 🔄 Phát hiện cập nhật mới cho: {title} ({new_hint}). Đang kiểm tra chapter mới...")
 
             log_info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             log_info(f"▶ [{count}] Đang tải: {title} (ID: {m_id})")
@@ -1144,7 +1187,7 @@ def main():
     parser.add_argument("--service-account", default=None, help="[Bỏ qua] Đường dẫn file service_account.json")
     parser.add_argument("--offset", type=int, default=0, help="Vị trí bắt đầu tải (Mặc định: 0)")
     parser.add_argument("--limit", type=int, default=None, help="Số lượng truyện tối đa muốn tải (Mặc định: Tất cả)")
-    parser.add_argument("--order", choices=["oldest", "latest", "newest", "latest_uploaded"], default="oldest", help="Thứ tự duyệt truyện: newest/latest (mới nhất đến cũ nhất), oldest (cũ nhất đến mới nhất)")
+    parser.add_argument("--order", choices=["oldest", "latest", "newest", "newest_created", "latest_uploaded"], default="oldest", help="Thứ tự duyệt truyện: latest/newest (ưu tiên chapter mới nhất), oldest (cũ nhất -> mới nhất), newest_created (truyện mới tạo)")
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS, help=f"Số luồng tải ảnh song song (Mặc định: {DEFAULT_WORKERS})")
     parser.add_argument("--data-saver", action="store_true", default=DEFAULT_DATA_SAVER, help="Bật Data-Saver (Mặc định: TẮT - Tải ảnh gốc)")
     parser.add_argument("--no-merge", action="store_true", help="Tắt tự động ghép ảnh Manhwa 5-in-1")
