@@ -11,24 +11,52 @@
         <i class="fa fa-angle-right sep"></i>
         <a routerLink="/comics">Truyện Tranh</a>
         <i class="fa fa-angle-right sep"></i>
-        <span class="current">{{ comic.title }}</span>
+        <span class="current" [title]="comic.title">{{ comic.title }}</span>
       </nav>
 
       <!-- Main Comic Info Card (Glassmorphism) -->
       <div class="comic-main-card glass-panel">
-        <!-- 3D Cover Column -->
+        <!-- Cover Column -->
         <div class="comic-cover-box">
           <div class="cover-card-3d">
             <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" class="cover-img" />
           </div>
 
-          <div class="cover-quick-stats">
+          <div class="cover-quick-stats desktop-only">
             <div class="stat-pill"><i class="fa fa-star text-amber"></i> {{ comic.rating || '5.0' }} / 5</div>
             <div class="stat-pill"><i class="fa fa-eye"></i> {{ formatViews(comic.views) }}</div>
           </div>
+        </div>
 
-          <!-- Mobile Read Actions (Đọc từ đầu & Đọc mới nhất) -->
-          <div class="cover-mobile-actions">
+        <!-- Details Info Column -->
+        <div class="comic-details-info">
+          <!-- Header Meta Block (Badges, Title, Quick Meta) -->
+          <div class="comic-header-meta">
+            <div class="badge-row">
+              <span class="status-badge" [ngClass]="comic.status === 'Completed' ? 'status-completed' : 'status-ongoing'">
+                <span class="pulse-dot"></span>
+                {{ comic.status === 'Completed' ? 'Đã Hoàn Thành' : 'Đang Tiến Hành' }}
+              </span>
+              <span class="country-badge" *ngIf="comic.country">{{ comic.country }}</span>
+            </div>
+
+            <h1 class="comic-title">{{ comic.title }}</h1>
+
+            <div class="comic-mobile-quick-meta">
+              <span class="meta-item author-item" *ngIf="comic.author">
+                <i class="fa fa-pencil"></i> {{ comic.author }}
+              </span>
+              <span class="meta-item stat-item">
+                <i class="fa fa-star text-amber"></i> {{ comic.rating || '5.0' }}
+              </span>
+              <span class="meta-item stat-item">
+                <i class="fa fa-eye"></i> {{ formatViews(comic.views) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- CTA Actions Row (All 4 buttons unified) -->
+          <div class="cta-actions-row">
             <a 
               *ngIf="firstChapterNumber !== null" 
               [routerLink]="['/read', comic.slug, 'chuong-' + firstChapterNumber]" 
@@ -48,20 +76,37 @@
               <i class="fa fa-bolt"></i>
               <span>Đọc Mới Nhất</span>
             </a>
-          </div>
-        </div>
 
-        <!-- Details Info Column -->
-        <div class="comic-details-info">
-          <div class="badge-row">
-            <span class="status-badge" [ngClass]="comic.status === 'Completed' ? 'status-completed' : 'status-ongoing'">
-              <span class="pulse-dot"></span>
-              {{ comic.status === 'Completed' ? 'Đã Hoàn Thành' : 'Đang Tiến Hành' }}
-            </span>
-            <span class="country-badge" *ngIf="comic.country">{{ comic.country }}</span>
+            <button 
+              class="btn-cta btn-bookmark" 
+              [class.bookmarked]="isBookmarked"
+              (click)="toggleBookmark()"
+            >
+              <i class="fa" [ngClass]="isBookmarked ? 'fa-heart text-danger' : 'fa-heart-o'"></i>
+              <span>{{ isBookmarked ? 'Đã Theo Dõi' : 'Theo Dõi' }}</span>
+            </button>
+
+            <button class="btn-cta btn-like" [class.liked]="isLiked" (click)="toggleLike()">
+              <i class="fa" [ngClass]="isLiked ? 'fa-thumbs-up' : 'fa-thumbs-o-up'"></i>
+              <span>{{ likesCount }} Thích</span>
+            </button>
           </div>
 
-          <h1 class="comic-title">{{ comic.title }}</h1>
+          <!-- Genres Block -->
+          <div class="spec-genres-block" *ngIf="comic.categories && comic.categories.length > 0">
+            <span class="spec-label">Thể loại</span>
+            <div class="genres-row">
+              <a 
+                *ngFor="let cat of comic.categories" 
+                [routerLink]="['/comics']" 
+                [queryParams]="{ category: cat.slug }" 
+                class="genre-tag"
+              >
+                {{ cat.name }}
+              </a>
+            </div>
+          </div>
+
           <!-- Meta Grid (2 Columns Layout) -->
           <div class="comic-specs-grid">
             <!-- Row 1 -->
@@ -109,58 +154,6 @@
               <span class="spec-label">Tên khác</span>
               <span class="spec-value">{{ comic.otherNames }}</span>
             </div>
-          </div>
-
-          <!-- Genres Block -->
-          <div class="spec-genres-block" *ngIf="comic.categories && comic.categories.length > 0">
-            <span class="spec-label">Thể loại</span>
-            <div class="genres-row">
-              <a 
-                *ngFor="let cat of comic.categories" 
-                [routerLink]="['/comics']" 
-                [queryParams]="{ category: cat.slug }" 
-                class="genre-tag"
-              >
-                {{ cat.name }}
-              </a>
-            </div>
-          </div>
-
-          <!-- CTA Actions Row -->
-          <div class="cta-actions-row">
-            <a 
-              *ngIf="firstChapterNumber !== null" 
-              [routerLink]="['/read', comic.slug, 'chuong-' + firstChapterNumber]" 
-              class="btn-cta btn-read-first desktop-only-cta"
-              title="Đọc từ Chapter {{ firstChapterNumber }}"
-            >
-              <i class="fa fa-book-open"></i>
-              <span>Đọc Từ Đầu</span>
-            </a>
-
-            <a 
-              *ngIf="latestChapterNumber !== null" 
-              [routerLink]="['/read', comic.slug, 'chuong-' + latestChapterNumber]" 
-              class="btn-cta btn-read-latest desktop-only-cta"
-              title="Đọc Chapter {{ latestChapterNumber }} mới nhất"
-            >
-              <i class="fa fa-bolt"></i>
-              <span>Đọc Mới Nhất</span>
-            </a>
-
-            <button 
-              class="btn-cta btn-bookmark" 
-              [class.bookmarked]="isBookmarked"
-              (click)="toggleBookmark()"
-            >
-              <i class="fa" [ngClass]="isBookmarked ? 'fa-heart text-danger' : 'fa-heart-o'"></i>
-              <span>{{ isBookmarked ? 'Đã Theo Dõi' : 'Theo Dõi' }}</span>
-            </button>
-
-            <button class="btn-cta btn-like" [class.liked]="isLiked" (click)="toggleLike()">
-              <i class="fa" [ngClass]="isLiked ? 'fa-thumbs-up' : 'fa-thumbs-o-up'"></i>
-              <span>{{ likesCount }} Thích</span>
-            </button>
           </div>
         </div>
       </div>
