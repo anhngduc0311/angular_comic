@@ -60,6 +60,7 @@
             <a 
               *ngIf="firstChapterNumber !== null" 
               [routerLink]="['/read', comic.slug, 'chuong-' + firstChapterNumber]" 
+              (mouseenter)="prefetchFirstChapter()"
               class="btn-cta btn-read-first"
               title="Đọc từ Chapter {{ firstChapterNumber }}"
             >
@@ -70,6 +71,7 @@
             <a 
               *ngIf="latestChapterNumber !== null" 
               [routerLink]="['/read', comic.slug, 'chuong-' + latestChapterNumber]" 
+              (mouseenter)="prefetchChapter(latestChapterNumber)"
               class="btn-cta btn-read-latest"
               title="Đọc Chapter {{ latestChapterNumber }} mới nhất"
             >
@@ -204,6 +206,7 @@
             <a 
               *ngFor="let chap of filteredChapters" 
               [routerLink]="['/read', comic.slug, 'chuong-' + chap.chapterNumber]" 
+              (mouseenter)="prefetchChapter(chap.chapterNumber)"
               class="chapter-row"
             >
               <span class="chap-name">Chapter {{ chap.chapterNumber }} <span class="chap-title" *ngIf="chap.title && chap.title !== 'Chapter ' + chap.chapterNumber && chap.title !== 'Chương ' + chap.chapterNumber">- {{ chap.title }}</span></span>

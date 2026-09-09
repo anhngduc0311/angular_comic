@@ -248,7 +248,9 @@
         <img 
           [src]="pageStates[idx]?.url || page.imageUrl" 
           [alt]="chapter.comicTitle + ' - Chap ' + chapter.chapterNumber + ' - Trang ' + (idx + 1)"
-          [attr.loading]="idx < 2 ? 'eager' : 'lazy'"
+          [attr.loading]="idx < 4 ? 'eager' : 'lazy'"
+          [attr.fetchpriority]="idx < 2 ? 'high' : (idx < 5 ? 'auto' : 'low')"
+          decoding="async"
           (load)="onImgLoad(idx)"
           (error)="onImgError(idx, $event)"
           class="manga-page-img"

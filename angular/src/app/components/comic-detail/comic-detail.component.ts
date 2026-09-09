@@ -81,6 +81,8 @@ export class ComicDetailComponent implements OnInit {
         this.loadComments(true);
         this.loadRatingSummary(detail.id);
         this.loadReviews(detail.id, 1);
+        // Tải đón đầu Chapter 1 và ảnh ngay trong nền
+        this.prefetchFirstChapter();
       },
       error: () => {
         this.isLoading = false;
@@ -152,6 +154,34 @@ export class ComicDetailComponent implements OnInit {
   get latestChapterNumber(): number | null {
     if (!this.comic || !this.comic.chapters || this.comic.chapters.length === 0) return null;
     return this.comic.chapters[this.comic.chapters.length - 1].chapterNumber;
+  }
+
+  private prefetchedChapters = new Set<number>();
+
+  /**
+   * Tải đón đầu Chapter 1 (hoặc chapter đầu tiên) ngay khi người dùng mở trang chi tiết truyện
+   */
+  prefetchFirstChapter(): void {
+    if (!this.comic || !this.comic.slug || this.firstChapterNumber === null) return;
+    this.prefetchChapter(this.firstChapterNumber);
+  }
+
+  /**
+   * Tải trước chapter và ảnh vào bộ nhớ đệm khi hover hoặc tải ngầm
+   */
+  prefetchChapter(chapterNumber: number): void {
+    if (!this.comic || !this.comic.slug || this.prefetchedChapters.has(chapterNumber)) return;
+    this.prefetchedChapters.add(chapterNumber);
+
+    this.comicService.getChapterBySlugAndNumber(this.comic.slug, chapterNumber).subscribe({
+      next: (detail) => {
+        if (detail && detail.pages && detail.pages.length > 0) {
+          // Tải trước 5 trang đầu của chương vào browser cache
+          this.comicService.preloadChapterImages(detail.pages, 5);
+        }
+      },
+      error: () => {}
+    });
   }
 
   formatViews(views: number): string {

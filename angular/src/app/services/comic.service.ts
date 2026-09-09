@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, of, tap } from 'rxjs';
 import { ApiService } from './api.service';
 import { Comic, ComicDetail, Category, ChapterDetail, Comment, DashboardStats, SearchAutocompleteItem, SearchFilter, PagedResult, ComicRatingSummary, ComicReview } from '../models/comic.model';
 
@@ -82,12 +82,61 @@ export class ComicService {
     return this.api.get<ComicDetail>(`admin/comics/${id}`);
   }
 
+  private chapterCache = new Map<string, { data: ChapterDetail; timestamp: number }>();
+  private readonly CHAPTER_CACHE_TTL = 15 * 60 * 1000; // 15 mins cache
+
   getChapterById(id: number): Observable<ChapterDetail> {
-    return this.api.get<ChapterDetail>(`chapters/${id}`);
+    const cacheKey = `id_${id}`;
+    const cached = this.chapterCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < this.CHAPTER_CACHE_TTL)) {
+      return of(cached.data);
+    }
+    return this.api.get<ChapterDetail>(`chapters/${id}`).pipe(
+      tap(detail => {
+        if (detail) {
+          this.chapterCache.set(cacheKey, { data: detail, timestamp: Date.now() });
+          if (detail.comicSlug && detail.chapterNumber !== undefined) {
+            this.chapterCache.set(`slug_${detail.comicSlug}_${detail.chapterNumber}`, { data: detail, timestamp: Date.now() });
+          }
+        }
+      })
+    );
   }
 
   getChapterBySlugAndNumber(comicSlug: string, chapterNumber: number): Observable<ChapterDetail> {
-    return this.api.get<ChapterDetail>(`chapters/by-slug/${comicSlug}/chuong-${chapterNumber}`);
+    const cacheKey = `slug_${comicSlug}_${chapterNumber}`;
+    const cached = this.chapterCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < this.CHAPTER_CACHE_TTL)) {
+      return of(cached.data);
+    }
+    return this.api.get<ChapterDetail>(`chapters/by-slug/${comicSlug}/chuong-${chapterNumber}`).pipe(
+      tap(detail => {
+        if (detail) {
+          this.chapterCache.set(cacheKey, { data: detail, timestamp: Date.now() });
+          if (detail.id) {
+            this.chapterCache.set(`id_${detail.id}`, { data: detail, timestamp: Date.now() });
+          }
+        }
+      })
+    );
+  }
+
+  /**
+   * Tải trước ảnh vào bộ nhớ đệm trình duyệt (Browser Cache)
+   * Giúp khi chuyển trang hoặc mở chương, ảnh đã có sẵn trong máy không cần chờ mạng.
+   */
+  preloadChapterImages(pages: { imageUrl: string }[], count: number = 5): void {
+    if (!pages || !pages.length) return;
+    const targets = pages.slice(0, count);
+    targets.forEach((p, idx) => {
+      if (p && p.imageUrl) {
+        const img = new Image();
+        if ('fetchPriority' in img) {
+          (img as any).fetchPriority = idx < 2 ? 'high' : 'auto';
+        }
+        img.src = p.imageUrl;
+      }
+    });
   }
 
   getCategories(onlyWithComics = false): Observable<Category[]> {

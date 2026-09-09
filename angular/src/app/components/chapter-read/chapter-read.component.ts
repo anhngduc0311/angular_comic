@@ -46,6 +46,8 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   // Preloading & Reading Position states
   private preloadedChapterId: number | null = null;
   private preloadedImages: HTMLImageElement[] = [];
+  private preloadedPageIndices = new Set<number>();
+  private preloadScrollThrottle: any = null;
   private saveScrollTimeout: any = null;
 
   // Zoom Controls state
@@ -437,6 +439,9 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
       }, 300);
     }
 
+    // Dynamic sliding window: tự động tải trước 4-5 trang kế tiếp khi cuộn gần tới
+    this.checkAndPreloadSlidingPages();
+
     // Auto prefetch next chapter images when scrolling near the end (70%+ down page)
     const scrollPercent = (currentScrollY + window.innerHeight) / (document.documentElement.scrollHeight || 1);
     if (scrollPercent > 0.7 && this.nextChapterId) {
@@ -586,12 +591,63 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   prefetchCurrentChapterPages(): void {
     if (!this.chapter || !this.chapter.pages) return;
-    // Eagerly prefetch initial pages into browser cache
-    const initialPages = this.chapter.pages.slice(0, 5);
-    initialPages.forEach(page => {
+    // Tải trước 6 trang đầu ngay lập tức với độ ưu tiên cao vào browser cache
+    const initialPages = this.chapter.pages.slice(0, 6);
+    initialPages.forEach((page, i) => {
+      this.preloadedPageIndices.add(i);
       const img = new Image();
+      if ('fetchPriority' in img) {
+        (img as any).fetchPriority = i < 2 ? 'high' : 'auto';
+      }
       img.src = page.imageUrl;
     });
+  }
+
+  /**
+   * Cơ chế cửa sổ trượt: Tự động tải trước 4 trang kế tiếp bám theo vị trí cuộn thực tế của người đọc
+   */
+  checkAndPreloadSlidingPages(): void {
+    if (!this.chapter || !this.chapter.pages || this.chapter.pages.length === 0) return;
+
+    if (this.preloadScrollThrottle) return;
+    this.preloadScrollThrottle = setTimeout(() => {
+      this.preloadScrollThrottle = null;
+      this.performSlidingPreload();
+    }, 150);
+  }
+
+  private performSlidingPreload(): void {
+    if (!this.chapter || !this.chapter.pages) return;
+    const windowH = window.innerHeight;
+
+    // Tìm trang đang đọc dựa theo vị trí cuộn
+    let currentIdx = 0;
+    for (let i = 0; i < this.chapter.pages.length; i++) {
+      const el = document.getElementById('page-' + (i + 1));
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        if (rect.top <= windowH * 0.85 && rect.bottom >= 0) {
+          currentIdx = i;
+        }
+      }
+    }
+
+    // Tải trước 4 trang tiếp theo vào bộ nhớ đệm
+    const bufferCount = 4;
+    const end = Math.min(this.chapter.pages.length, currentIdx + bufferCount + 1);
+    for (let i = currentIdx + 1; i < end; i++) {
+      if (!this.preloadedPageIndices.has(i)) {
+        this.preloadedPageIndices.add(i);
+        const page = this.chapter.pages[i];
+        if (page && page.imageUrl) {
+          const img = new Image();
+          if ('fetchPriority' in img) {
+            (img as any).fetchPriority = 'low';
+          }
+          img.src = page.imageUrl;
+        }
+      }
+    }
   }
 
   preloadNextChapter(): void {
@@ -675,6 +731,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     this.pageStates = {};
     this.totalFailedCount = 0;
     this.totalLoadedCount = 0;
+    this.preloadedPageIndices.clear();
     if (!pages) return;
     pages.forEach((page, index) => {
       this.pageStates[index] = {
