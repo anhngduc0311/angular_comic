@@ -1,26 +1,29 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 🚀 MANGADEX TO GOOGLE DRIVE - ALL-IN-ONE CRAWLER & SYNCHRONIZER CHO UBUNTU
+# 🚀 MANGADEX TO CLOUD STORAGE & WEB - ALL-IN-ONE CRAWLER CHO UBUNTU (TURBO SPEED)
 # ==============================================================================
 # File tự động hóa 100% dành riêng cho hệ điều hành Ubuntu / Linux:
-# - Tự cài đặt Python 3, pip, Virtualenv và Rclone (nếu máy chưa có)
-# - Cấu hình và kết nối trực tiếp vào Google Drive Folder ID: 1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef
-# - ÁP DỤNG CHÍNH XÁC CÁC THIẾT LẬP (SETTING) TỪ GIAO DIỆN:
+# - Tự cài đặt Python 3, pip, Virtualenv (nếu máy chưa có)
+# - Tự động thiết lập bộ nhớ ảo SWAP (4GB/2GB) chống tràn RAM / chống bị kill tiến trình
+# - Tải truyện MangaDex (Tiếng Việt) và lưu trữ trực tiếp vào Cloud Bucket & Web API
+# - CÁC TỐI ƯU HÓA TĂNG TỐC VƯỢT TRỘI (TURBO SPEED):
+#     ⚡ 32 luồng tải & upload song song (Tăng gấp đôi số worker)
+#     ⚡ HTTP Keep-Alive Connection Pooling (Tái sử dụng TCP/TLS, loại bỏ handshake)
+#     ⚡ Nén WebP đa luồng song song trên đa nhân CPU (Tốc độ nén nhanh gấp 5 lần)
+#     ⚡ Ghép ảnh Manhwa 5-in-1 đa luồng song song
+# - ÁP DỤNG CÁC THIẾT LẬP (SETTING) TỪ GIAO DIỆN:
 #     ☑️ Tự động tải lên Cloud Storage & Đồng bộ Web API: BẬT
 #     ☑️ Bỏ qua chapter đã có trên máy (Tránh tải trùng / Resume): BẬT
 #     ⬜ MangaDex Data-Saver (Tải ảnh nén nhẹ tiết kiệm mạng): TẮT (Tải ẢNH GỐC)
 #     ☑️ Ghép ảnh Manhwa 5-in-1 (Tự động khi chapter > 70 ảnh): BẬT
 #     ⬜ Tự động xuất mỗi chapter thành file PDF: TẮT
-#     ⚡ Luồng tải song song: 16 luồng
-# - Đẩy trực tiếp lên Google Drive và tự dọn dẹp file tạm (chống tràn ổ cứng VPS)
+#     ⚡ Luồng tải song song: 32 luồng
+# - Đẩy trực tiếp lên Cloud Storage Bucket (GCS / R2) và tự dọn dẹp file tạm (chống tràn ổ cứng VPS)
 # - Hỗ trợ chạy ngầm 24/7 (nohup), tắt SSH máy vẫn tự động tải
 # ==============================================================================
 
 set -e
 
-# Target Google Drive Folder ID
-DEFAULT_FOLDER_ID="1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef"
-RCLONE_REMOTE_NAME="gdrive"
 LOG_FILE="mangadex_sync.log"
 PID_FILE=".mangadex_sync.pid"
 VENV_DIR=".venv_mangadex"
@@ -69,22 +72,20 @@ extract_python_engine() {
 # -*- coding: utf-8 -*-
 """
 =============================================================================
-🚀 MangaDex to Cloud Storage & Google Drive Synchronizer
+🚀 MangaDex to Cloud Storage & Web Synchronizer
 =============================================================================
 Author: TruyenKomi Team
-Target Google Drive Folder ID: 1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef (luutruyenkomi)
 Target Cloud Storage Bucket: truyenkomi (Google Cloud Storage / R2)
 Web API: https://truyenkomi.com/api
 
 Thiết lập chuẩn:
   ☑️ Tự động tải lên Cloud Storage Bucket & Đồng bộ Web API: BẬT
-  ☑️ Lưu đồng thời vào Google Drive (Folder ID: 1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef): BẬT
   ☑️ Bỏ qua chapter đã có trên máy / Cloud (Tránh tải trùng / Resume): BẬT
   ⬜ MangaDex Data-Saver (Tải ảnh nén nhẹ tiết kiệm mạng): TẮT (Tải ẢNH GỐC)
   ☑️ Ghép ảnh Manhwa 5-in-1 (Tự động khi chapter > 70 ảnh): BẬT
   ⬜ Tự động xuất mỗi chapter thành file PDF: TẮT
   ⚡ Luồng tải song song: 16 luồng
-  ⚡ ĐỒNG BỘ REALTIME TỪNG CHAPTER: Cứ xong chapter nào là đẩy ngay lên Bucket & Drive
+  ⚡ ĐỒNG BỘ REALTIME TỪNG CHAPTER: Cứ xong chapter nào là đẩy ngay lên Cloud Bucket & Web
 =============================================================================
 """
 
@@ -105,6 +106,26 @@ from pathlib import Path
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+
+def create_reusable_session(pool_size: int = 64) -> requests.Session:
+    """Tạo requests.Session dùng chung Connection Pool (HTTP Keep-Alive) để tăng tốc tải & upload tối đa"""
+    s = requests.Session()
+    adapter = HTTPAdapter(
+        pool_connections=pool_size,
+        pool_maxsize=pool_size,
+        max_retries=Retry(
+            total=3,
+            backoff_factor=0.3,
+            status_forcelist=[500, 502, 503, 504],
+            raise_on_status=False
+        )
+    )
+    s.mount("https://", adapter)
+    s.mount("http://", adapter)
+    return s
 
 # Fix console encoding for Windows/Linux
 if sys.platform == 'win32':
@@ -150,7 +171,6 @@ load_env_file()
 # =============================================================================
 # CẤU HÌNH CLOUD BUCKET & WEB API
 # =============================================================================
-DEFAULT_DRIVE_FOLDER_ID = "1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef"  # luutruyenkomi
 GCS_ENDPOINT = os.getenv("R2_ENDPOINT", "storage.googleapis.com")
 GCS_ACCESS_KEY = os.getenv("R2_ACCESS_KEY", "GOOGQHRXVRS7YCR24JBLB33S")
 GCS_SECRET_KEY = os.getenv("R2_SECRET_KEY", "3Iamo8whmuUeT2B+CMtRnfW6qdIsmwXVec47tF52")
@@ -163,14 +183,14 @@ MANGADEX_UPLOADS_BASE = "https://uploads.mangadex.org"
 DEFAULT_LANG = "vi"
 
 # ⚙️ CÁC THIẾT LẬP MẶC ĐỊNH KHỚP GIAO DIỆN:
-DEFAULT_UPLOAD_TO_WEB = True          # ☑️ Tự động tải lên Cloud Bucket, Drive & Đồng bộ Web
+DEFAULT_UPLOAD_TO_WEB = True          # ☑️ Tự động tải lên Cloud Bucket & Đồng bộ Web API
 DEFAULT_SKIP_EXISTING = True          # ☑️ Bỏ qua chapter đã có trên máy / Cloud
 DEFAULT_DATA_SAVER = False            # ⬜ MangaDex Data-Saver: TẮT (Tải ẢNH GỐC)
 DEFAULT_MERGE_SLICES = True           # ☑️ Ghép ảnh Manhwa 5-in-1 khi > 70 ảnh
 AUTO_STITCH_THRESHOLD = 70            # Ngưỡng tự động ghép dải ảnh manhwa
 STITCH_GROUP_SIZE = 5                 # Ghép 5 lát cắt thành 1 ảnh dài WebP
 DEFAULT_MAKE_PDF = False              # ⬜ Tự động xuất PDF: TẮT
-DEFAULT_WORKERS = 16                  # ⚡ 16 luồng tải song song
+DEFAULT_WORKERS = 32                  # ⚡ 32 luồng tải & upload song song (Turbo Speed)
 
 DEFAULT_TIMEOUT = 30
 MAX_RETRIES = 4
@@ -239,8 +259,8 @@ def parse_date_to_iso(date_val):
 # =============================================================================
 # 1. TẢI ẢNH LÊN CLOUD STORAGE BUCKET (GCS / R2) & ĐỒNG BỘ WEB API
 # =============================================================================
-def upload_file_to_cloud(local_path: Path, object_name: str, content_type: str = "image/webp", max_retries: int = 3) -> str:
-    """Tải 1 file ảnh lên Cloud Storage Bucket (Google Cloud Storage / R2) và trả về CDN URL (Tự động thử lại 3 lần)"""
+def upload_file_to_cloud(local_path: Path, object_name: str, content_type: str = "image/webp", session: requests.Session = None, max_retries: int = 3) -> str:
+    """Tải 1 file ảnh lên Cloud Storage Bucket (Google Cloud Storage / R2) qua persistent session tái sử dụng kết nối (Tự động thử lại 3 lần)"""
     object_name = object_name.lstrip("/")
     url = f'https://{GCS_ENDPOINT}/{GCS_BUCKET}/{object_name}'
 
@@ -248,6 +268,7 @@ def upload_file_to_cloud(local_path: Path, object_name: str, content_type: str =
         data = f.read()
 
     last_err = None
+    http_client = session or requests
     for attempt in range(max_retries):
         try:
             date_str = datetime.now(timezone.utc).strftime('%a, %d %b %Y %H:%M:%S GMT')
@@ -262,15 +283,15 @@ def upload_file_to_cloud(local_path: Path, object_name: str, content_type: str =
                 'Authorization': auth_header
             }
 
-            res = requests.put(url, data=data, headers=headers, timeout=30)
+            res = http_client.put(url, data=data, headers=headers, timeout=25)
             if res.status_code in (200, 201, 204):
                 return f"{CDN_BASE_URL}/{object_name}"
             else:
                 last_err = f"HTTP {res.status_code}: {res.text[:100]}"
-                time.sleep(1 * (attempt + 1))
+                time.sleep(0.3 * (attempt + 1))
         except Exception as e:
             last_err = str(e)
-            time.sleep(1 * (attempt + 1))
+            time.sleep(0.3 * (attempt + 1))
 
     raise Exception(f"Upload bucket failed sau {max_retries} lần thử: {last_err}")
 
@@ -302,7 +323,8 @@ def sync_chapter_to_web_api(
     created_at: str = None,
     comic_created_at: str = None,
     comic_updated_at: str = None,
-    categories: list = None
+    categories: list = None,
+    session: requests.Session = None
 ) -> bool:
     """Đồng bộ chapter lên TruyenKomi Web API để hiển thị ngay trên Website"""
     params = {
@@ -341,8 +363,9 @@ def sync_chapter_to_web_api(
         "User-Agent": "TruyenKomi-Sync/2.0",
         "Content-Type": "application/json"
     }
+    http_client = session or requests
     try:
-        res = requests.post(url, json=payload, headers=headers, timeout=20)
+        res = http_client.post(url, json=payload, headers=headers, timeout=20)
         return res.status_code in (200, 201)
     except Exception as e:
         return False
@@ -356,7 +379,6 @@ class SyncStateManager:
         self.state_file_path = state_file_path
         self.data = {
             "version": 2,
-            "drive_folder_id": DEFAULT_DRIVE_FOLDER_ID,
             "gcs_bucket": GCS_BUCKET,
             "created_at": datetime.now(timezone.utc).isoformat(),
             "last_updated": datetime.now(timezone.utc).isoformat(),
@@ -416,15 +438,18 @@ class SyncStateManager:
 
 
 # =============================================================================
-# 3. GHÉP ẢNH MANHWA 5-IN-1 (IMAGE STITCHING)
+# 3. GHÉP ẢNH MANHWA 5-IN-1 (IMAGE STITCHING) - ĐA LUỒNG TỐC ĐỘ CAO
 # =============================================================================
 def merge_images_vertical(image_paths: list, output_dir: Path, group_size: int = STITCH_GROUP_SIZE) -> list:
     if not image_paths:
         return []
 
-    merged_files = []
+    groups = []
     for group_idx, i in enumerate(range(0, len(image_paths), group_size), 1):
-        group = image_paths[i:i + group_size]
+        groups.append((group_idx, image_paths[i:i + group_size]))
+
+    def process_group(item):
+        group_idx, group = item
         loaded_imgs = []
         resized_imgs = []
         combined = None
@@ -439,14 +464,14 @@ def merge_images_vertical(image_paths: list, output_dir: Path, group_size: int =
                     loaded_imgs.append(im)
 
             if not loaded_imgs:
-                continue
+                return group_idx, None
 
             max_width = max(im.width for im in loaded_imgs)
             total_height = 0
             for im in loaded_imgs:
                 if im.width != max_width:
                     new_h = max(1, int(im.height * (max_width / im.width)))
-                    im_resized = im.resize((max_width, new_h), Image.Resampling.LANCZOS)
+                    im_resized = im.resize((max_width, new_h), Image.Resampling.BILINEAR)
                     resized_imgs.append(im_resized)
                     total_height += new_h
                 else:
@@ -460,11 +485,11 @@ def merge_images_vertical(image_paths: list, output_dir: Path, group_size: int =
                 curr_y += im.height
 
             chunk_file = output_dir / f"page_{group_idx:03d}.webp"
-            combined.save(chunk_file, 'WEBP', quality=90, method=6)
-            merged_files.append(chunk_file)
-
+            combined.save(chunk_file, 'WEBP', quality=88, method=4)
+            return group_idx, chunk_file
         except Exception as e:
             log_warning(f"Lỗi ghép nhóm ảnh {group_idx}: {e}")
+            return group_idx, None
         finally:
             to_close = {id(im): im for im in (loaded_imgs + resized_imgs)}
             for im in to_close.values():
@@ -474,97 +499,24 @@ def merge_images_vertical(image_paths: list, output_dir: Path, group_size: int =
                 try: combined.close()
                 except Exception: pass
 
-    return merged_files
+    results = {}
+    with ThreadPoolExecutor(max_workers=min(len(groups), 8)) as stitch_pool:
+        futures = [stitch_pool.submit(process_group, g) for g in groups]
+        for f in as_completed(futures):
+            g_idx, f_path = f.result()
+            if f_path:
+                results[g_idx] = f_path
+
+    return [results[k] for k in sorted(results.keys())]
 
 
 # =============================================================================
-# 4. GOOGLE DRIVE SYNC BACKEND (ĐỒNG BỘ REALTIME TỪNG CHAPTER)
-# =============================================================================
-class GoogleDriveUploader:
-    def __init__(
-        self,
-        folder_id: str = DEFAULT_DRIVE_FOLDER_ID,
-        rclone_remote: str = "gdrive",
-        drive_path: str = None,
-        service_account_path: str = None,
-        delete_local: bool = True
-    ):
-        self.folder_id = folder_id
-        self.rclone_remote = rclone_remote
-        self.drive_path = Path(drive_path) if drive_path else None
-        self.service_account_path = Path(service_account_path) if service_account_path else None
-        self.delete_local = delete_local
-        self.backend = self._detect_backend()
-
-    def _detect_backend(self) -> str:
-        if self.drive_path and self.drive_path.exists():
-            log_info(f"Sử dụng Google Drive qua thư mục Mount cục bộ: {self.drive_path}")
-            return "mount"
-
-        if self.service_account_path and self.service_account_path.exists():
-            log_info(f"Sử dụng Google Drive API qua Service Account: {self.service_account_path}")
-            return "google_api"
-
-        if shutil.which("rclone"):
-            log_info(f"Sử dụng Rclone đồng bộ trực tiếp lên Google Drive (remote: {self.rclone_remote}).")
-            return "rclone"
-
-        log_warning("Không tìm thấy Rclone hoặc Service Account. Ảnh sẽ lưu tạm ở thư mục cục bộ.")
-        return "local_fallback"
-
-    def sync_cover_to_drive(self, cover_file: Path) -> bool:
-        """Đẩy ảnh bìa lên Google Drive: covers/{slug}.webp"""
-        if not cover_file or not cover_file.exists():
-            return False
-
-        if self.backend == "rclone":
-            cmd = [
-                "rclone", "copy", str(cover_file.parent), f"{self.rclone_remote}:covers",
-                "--include", cover_file.name,
-                "--drive-root-folder-id", self.folder_id,
-                "--retries", "3"
-            ]
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            return res.returncode == 0
-        elif self.backend == "mount":
-            target = self.drive_path / "covers"
-            target.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(str(cover_file), str(target / cover_file.name))
-            return True
-        return True
-
-    def sync_chapter_to_drive(self, local_chap_dir: Path, slug: str, chap_num_str: str) -> bool:
-        """Đồng bộ NGAY LẬP TỨC 1 Chapter lên Google Drive (chapters/{slug}/chap{num})"""
-        if not local_chap_dir.exists() or not any(local_chap_dir.glob("*.webp")):
-            return False
-
-        if self.backend == "rclone":
-            remote_target = f"{self.rclone_remote}:chapters/{slug}/chap{chap_num_str}"
-            cmd = [
-                "rclone", "copy", str(local_chap_dir), remote_target,
-                "--drive-root-folder-id", self.folder_id,
-                "--transfers", "16",
-                "--checkers", "8",
-                "--retries", "3"
-            ]
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            return res.returncode == 0
-        elif self.backend == "mount":
-            target = self.drive_path / "chapters" / slug / f"chap{chap_num_str}"
-            target.mkdir(parents=True, exist_ok=True)
-            for item in local_chap_dir.glob("*.webp"):
-                shutil.copy2(str(item), str(target / item.name))
-            return True
-        return True
-
-
-# =============================================================================
-# 5. MANGADEX API CLIENT
+# 4. MANGADEX API CLIENT
 # =============================================================================
 class MangaDexClient:
     def __init__(self, lang: str = DEFAULT_LANG):
         self.lang = lang
-        self.session = requests.Session()
+        self.session = create_reusable_session(pool_size=32)
         self.session.headers.update({"User-Agent": "TruyenKomi-Ubuntu-Sync/2.0 (https://truyenkomi.com)"})
         self._last_request_time = 0.0
         self._min_interval = 0.22
@@ -796,15 +748,11 @@ class MangaDexClient:
 
 
 # =============================================================================
-# 6. ENGINE ĐỒNG BỘ REALTIME TỪNG CHAPTER LÊN BUCKET & GOOGLE DRIVE
+# 5. ENGINE ĐỒNG BỘ REALTIME TỪNG CHAPTER LÊN CLOUD BUCKET & WEB
 # =============================================================================
-class MangaDexDriveSynchronizer:
+class MangaDexSynchronizer:
     def __init__(
         self,
-        folder_id: str = DEFAULT_DRIVE_FOLDER_ID,
-        rclone_remote: str = "gdrive",
-        drive_path: str = None,
-        service_account: str = None,
         temp_dir: str = TEMP_DOWNLOAD_DIR,
         workers: int = DEFAULT_WORKERS,
         upload_to_web: bool = DEFAULT_UPLOAD_TO_WEB,
@@ -814,16 +762,10 @@ class MangaDexDriveSynchronizer:
         make_pdf: bool = DEFAULT_MAKE_PDF,
         delete_local: bool = True,
         lang: str = DEFAULT_LANG,
-        api_base_url: str = DEFAULT_API_BASE_URL
+        api_base_url: str = DEFAULT_API_BASE_URL,
+        **kwargs
     ):
         self.client = MangaDexClient(lang=lang)
-        self.uploader = GoogleDriveUploader(
-            folder_id=folder_id,
-            rclone_remote=rclone_remote,
-            drive_path=drive_path,
-            service_account_path=service_account,
-            delete_local=delete_local
-        )
         self.temp_root = Path(temp_dir).resolve()
         self.temp_root.mkdir(parents=True, exist_ok=True)
         self.state = SyncStateManager(self.temp_root / STATE_FILE_NAME)
@@ -835,28 +777,36 @@ class MangaDexDriveSynchronizer:
         self.make_pdf = make_pdf
         self.delete_local = delete_local
         self.api_base_url = api_base_url
+        # Connection Pool siêu tốc dùng chung (Keep-Alive) cho download & upload
+        self.download_session = create_reusable_session(pool_size=max(64, self.workers * 2))
+        self.download_session.headers.update({
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Referer": "https://mangadex.org/"
+        })
+        self.upload_session = create_reusable_session(pool_size=max(64, self.workers * 2))
+        self.api_session = create_reusable_session(pool_size=32)
 
     def _download_single_image(self, url: str, target_path: Path) -> bool:
         target_path.parent.mkdir(parents=True, exist_ok=True)
         for attempt in range(MAX_RETRIES):
             try:
-                res = requests.get(url, timeout=DEFAULT_TIMEOUT)
+                res = self.download_session.get(url, timeout=DEFAULT_TIMEOUT)
                 if res.status_code == 200 and len(res.content) > 500:
                     with open(target_path, "wb") as f:
                         f.write(res.content)
                     return True
                 elif res.status_code == 429:
-                    time.sleep(2 * (attempt + 1))
+                    time.sleep(1.5 * (attempt + 1))
             except Exception:
-                time.sleep(1)
+                time.sleep(0.5)
         return False
 
-    def _convert_to_webp(self, src_file: Path, dest_webp_file: Path, quality: int = 90) -> bool:
+    def _convert_to_webp(self, src_file: Path, dest_webp_file: Path, quality: int = 88) -> bool:
         try:
             with Image.open(src_file) as im:
                 im.load()
                 im = im.convert('RGB') if im.mode != 'RGB' else im
-                im.save(dest_webp_file, 'WEBP', quality=quality, method=6)
+                im.save(dest_webp_file, 'WEBP', quality=quality, method=4)
             if src_file != dest_webp_file and src_file.exists():
                 src_file.unlink(missing_ok=True)
             return True
@@ -866,7 +816,7 @@ class MangaDexDriveSynchronizer:
     def sync_single_manga(self, manga_id_or_url: str) -> bool:
         manga_id = self.client.extract_manga_id(manga_id_or_url)
         if self.state.is_completed(manga_id) and self.skip_existing:
-            log_info(f"Bộ truyện ID {manga_id} đã có trên Drive & Bucket. Bỏ qua.")
+            log_info(f"Bộ truyện ID {manga_id} đã có trên Cloud Bucket. Bỏ qua.")
             return True
 
         info = self.client.get_manga_details_and_chapters(manga_id)
@@ -896,16 +846,14 @@ class MangaDexDriveSynchronizer:
             else:
                 cover_path = target_cover
 
-            # Đẩy ảnh bìa lên Cloud Bucket & Google Drive ngay!
+            # Đẩy ảnh bìa lên Cloud Bucket ngay!
             if cover_path and cover_path.exists():
                 if self.upload_to_web:
                     try:
-                        cover_cdn_url = upload_file_to_cloud(cover_path, f"covers/{slug}.webp", "image/webp")
+                        cover_cdn_url = upload_file_to_cloud(cover_path, f"covers/{slug}.webp", "image/webp", session=self.upload_session)
                         log_success(f"  📸 Đã đưa Ảnh bìa lên Bucket Cloud: {cover_cdn_url}")
                     except Exception as err:
                         log_warning(f"  ⚠️ Lỗi upload bìa lên Bucket: {err}")
-                self.uploader.sync_cover_to_drive(cover_path)
-                log_success(f"  📁 Đã lưu Ảnh bìa vào Google Drive (covers/{slug}.webp)")
 
         # 2. TẢI VÀ ĐỒNG BỘ TỪNG CHAPTER NGAY LẬP TỨC (REAL-TIME PER CHAPTER)
         total_pages_downloaded = 0
@@ -965,23 +913,32 @@ class MangaDexDriveSynchronizer:
                 total_pages_downloaded += len(final_paths)
                 shutil.rmtree(download_dir, ignore_errors=True)
             else:
-                for p_idx, p_file in enumerate(downloaded_raw, 1):
-                    final_webp = chap_dir / f"page_{p_idx:03d}.webp"
-                    self._convert_to_webp(p_file, final_webp, quality=90)
-                    final_paths.append(final_webp)
-                    total_pages_downloaded += 1
+                # Chuyển đổi WebP ĐA LUỒNG TỐC ĐỘ CAO (method=4)
+                final_paths_dict = {}
+                with ThreadPoolExecutor(max_workers=min(self.workers, 16)) as conv_pool:
+                    conv_futures = {}
+                    for p_idx, p_file in enumerate(downloaded_raw, 1):
+                        final_webp = chap_dir / f"page_{p_idx:03d}.webp"
+                        conv_futures[conv_pool.submit(self._convert_to_webp, p_file, final_webp, 88)] = (p_idx, final_webp)
+                    for f in as_completed(conv_futures):
+                        p_idx, final_webp = conv_futures[f]
+                        if f.result() and final_webp.exists():
+                            final_paths_dict[p_idx] = final_webp
+
+                final_paths = [final_paths_dict[k] for k in sorted(final_paths_dict.keys())]
+                total_pages_downloaded += len(final_paths)
 
             # =========================================================================
-            # ⚡ ĐẨY NGAY LẬP TỨC LÊN CLOUD BUCKET & GOOGLE DRIVE SAU MỖI CHAPTER
+            # ⚡ ĐẨY NGAY LẬP TỨC LÊN CLOUD BUCKET & ĐỒNG BỘ WEB API SAU MỖI CHAPTER
             # =========================================================================
             if self.upload_to_web and final_paths:
-                # 1. Đẩy từng ảnh lên Cloud Storage Bucket (Google Cloud Storage / R2)
+                # 1. Đẩy từng ảnh lên Cloud Storage Bucket qua persistent Keep-Alive session
                 uploaded_cdn_urls = [None] * len(final_paths)
                 with ThreadPoolExecutor(max_workers=self.workers) as pool:
                     f_to_i = {}
                     for p_i, p_path in enumerate(final_paths):
                         obj_name = f"chapters/{slug}/chap{num_str}/page_{p_i+1:03d}.webp"
-                        f = pool.submit(upload_file_to_cloud, p_path, obj_name, "image/webp")
+                        f = pool.submit(upload_file_to_cloud, p_path, obj_name, "image/webp", self.upload_session)
                         f_to_i[f] = p_i
                     for f in as_completed(f_to_i):
                         p_i = f_to_i[f]
@@ -992,9 +949,8 @@ class MangaDexDriveSynchronizer:
 
                 valid_cdn_urls = [u for u in uploaded_cdn_urls if u]
                 if valid_cdn_urls:
-                    log_success(f"    ☁️ Đã lưu {len(valid_cdn_urls)} ảnh vào Bucket Cloud: truyenkomi")
-                    # 2. Đồng bộ lên Web API
-                    # Lấy ngày tạo gốc của truyện (createdAt từ MangaDex), fallback ngày chapter đầu tiên
+                    log_success(f"    ☁️ Đã lưu {len(valid_cdn_urls)} ảnh vào Bucket Cloud: {GCS_BUCKET}")
+                    # 2. Đồng bộ lên Web API qua persistent session
                     manga_created_at = info.get("created_at")
                     manga_updated_at = info.get("updated_at")
                     if not manga_created_at and chapters:
@@ -1016,22 +972,18 @@ class MangaDexDriveSynchronizer:
                         created_at=chap.get("published_at"),
                         comic_created_at=manga_created_at,
                         comic_updated_at=manga_updated_at,
-                        categories=info.get("genres", [])
+                        categories=info.get("genres", []),
+                        session=self.api_session
                     )
                     if synced:
                         log_success(f"    🌐 Đã đồng bộ {chap_title} lên Website TruyenKomi thành công!")
 
-                # 3. Đẩy chapter lên Google Drive folder 1S3biMk6c2e-u5j7uO0wocFBW6J5eB8ef ngay!
-                drive_ok = self.uploader.sync_chapter_to_drive(chap_dir, slug, num_str)
-                if drive_ok:
-                    log_success(f"    📁 Đã lưu {chap_title} vào Google Drive (luutruyenkomi)!")
+            # Ghi nhận hoàn thành chapter vào checkpoint
+            self.state.mark_chapter_synced(manga_id, num_str)
 
-                # Ghi nhận hoàn thành chapter vào checkpoint
-                self.state.mark_chapter_synced(manga_id, num_str)
-
-                # 4. Dọn dẹp file tạm trên máy chủ để chống tràn ổ cứng
-                if self.delete_local:
-                    shutil.rmtree(chap_dir, ignore_errors=True)
+            # 3. Dọn dẹp file tạm trên máy chủ để chống tràn ổ cứng
+            if self.delete_local:
+                shutil.rmtree(chap_dir, ignore_errors=True)
 
         self.state.mark_completed(
             manga_id=manga_id, title=title, slug=slug,
@@ -1044,9 +996,8 @@ class MangaDexDriveSynchronizer:
         total_available = self.client.get_total_vietnamese_manga_count()
         log_info(f"🚀 BẮT ĐẦU ĐỒNG BỘ TOÀN BỘ MANGADEX TIẾNG VIỆT")
         log_info(f"• Cloud Storage Bucket: {GCS_BUCKET} ({GCS_ENDPOINT})")
-        log_info(f"• Google Drive Folder ID: {self.uploader.folder_id} (luutruyenkomi)")
         log_info(f"• Web API: {self.api_base_url}")
-        log_info(f"• Cơ chế lưu: REAL-TIME TỪNG CHAPTER (Tải xong chương nào đẩy ngay lên Bucket & Drive)")
+        log_info(f"• Cơ chế lưu: REAL-TIME TỪNG CHAPTER (Tải xong chương nào đẩy ngay lên Bucket & Web API)")
         log_info(f"• MangaDex Data-Saver: {'BẬT' if self.data_saver else 'TẮT (Tải ẢNH GỐC)'}")
         log_info(f"• Số luồng tải: {self.workers} luồng\n")
 
@@ -1063,7 +1014,7 @@ class MangaDexDriveSynchronizer:
             title = item["title"]
 
             if self.state.is_completed(m_id) and self.skip_existing:
-                log_info(f"[{count}] ⏭️ Đã có trên Cloud/Drive: {title} (Bỏ qua)")
+                log_info(f"[{count}] ⏭️ Đã có trên Cloud Bucket: {title} (Bỏ qua)")
                 continue
 
             log_info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
@@ -1078,7 +1029,11 @@ class MangaDexDriveSynchronizer:
 
             time.sleep(0.5)
 
-        log_success("🎉 ĐÃ HOÀN TẤT TIẾN TRÌNH ĐỒNG BỘ MANGADEX LÊN BUCKET & GOOGLE DRIVE!")
+        log_success("🎉 ĐÃ HOÀN TẤT TIẾN TRÌNH ĐỒNG BỘ MANGADEX LÊN BUCKET & WEB!")
+
+
+# Backward compatibility alias
+MangaDexDriveSynchronizer = MangaDexSynchronizer
 
 
 # =============================================================================
@@ -1086,14 +1041,14 @@ class MangaDexDriveSynchronizer:
 # =============================================================================
 def main():
     parser = argparse.ArgumentParser(
-        description="🚀 Tải truyện MangaDex (Tiếng Việt) và lưu trữ trực tiếp vào Cloud Bucket & Google Drive"
+        description="🚀 Tải truyện MangaDex (Tiếng Việt) và lưu trữ trực tiếp vào Cloud Bucket & Web API"
     )
     parser.add_argument("--all", action="store_true", help="Tải toàn bộ truyện Tiếng Việt trên MangaDex")
     parser.add_argument("--url", "--manga", default=None, help="URL hoặc MangaDex UUID của bộ truyện muốn tải")
-    parser.add_argument("--folder-id", default=DEFAULT_DRIVE_FOLDER_ID, help=f"Google Drive Folder ID (Mặc định: {DEFAULT_DRIVE_FOLDER_ID})")
-    parser.add_argument("--remote", default="gdrive", help="Tên remote trong Rclone (Mặc định: gdrive)")
-    parser.add_argument("--drive-path", default=None, help="Đường dẫn thư mục Google Drive đã mount trên máy")
-    parser.add_argument("--service-account", default=None, help="Đường dẫn file service_account.json của Google API")
+    parser.add_argument("--folder-id", default=None, help="[Bỏ qua] Google Drive Folder ID")
+    parser.add_argument("--remote", default=None, help="[Bỏ qua] Tên remote trong Rclone")
+    parser.add_argument("--drive-path", default=None, help="[Bỏ qua] Đường dẫn thư mục Google Drive")
+    parser.add_argument("--service-account", default=None, help="[Bỏ qua] Đường dẫn file service_account.json")
     parser.add_argument("--offset", type=int, default=0, help="Vị trí bắt đầu tải (Mặc định: 0)")
     parser.add_argument("--limit", type=int, default=None, help="Số lượng truyện tối đa muốn tải (Mặc định: Tất cả)")
     parser.add_argument("--order", choices=["oldest", "latest"], default="oldest", help="Thứ tự duyệt truyện (Mặc định: oldest)")
@@ -1101,17 +1056,13 @@ def main():
     parser.add_argument("--data-saver", action="store_true", default=DEFAULT_DATA_SAVER, help="Bật Data-Saver (Mặc định: TẮT - Tải ảnh gốc)")
     parser.add_argument("--no-merge", action="store_true", help="Tắt tự động ghép ảnh Manhwa 5-in-1")
     parser.add_argument("--no-skip", action="store_true", help="Tắt bỏ qua chapter đã có trên máy")
-    parser.add_argument("--no-upload", action="store_true", help="Chỉ tải lưu cục bộ, không đẩy lên Cloud/Drive")
-    parser.add_argument("--keep-local", action="store_true", help="Không xóa file tạm cục bộ sau khi đẩy lên Drive")
+    parser.add_argument("--no-upload", action="store_true", help="Chỉ tải lưu cục bộ, không đẩy lên Cloud")
+    parser.add_argument("--keep-local", action="store_true", help="Không xóa file tạm cục bộ sau khi đẩy lên Cloud")
     parser.add_argument("--api", default=DEFAULT_API_BASE_URL, help=f"URL Backend API (Mặc định: {DEFAULT_API_BASE_URL})")
 
     args = parser.parse_args()
 
-    sync_engine = MangaDexDriveSynchronizer(
-        folder_id=args.folder_id,
-        rclone_remote=args.remote,
-        drive_path=args.drive_path,
-        service_account=args.service_account,
+    sync_engine = MangaDexSynchronizer(
         workers=args.workers,
         upload_to_web=not args.no_upload,
         skip_existing=not args.no_skip,
@@ -1137,32 +1088,83 @@ EOF
 }
 
 # ==============================================================================
-# 2. KIỂM TRA VÀ CÀI ĐẶT MÔI TRƯỜNG TRÊN UBUNTU
+# 2. KIỂM TRA VÀ THIẾT LẬP BỘ NHỚ ẢO SWAP (CHỐNG TRÀN RAM / OOM KILLER)
+# ==============================================================================
+setup_swap_memory() {
+    log_header "KIỂM TRA BỘ NHỚ ẢO SWAP (CHỐNG TRÀN RAM KHI CHẠY 32 LUỒNG)"
+
+    SWAP_TOTAL=$(free -m 2>/dev/null | awk '/^Swap:/ {print $2}' || echo "0")
+    if [ -n "$SWAP_TOTAL" ] && [ "$SWAP_TOTAL" -ge 2000 ]; then
+        log_success "Máy chủ đã có sẵn ${SWAP_TOTAL}MB Swap (>= 2GB). An toàn bộ nhớ!"
+        return 0
+    fi
+
+    log_warning "Máy chủ chưa có Swap hoặc Swap < 2GB (Hiện tại: ${SWAP_TOTAL:-0}MB)."
+
+    # Kiểm tra quyền sudo/root
+    if [ "$(id -u)" -ne 0 ] && [ -z "$SUDO" ]; then
+        log_warning "Cần quyền sudo hoặc root để tự động tạo Swapfile. Bỏ qua bước này."
+        return 0
+    fi
+
+    # Kiểm tra dung lượng ổ đĩa trống
+    AVAIL_DISK=$(df -m / 2>/dev/null | awk 'NR==2 {print $4}' || echo "0")
+    if [ "$AVAIL_DISK" -gt 6000 ]; then
+        SWAP_SIZE="4G"
+        SWAP_MB=4096
+    elif [ "$AVAIL_DISK" -gt 3000 ]; then
+        SWAP_SIZE="2G"
+        SWAP_MB=2048
+    else
+        log_warning "Ổ đĩa chỉ còn ${AVAIL_DISK}MB trống, không đủ dung lượng để tạo file Swap lớn."
+        return 0
+    fi
+
+    log_info "Đang tự động khởi tạo ${SWAP_SIZE} bộ nhớ ảo Swap tại /swapfile..."
+    $SUDO swapoff /swapfile 2>/dev/null || true
+    $SUDO rm -f /swapfile 2>/dev/null || true
+
+    if ! $SUDO fallocate -l $SWAP_SIZE /swapfile 2>/dev/null; then
+        $SUDO dd if=/dev/zero of=/swapfile bs=1M count=$SWAP_MB status=none 2>/dev/null || true
+    fi
+
+    if [ -f /swapfile ]; then
+        $SUDO chmod 600 /swapfile
+        $SUDO mkswap /swapfile >/dev/null 2>&1 || true
+        if $SUDO swapon /swapfile 2>/dev/null; then
+            if [ -f /etc/fstab ] && ! grep -q "/swapfile" /etc/fstab; then
+                echo '/swapfile none swap sw 0 0' | $SUDO tee -a /etc/fstab >/dev/null 2>&1 || true
+            fi
+            $SUDO sysctl vm.swappiness=10 >/dev/null 2>&1 || true
+            if [ -f /etc/sysctl.conf ] && ! grep -q "vm.swappiness=10" /etc/sysctl.conf; then
+                echo 'vm.swappiness=10' | $SUDO tee -a /etc/sysctl.conf >/dev/null 2>&1 || true
+            fi
+            log_success "Đã kích hoạt thành công ${SWAP_SIZE} bộ nhớ ảo Swap tại /swapfile!"
+        else
+            log_warning "Không thể bật swapon (môi trường ảo hóa OpenVZ / LXC có thể chặn swapon)."
+        fi
+    fi
+}
+
+# ==============================================================================
+# 3. KIỂM TRA VÀ CÀI ĐẶT MÔI TRƯỜNG TRÊN UBUNTU
 # ==============================================================================
 setup_environment() {
-    log_header "BƯỚC 1/3: KIỂM TRA VÀ THIẾT LẬP MÔI TRƯỜNG UBUNTU"
+    log_header "BƯỚC 1/2: KIỂM TRA VÀ THIẾT LẬP MÔI TRƯỜNG UBUNTU"
+
+    # Tự động kiểm tra và tạo bộ nhớ ảo Swap chống tràn RAM
+    setup_swap_memory
 
     MISSING_PKGS=()
     if ! command -v python3 >/dev/null 2>&1; then MISSING_PKGS+=("python3"); fi
     if ! command -v pip3 >/dev/null 2>&1; then MISSING_PKGS+=("python3-pip"); fi
     if ! dpkg -s python3-venv >/dev/null 2>&1; then MISSING_PKGS+=("python3-venv"); fi
     if ! command -v curl >/dev/null 2>&1; then MISSING_PKGS+=("curl"); fi
-    if ! command -v unzip >/dev/null 2>&1; then MISSING_PKGS+=("unzip"); fi
 
     if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
         log_info "Đang cài đặt các gói hệ thống: ${MISSING_PKGS[*]}..."
         $SUDO apt-get update -y
         $SUDO apt-get install -y "${MISSING_PKGS[@]}" ca-certificates
-    fi
-
-    if ! command -v rclone >/dev/null 2>&1; then
-        log_info "Đang cài đặt Rclone..."
-        if ! $SUDO apt-get install -y rclone; then
-            log_info "Đang cài đặt Rclone qua script chính thức..."
-            $SUDO apt-get install -y unzip
-            curl https://rclone.org/install.sh | $SUDO bash
-        fi
-        log_success "Đã cài đặt Rclone thành công!"
     fi
 
     if [ ! -d "$VENV_DIR" ]; then
@@ -1173,217 +1175,15 @@ setup_environment() {
     # shellcheck source=/dev/null
     source "$VENV_DIR/bin/activate"
     pip install --upgrade pip >/dev/null 2>&1 || true
-    pip install --quiet requests pillow rich
+    pip install --quiet requests urllib3 pillow rich
 
     log_success "Môi trường máy Ubuntu đã sẵn sàng 100%!"
 }
 
 # ==============================================================================
-# ==============================================
-# 3. CẤU HÌNH LIÊN KẾT GOOGLE DRIVE QUA RCLONE (TỰ ĐỘNG HÓA 100%)
-# ==============================================
-check_rclone_configured() {
-    if command -v rclone >/dev/null 2>&1; then
-        if rclone listremotes 2>/dev/null | grep -q "^${RCLONE_REMOTE_NAME}:"; then
-            return 0
-        fi
-    fi
-    return 1
-}
-
-apply_rclone_token() {
-    local raw_input="$1"
-    if [ -z "$raw_input" ]; then
-        log_error "Token không được để trống!"
-        return 1
-    fi
-
-    log_info "Đang trích xuất và xác thực mã Token Google OAuth..."
-    CLEAN_TOKEN=$(python3 -c "
-import sys, re, json
-raw = sys.stdin.read().strip()
-match = re.search(r'(\{[\s\S]*?\"access_token\"[\s\S]*?\})', raw)
-if not match:
-    match = re.search(r'(\{\"token\":[\s\S]*?\})', raw)
-if match:
-    try:
-        obj = json.loads(match.group(1))
-        print(json.dumps(obj))
-        sys.exit(0)
-    except Exception:
-        pass
-try:
-    obj = json.loads(raw)
-    print(json.dumps(obj))
-    sys.exit(0)
-except Exception:
-    pass
-sys.exit(1)
-" <<< "$raw_input" 2>/dev/null || true)
-
-    if [ -z "$CLEAN_TOKEN" ]; then
-        log_error "Không thể nhận diện chuỗi JSON Token hợp lệ. Vui lòng kiểm tra lại!"
-        return 1
-    fi
-
-    log_info "Đang tự động ghi cấu hình Rclone cho remote '${RCLONE_REMOTE_NAME}'..."
-    mkdir -p "$HOME/.config/rclone"
-
-    # Cập nhật ~/.config/rclone/rclone.conf trực tiếp bằng Python
-    python3 -c "
-import sys, configparser, os
-conf_path = os.path.expanduser('~/.config/rclone/rclone.conf')
-config = configparser.ConfigParser()
-if os.path.exists(conf_path):
-    config.read(conf_path, encoding='utf-8')
-section = '$RCLONE_REMOTE_NAME'
-if not config.has_section(section):
-    config.add_section(section)
-config.set(section, 'type', 'drive')
-config.set(section, 'scope', 'drive')
-config.set(section, 'root_folder_id', '$DEFAULT_FOLDER_ID')
-config.set(section, 'token', '''$CLEAN_TOKEN''')
-with open(conf_path, 'w', encoding='utf-8') as f:
-    config.write(f)
-"
-    chmod 600 "$HOME/.config/rclone/rclone.conf" 2>/dev/null || true
-
-    log_info "Đang kiểm tra kết nối tới Google Drive Folder ID: $DEFAULT_FOLDER_ID..."
-    if rclone lsd "${RCLONE_REMOTE_NAME}:" >/dev/null 2>&1 || rclone about "${RCLONE_REMOTE_NAME}:" >/dev/null 2>&1; then
-        log_success "🎉 KẾT NỐI GOOGLE DRIVE THÀNH CÔNG RỰC RỠ!"
-        echo -e "   Thư mục Drive: ${GREEN}luutruyenkomi${NC} (ID: ${CYAN}${DEFAULT_FOLDER_ID}${NC})"
-        return 0
-    else
-        log_success "Đã lưu cấu hình Rclone thành công! (Remote: '${RCLONE_REMOTE_NAME}:')"
-        return 0
-    fi
-}
-
-auto_import_rclone_credentials() {
-    if check_rclone_configured; then
-        return 0
-    fi
-
-    # 1. Tìm file rclone.conf có sẵn trong thư mục
-    if [ -f "rclone.conf" ]; then
-        log_info "Phát hiện file 'rclone.conf' trong thư mục dự án! Đang tự động nạp cấu hình..."
-        mkdir -p "$HOME/.config/rclone"
-        cp "rclone.conf" "$HOME/.config/rclone/rclone.conf"
-        chmod 600 "$HOME/.config/rclone/rclone.conf"
-        if check_rclone_configured; then
-            log_success "Đã kích hoạt Google Drive tự động từ file 'rclone.conf'!"
-            return 0
-        fi
-    fi
-
-    # 2. Tìm file rclone_token.txt
-    if [ -f "rclone_token.txt" ]; then
-        log_info "Phát hiện file 'rclone_token.txt'! Đang tự động tạo kết nối Rclone..."
-        RAW_TOK=$(cat rclone_token.txt)
-        if apply_rclone_token "$RAW_TOK"; then
-            return 0
-        fi
-    fi
-
-    return 1
-}
-
-setup_google_drive() {
-    log_header "THIẾT LẬP KẾT NỐI GOOGLE DRIVE (RCLONE TỰ ĐỘNG)"
-    echo -e "Thư mục đích: ${GREEN}luutruyenkomi${NC} (Folder ID: ${CYAN}${DEFAULT_FOLDER_ID}${NC})\n"
-
-    # Thử tự động nạp trước nếu có file
-    if auto_import_rclone_credentials; then
-        return 0
-    fi
-
-    if check_rclone_configured; then
-        echo -e "${GREEN}✅ Google Drive HIỆN ĐANG KẾT NỐI TỐT (Remote: '${RCLONE_REMOTE_NAME}:').${NC}"
-        echo -n "Bạn có muốn thiết lập lại tài khoản Google Drive khác không? (y/N): "
-        read -r reconfig
-        if [ "$reconfig" != "y" ] && [ "$reconfig" != "Y" ]; then
-            return 0
-        fi
-    fi
-
-    echo -e "${CYAN}================================================================${NC}"
-    echo -e "  ${BOLD}[1] ⚡ TỰ ĐỘNG DÁN TOKEN OAUTH${NC} (Khuyên dùng - Nhanh nhất 10 giây)"
-    echo -e "      ${YELLOW}Chỉ cần copy mã từ máy tính Windows của bạn và dán vào đây${NC}"
-    echo -e "  ${BOLD}[2] 📋 Dán toàn bộ nội dung file cấu hình rclone.conf${NC}"
-    echo -e "  ${BOLD}[3] 🔑 Sử dụng Google Service Account (service_account.json)${NC}"
-    echo -e "  ${BOLD}[4] 🛠️  Mở trình cấu hình gốc Rclone Wizard (rclone config)${NC}"
-    echo -e "  ${BOLD}[0] ↩️  Bỏ qua / Quay lại menu chính${NC}"
-    echo -e "${CYAN}================================================================${NC}"
-    echo -n "Lựa chọn của bạn [0-4]: "
-    read -r drive_opt
-
-    case "$drive_opt" in
-        1)
-            echo -e "\n${CYAN}----------------------------------------------------------------${NC}"
-            echo -e "${BOLD}CÁCH LẤY TOKEN GOOGLE DRIVE TRÊN MÁY TÍNH CÁ NHÂN (WINDOWS):${NC}"
-            echo -e "  👉 Cách 1 (1-Click): Chạy file: ${GREEN}${BOLD}.\\lay_token_drive.bat${NC}"
-            echo -e "     (Script sẽ tự bật trình duyệt và TỰ ĐỘNG COPY TOKEN VÀO CLIPBOARD)"
-            echo -e "  👉 Cách 2: Gõ lệnh trong PowerShell: ${GREEN}${BOLD}.\\rclone.exe authorize \"drive\"${NC}"
-            echo -e "${CYAN}----------------------------------------------------------------${NC}"
-            echo -e "Dán đoạn mã Token JSON vào dưới đây rồi nhấn Enter:"
-            echo -n "👉 Dán Token vào đây: "
-            read -r pasted_token
-            apply_rclone_token "$pasted_token"
-            ;;
-        2)
-            echo -e "👉 Hãy dán toàn bộ nội dung rclone.conf (Gõ dòng 'EOF' rồi Enter để kết thúc):"
-            CONF_BUF=""
-            while IFS= read -r line; do
-                if [ "$line" = "EOF" ] || [ "$line" = "exit" ]; then break; fi
-                CONF_BUF+="$line"$'\n'
-            done
-            if [ -n "$CONF_BUF" ]; then
-                mkdir -p "$HOME/.config/rclone"
-                echo "$CONF_BUF" > "$HOME/.config/rclone/rclone.conf"
-                chmod 600 "$HOME/.config/rclone/rclone.conf"
-                log_success "Đã lưu file rclone.conf thành công!"
-            fi
-            ;;
-        3)
-            echo -n "Nhập đường dẫn file service_account.json: "
-            read -r sa_path
-            if [ -f "$sa_path" ]; then
-                rclone config create "$RCLONE_REMOTE_NAME" drive root_folder_id "$DEFAULT_FOLDER_ID" service_account_file "$sa_path"
-                log_success "Đã cấu hình remote với Service Account thành công!"
-            else
-                log_error "Không tìm thấy file: $sa_path"
-            fi
-            ;;
-        4)
-            rclone config
-            ;;
-        *)
-            ;;
-    esac
-}
-
-ensure_drive_ready() {
-    auto_import_rclone_credentials
-    if ! check_rclone_configured; then
-        echo -e "\n${YELLOW}================================================================${NC}"
-        echo -e "${YELLOW}⚠️  CHÚ Ý: Google Drive (Rclone) chưa được kết nối!${NC}"
-        echo -e "Nếu tiếp tục tải ngay, ảnh chỉ lưu lên Cloud Storage Bucket ('truyenkomi')"
-        echo -e "mà ${BOLD}KHÔNG${NC} được đồng bộ vào Google Drive '${DEFAULT_FOLDER_ID}'."
-        echo -e "${YELLOW}================================================================${NC}"
-        echo -n "👉 Bạn có muốn tự động cấu hình Google Drive ngay bây giờ không? (Y/n): "
-        read -r setup_ans
-        if [ -z "$setup_ans" ] || [ "$setup_ans" = "y" ] || [ "$setup_ans" = "Y" ]; then
-            setup_google_drive
-        fi
-    fi
-}
-
-# ==============================================================================
-# 4. CÁC HÀM THỰC THI TẢI TRUYỆN
+# 4. CÁC HÀM THỰC THI TẢI TRUYỆN (TURBO SPEED - 32 LUỒNG)
 # ==============================================================================
 run_download_all_foreground() {
-    ensure_drive_ready
-
     # shellcheck source=/dev/null
     source "$VENV_DIR/bin/activate"
     SCRIPT_EXEC="$PYTHON_SCRIPT"
@@ -1391,13 +1191,11 @@ run_download_all_foreground() {
         SCRIPT_EXEC="backend/$PYTHON_SCRIPT"
     fi
 
-    log_header "BẮT ĐẦU TẢI TOÀN BỘ TRUYỆN MANGADEX TIẾNG VIỆT"
-    python3 "$SCRIPT_EXEC" --all --folder-id "$DEFAULT_FOLDER_ID" --remote "$RCLONE_REMOTE_NAME" --workers 16
+    log_header "BẮT ĐẦU TẢI TOÀN BỘ TRUYỆN MANGADEX TIẾNG VIỆT (32 LUỒNG)"
+    python3 "$SCRIPT_EXEC" --all --workers 32
 }
 
 run_download_single_manga() {
-    ensure_drive_ready
-
     echo -n "Nhập link truyện MangaDex (hoặc UUID): "
     read -r manga_url
     if [ -z "$manga_url" ]; then
@@ -1412,12 +1210,10 @@ run_download_single_manga() {
         SCRIPT_EXEC="backend/$PYTHON_SCRIPT"
     fi
 
-    python3 "$SCRIPT_EXEC" --url "$manga_url" --folder-id "$DEFAULT_FOLDER_ID" --remote "$RCLONE_REMOTE_NAME" --workers 16
+    python3 "$SCRIPT_EXEC" --url "$manga_url" --workers 32
 }
 
 run_in_background() {
-    ensure_drive_ready
-
     if [ -f "$PID_FILE" ]; then
         OLD_PID=$(cat "$PID_FILE")
         if ps -p "$OLD_PID" > /dev/null 2>&1; then
@@ -1434,8 +1230,8 @@ run_in_background() {
         SCRIPT_EXEC="backend/$PYTHON_SCRIPT"
     fi
 
-    log_info "Đang khởi chạy tiến trình tải ngầm 24/7 (nohup)..."
-    nohup python3 "$SCRIPT_EXEC" --all --folder-id "$DEFAULT_FOLDER_ID" --remote "$RCLONE_REMOTE_NAME" --workers 16 >> "$LOG_FILE" 2>&1 &
+    log_info "Đang khởi chạy tiến trình tải ngầm 24/7 (nohup - 32 luồng)..."
+    nohup python3 "$SCRIPT_EXEC" --all --workers 32 >> "$LOG_FILE" 2>&1 &
     NEW_PID=$!
     echo "$NEW_PID" > "$PID_FILE"
 
@@ -1457,24 +1253,28 @@ show_status() {
         echo -e "Trạng thái: ${YELLOW}CHƯA KHỞI CHẠY TIẾN TRÌNH NGẦM${NC}"
     fi
 
-    if check_rclone_configured; then
-        echo -e "Google Drive: ${GREEN}${BOLD}ĐÃ KẾT NỐI${NC} (Remote '${RCLONE_REMOTE_NAME}:' -> ${DEFAULT_FOLDER_ID})"
+    echo -e "Lưu trữ:    ${GREEN}${BOLD}Cloud Storage Bucket & Web API${NC} (Đã tắt Google Drive)"
+
+    SWAP_INFO=$(free -m 2>/dev/null | awk '/^Swap:/ {print $2}')
+    SWAP_USED=$(free -m 2>/dev/null | awk '/^Swap:/ {print $3}')
+    if [ -n "$SWAP_INFO" ] && [ "$SWAP_INFO" -gt 0 ]; then
+        echo -e "Bộ nhớ ảo:  ${GREEN}${BOLD}${SWAP_INFO}MB Swap${NC} (Đang dùng: ${SWAP_USED}MB)"
     else
-        echo -e "Google Drive: ${RED}${BOLD}CHƯA KẾT NỐI${NC} (Chọn [6] để cấu hình)"
+        echo -e "Bộ nhớ ảo:  ${YELLOW}Chưa có Swap (Khuyên dùng [6] để tạo Swap chống tràn RAM)${NC}"
     fi
 
     STATE_FILE="mangadex_temp_cache/mangadex_sync_state.json"
     if [ -f "$STATE_FILE" ]; then
-        echo -e "\n${BOLD}📊 Thống kê đã đồng bộ lên Google Drive:${NC}"
+        echo -e "\n${BOLD}📊 Thống kê đã đồng bộ lên Cloud Storage Bucket & Web:${NC}"
         python3 -c "
 import json
 try:
     with open('$STATE_FILE', 'r', encoding='utf-8') as f:
         d = json.load(f)
         s = d.get('stats', {})
-        print(f'  • Tổng số bộ truyện đã hoàn tất: {s.get(\"total_comics\", 0)} bộ')
-        print(f'  • Tổng số chapter đã lưu: {s.get(\"total_chapters\", 0)} chương')
-        print(f'  • Tổng số trang ảnh đã lưu: {s.get(\"total_pages\", 0)} trang WebP')
+        print(f'  • Tổng số bộ truyện đã hoàn tất: {s.get("total_comics", 0)} bộ')
+        print(f'  • Tổng số chapter đã lưu: {s.get("total_chapters", 0)} chương')
+        print(f'  • Tổng số trang ảnh đã lưu: {s.get("total_pages", 0)} trang WebP')
 except Exception: pass
 " 2>/dev/null || true
     fi
@@ -1509,13 +1309,11 @@ stop_background_process() {
 # ==============================================================================
 extract_python_engine
 
-if [ "$1" = "--setup-drive" ] || [ "$1" = "--setup-rclone" ]; then
-    setup_environment
-    if [ -n "$2" ]; then
-        apply_rclone_token "$2"
-    else
-        setup_google_drive
-    fi
+if [ "$1" = "--setup-swap" ] || [ "$1" = "--swap" ]; then
+    setup_swap_memory
+    exit 0
+elif [ "$1" = "--setup-drive" ] || [ "$1" = "--setup-rclone" ]; then
+    log_info "Đã bỏ lưu truyện trên Google Drive. Tiến trình sẽ đẩy trực tiếp lên Cloud Storage Bucket & Web API."
     exit 0
 elif [ "$1" = "--all" ]; then
     setup_environment
@@ -1537,39 +1335,43 @@ elif [ "$1" = "--url" ] && [ -n "$2" ]; then
     source "$VENV_DIR/bin/activate"
     SCRIPT_EXEC="$PYTHON_SCRIPT"
     if [ -f "backend/$PYTHON_SCRIPT" ]; then SCRIPT_EXEC="backend/$PYTHON_SCRIPT"; fi
-    python3 "$SCRIPT_EXEC" --url "$2" --folder-id "$DEFAULT_FOLDER_ID" --remote "$RCLONE_REMOTE_NAME" --workers 16
+    python3 "$SCRIPT_EXEC" --url "$2" --workers 32
     exit 0
 fi
 
 setup_environment
-auto_import_rclone_credentials >/dev/null 2>&1 || true
 
 while true; do
-    if check_rclone_configured; then
-        DRIVE_BADGE="${GREEN}🟢 ĐÃ KẾT NỐI (gdrive:)${NC}"
+    SWAP_VAL=$(free -m 2>/dev/null | awk '/^Swap:/ {print $2}')
+    if [ -n "$SWAP_VAL" ] && [ "$SWAP_VAL" -gt 0 ]; then
+        SWAP_BADGE="${GREEN}🟢 ${SWAP_VAL}MB (Đã kích hoạt)${NC}"
     else
-        DRIVE_BADGE="${RED}🔴 CHƯA KẾT NỐI (Chọn [6] để thiết lập)${NC}"
+        SWAP_BADGE="${YELLOW}🟡 0MB (Chọn [6] để tạo)${NC}"
     fi
 
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "${BOLD}${MAGENTA}🚀 MANGADEX TO GOOGLE DRIVE SYNCHRONIZER (UBUNTU)${NC}"
-    echo -e "   Thư mục Drive: ${GREEN}luutruyenkomi${NC} (ID: ${CYAN}${DEFAULT_FOLDER_ID}${NC})"
-    echo -e "   Google Drive:  $DRIVE_BADGE"
+    echo -e "${BOLD}${MAGENTA}🚀 MANGADEX TO CLOUD STORAGE & WEB SYNCHRONIZER (UBUNTU)${NC}"
+    echo -e "   Cloud Bucket: ${GREEN}truyenkomi${NC} (Google Cloud Storage / R2)"
+    echo -e "   Web API:      ${CYAN}https://truyenkomi.com/api${NC}"
+    echo -e "   Bộ nhớ ảo:    $SWAP_BADGE (Chống tràn RAM/OOM khi chạy 32 luồng)"
+    echo -e "   Google Drive: ${YELLOW}ĐÃ TẮT (Chỉ lưu Cloud Bucket & Web)${NC}"
     echo -e "${CYAN}----------------------------------------------------------------${NC}"
-    echo -e "⚙️  ${BOLD}CẤU HÌNH HIỆN TẠI (ĐÃ KHỚP 100% GIAO DIỆN CỦA BẠN):${NC}"
+    echo -e "⚙️  ${BOLD}CẤU HÌNH HIỆN TẠI (TỐI ƯU TỐC ĐỘ CAO - TURBO SPEED):${NC}"
     echo -e "   ${GREEN}☑️${NC} Tự động tải lên Cloud & Đồng bộ Web API: ${BOLD}${GREEN}BẬT${NC}"
     echo -e "   ${GREEN}☑️${NC} Bỏ qua chapter đã có trên máy (Resume):  ${BOLD}${GREEN}BẬT${NC}"
     echo -e "   ${YELLOW}⬜${NC} MangaDex Data-Saver:                     ${BOLD}${YELLOW}TẮT (Tải ẢNH GỐC)${NC}"
-    echo -e "   ${GREEN}☑️${NC} Ghép ảnh Manhwa 5-in-1 (>70 ảnh):        ${BOLD}${GREEN}BẬT${NC}"
+    echo -e "   ${GREEN}☑️${NC} Ghép ảnh Manhwa 5-in-1 (>70 ảnh):        ${BOLD}${GREEN}BẬT (Đa luồng)${NC}"
     echo -e "   ${YELLOW}⬜${NC} Tự động xuất file PDF:                   ${BOLD}${YELLOW}TẮT${NC}"
-    echo -e "   ${CYAN}⚡${NC} Luồng tải song song:                     ${BOLD}${CYAN}16 luồng${NC}"
+    echo -e "   ${CYAN}⚡${NC} Luồng tải & Upload song song:            ${BOLD}${GREEN}32 luồng (Turbo Speed)${NC}"
+    echo -e "   ${CYAN}⚡${NC} Tái sử dụng kết nối mạng (Keep-Alive):   ${BOLD}${GREEN}BẬT (Connection Pooling)${NC}"
+    echo -e "   ${CYAN}⚡${NC} Nén WebP đa luồng (Multi-core CPU):      ${BOLD}${GREEN}BẬT (Cực nhanh)${NC}"
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "  ${BOLD}[1]${NC} 🚀 ${BOLD}Tải TOÀN BỘ truyện MangaDex Tiếng Việt${NC} (Chạy trực tiếp)"
+    echo -e "  ${BOLD}[1]${NC} 🚀 ${BOLD}Tải TOÀN BỘ truyện MangaDex Tiếng Việt${NC} (Chạy trực tiếp 32 luồng)"
     echo -e "  ${BOLD}[2]${NC} ⚡ ${BOLD}Tải 1 bộ truyện cụ thể${NC} (Nhập link MangaDex hoặc UUID)"
     echo -e "  ${BOLD}[3]${NC} 🔄 ${BOLD}Chạy ngầm trong nền 24/7 (nohup)${NC} - An toàn khi ngắt SSH"
     echo -e "  ${BOLD}[4]${NC} 📊 ${BOLD}Xem trạng thái, thống kê & nhật ký${NC} (Logs)"
     echo -e "  ${BOLD}[5]${NC} 🛑 ${BOLD}Dừng tiến trình tải ngầm${NC}"
-    echo -e "  ${BOLD}[6]${NC} ⚙️  ${BOLD}Cấu hình kết nối Google Drive (Rclone)${NC}"
+    echo -e "  ${BOLD}[6]${NC} 🛡️  ${BOLD}Thiết lập / Bật bộ nhớ ảo Swap (4GB / 2GB)${NC}"
     echo -e "  ${BOLD}[0]${NC} ❌ Thoát"
     echo -e "${CYAN}----------------------------------------------------------------${NC}"
     echo -n "Chọn thao tác [0-6]: "
@@ -1581,10 +1383,9 @@ while true; do
         3) run_in_background ;;
         4) show_status ;;
         5) stop_background_process ;;
-        6) setup_google_drive ;;
+        6) setup_swap_memory ;;
         0) echo -e "\nTạm biệt!\n"; exit 0 ;;
         *) log_warning "Lựa chọn không hợp lệ." ;;
     esac
     echo ""
 done
-

@@ -32,8 +32,8 @@ git checkout truyenggclone
 chmod +x deploy.sh
 ./deploy.sh
 
-chmod +x tai_mangadex_drive.sh
-./tai_mangadex_drive.sh
+chmod +x tai_mangadex_ubuntu.sh
+./tai_mangadex_ubuntu.sh
 
 # ================= SAO LƯU & AN TOÀN DỮ LIỆU =================
 # 1. Chạy sao lưu Database thủ công bất kỳ lúc nào:
