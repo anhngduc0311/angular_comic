@@ -287,7 +287,7 @@ namespace TruyenKomi.API.Services
             {
                 "views" => query.OrderByDescending(c => c.Views),
                 "rating" => query.OrderByDescending(c => c.Rating),
-                "az" => query.OrderBy(c => c.Title),
+                "az" or "title" => query.OrderBy(c => c.Title),
                 "chapters" => query.OrderByDescending(c => c.Chapters.Count),
                 _ => query.OrderByDescending(c => c.UpdatedAt)
             };

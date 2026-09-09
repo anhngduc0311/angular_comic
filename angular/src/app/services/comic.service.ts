@@ -24,16 +24,18 @@ export class ComicService {
     return this.api.get<SearchAutocompleteItem[]>(`comics/autocomplete?q=${encodeURIComponent(query.trim())}&limit=${limit}`);
   }
 
-  searchComics(query?: string, category?: string, status?: string, sortBy?: string, country?: string): Observable<Comic[]> {
+  searchComics(query?: string, category?: string, status?: string, sortBy?: string, country?: string, page: number = 1, pageSize: number = 24): Observable<PagedResult<Comic>> {
     let params = [];
     if (query) params.push(`q=${encodeURIComponent(query)}`);
     if (category) params.push(`category=${encodeURIComponent(category)}`);
     if (status) params.push(`status=${encodeURIComponent(status)}`);
     if (sortBy) params.push(`sortBy=${encodeURIComponent(sortBy)}`);
     if (country && country !== 'All') params.push(`country=${encodeURIComponent(country)}`);
+    if (page) params.push(`page=${page}`);
+    if (pageSize) params.push(`pageSize=${pageSize}`);
     
     const queryString = params.length ? `?${params.join('&')}` : '';
-    return this.api.get<Comic[]>(`comics/search${queryString}`);
+    return this.api.get<PagedResult<Comic>>(`comics/search${queryString}`);
   }
 
   advancedSearch(filter: SearchFilter): Observable<PagedResult<Comic>> {

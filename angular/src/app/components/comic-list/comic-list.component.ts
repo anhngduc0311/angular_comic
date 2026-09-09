@@ -21,6 +21,10 @@ export class ComicListComponent implements OnInit {
   selectedStatus: string = 'All';
   selectedSort: string = 'latest';
   selectedCountry: string = 'All';
+  currentPage: number = 1;
+  pageSize: number = 24;
+  totalCount: number = 0;
+  totalPages: number = 1;
   isLoading: boolean = true;
   skeletonCards: number[] = Array(18).fill(0);
 
@@ -50,6 +54,7 @@ export class ComicListComponent implements OnInit {
       this.selectedStatus = params['status'] || 'All';
       this.selectedSort = params['sort'] || params['sortBy'] || 'latest';
       this.selectedCountry = params['country'] || 'All';
+      this.currentPage = params['page'] ? Math.max(1, parseInt(params['page'], 10) || 1) : 1;
       this.updateSeo();
       this.fetchComics();
     });
@@ -63,27 +68,88 @@ export class ComicListComponent implements OnInit {
 
   fetchComics(): void {
     this.isLoading = true;
-    this.comicService.searchComics(undefined, this.selectedCategory, this.selectedStatus, this.selectedSort, this.selectedCountry)
-      .subscribe({
-        next: (data) => {
-          this.comics = data;
-          this.isLoading = false;
-        },
-        error: () => this.isLoading = false
-      });
+    this.comicService.searchComics(
+      undefined, 
+      this.selectedCategory, 
+      this.selectedStatus, 
+      this.selectedSort, 
+      this.selectedCountry,
+      this.currentPage,
+      this.pageSize
+    ).subscribe({
+      next: (data) => {
+        this.comics = data.items || [];
+        this.totalCount = data.totalCount || 0;
+        this.totalPages = data.totalPages || 1;
+        this.currentPage = data.page || 1;
+        this.isLoading = false;
+      },
+      error: () => {
+        this.comics = [];
+        this.isLoading = false;
+      }
+    });
   }
 
   onFilterChange(): void {
+    this.currentPage = 1;
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
         category: this.selectedCategory || null,
         status: this.selectedStatus === 'All' ? null : this.selectedStatus,
         sort: this.selectedSort,
-        country: this.selectedCountry === 'All' ? null : this.selectedCountry
+        country: this.selectedCountry === 'All' ? null : this.selectedCountry,
+        page: null
       },
       queryParamsHandling: 'merge'
     });
+  }
+
+  onPageChange(newPage: number): void {
+    if (newPage >= 1 && newPage <= this.totalPages && newPage !== this.currentPage) {
+      this.currentPage = newPage;
+      this.router.navigate([], {
+        relativeTo: this.route,
+        queryParams: {
+          page: this.currentPage > 1 ? this.currentPage : null
+        },
+        queryParamsHandling: 'merge'
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const total = this.totalPages;
+    const current = this.currentPage;
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+      return pages;
+    }
+
+    pages.push(1);
+
+    if (current > 3) {
+      pages.push('...');
+    }
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (current < total - 2) {
+      pages.push('...');
+    }
+
+    pages.push(total);
+
+    return pages;
   }
 
   getPageHeading(): string {

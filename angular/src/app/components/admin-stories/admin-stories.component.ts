@@ -26,7 +26,7 @@ export class AdminStoriesComponent implements OnInit {
   selectedStatus: string = 'All';
   selectedVisibility: string = 'All'; // 'All', 'Public', 'Hidden'
   selectedCategory: string = 'All';
-  sortBy: 'latest' | 'views' | 'rating' | 'title' = 'latest';
+  sortBy: 'latest' | 'views' | 'rating' | 'title' | 'chapters' = 'latest';
 
   // Form Modal State
   showFormModal: boolean = false;
@@ -123,6 +123,7 @@ export class AdminStoriesComponent implements OnInit {
       if (this.sortBy === 'views') return b.views - a.views;
       if (this.sortBy === 'rating') return b.rating - a.rating;
       if (this.sortBy === 'title') return a.title.localeCompare(b.title);
+      if (this.sortBy === 'chapters') return (b.totalChapters || 0) - (a.totalChapters || 0);
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
 

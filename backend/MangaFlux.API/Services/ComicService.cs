@@ -14,7 +14,7 @@ namespace TruyenKomi.API.Services
     {
         Task<List<ComicDto>> GetFeaturedComicsAsync();
         Task<List<ComicDto>> GetLatestComicsAsync(int count = 12);
-        Task<List<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null);
+        Task<PagedSearchResultDto<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null, int page = 1, int pageSize = 24);
         Task<ComicDetailDto?> GetComicBySlugAsync(string slug);
         Task<ComicDetailDto?> GetComicByIdAsync(int id);
         Task<ChapterDetailDto?> GetChapterByIdAsync(int chapterId);
@@ -104,13 +104,11 @@ namespace TruyenKomi.API.Services
             }, TimeSpan.FromMinutes(15))) ?? new List<ComicDto>();
         }
 
-        public async Task<List<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null)
+        public async Task<PagedSearchResultDto<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null, int page = 1, int pageSize = 24)
         {
             var comicsQuery = _context.Comics
                 .AsNoTracking()
                 .Where(c => c.IsPublic)
-                .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
-                .Include(c => c.Chapters)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(query))
@@ -170,16 +168,34 @@ namespace TruyenKomi.API.Services
                 }
             }
 
-            comicsQuery = sortBy switch
+            int totalCount = await comicsQuery.CountAsync();
+
+            comicsQuery = (sortBy?.ToLowerInvariant()) switch
             {
                 "views" => comicsQuery.OrderByDescending(c => c.Views),
                 "rating" => comicsQuery.OrderByDescending(c => c.Rating),
-                "title" => comicsQuery.OrderBy(c => c.Title),
+                "title" or "az" => comicsQuery.OrderBy(c => c.Title),
+                "chapters" => comicsQuery.OrderByDescending(c => c.Chapters.Count),
                 _ => comicsQuery.OrderByDescending(c => c.UpdatedAt)
             };
 
-            var comics = await comicsQuery.ToListAsync();
-            return comics.Select(c => MapToComicDto(c)).ToList();
+            page = page < 1 ? 1 : page;
+            pageSize = pageSize < 1 ? 24 : (pageSize > 100 ? 100 : pageSize);
+
+            var comics = await comicsQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                .Include(c => c.Chapters)
+                .ToListAsync();
+
+            return new PagedSearchResultDto<ComicDto>
+            {
+                Items = comics.Select(c => MapToComicDto(c)).ToList(),
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
         }
 
         public async Task<ComicDetailDto?> GetComicBySlugAsync(string slug)
