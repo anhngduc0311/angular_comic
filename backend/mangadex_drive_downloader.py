@@ -561,7 +561,13 @@ class MangaDexClient:
                 "includes[]": ["cover_art", "author", "tag"],
                 "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
             }
-            params["order[createdAt]"] = "asc" if order_by in ("oldest", "asc") else "desc"
+            order_norm = (order_by or "oldest").lower()
+            if order_norm in ("oldest", "asc"):
+                params["order[createdAt]"] = "asc"
+            elif order_norm in ("latest_uploaded", "chapter_desc"):
+                params["order[latestUploadedChapter]"] = "desc"
+            else:
+                params["order[createdAt]"] = "desc"
 
             res = self._rate_limited_get(f"{MANGADEX_API_BASE}/manga", params=params)
             if not res or res.status_code != 200:
@@ -1057,7 +1063,16 @@ class MangaDexSynchronizer:
 
     def sync_all_vietnamese_manga(self, order_by: str = "oldest", start_offset: int = 0, limit: int = None):
         total_available = self.client.get_total_vietnamese_manga_count()
+        order_norm = (order_by or "oldest").lower()
+        if order_norm in ("oldest", "asc"):
+            order_label = "CŨ NHẤT ➔ MỚI NHẤT (Oldest first)"
+        elif order_norm in ("latest_uploaded", "chapter_desc"):
+            order_label = "CHAPTER MỚI NHẤT ➔ CŨ NHẤT (Latest uploaded chapter)"
+        else:
+            order_label = "MỚI NHẤT ➔ CŨ NHẤT (Newest first)"
+
         log_info(f"🚀 BẮT ĐẦU ĐỒNG BỘ TOÀN BỘ MANGADEX TIẾNG VIỆT")
+        log_info(f"• Thứ tự duyệt truyện: {order_label}")
         log_info(f"• Cloud Storage Bucket: {GCS_BUCKET} ({GCS_ENDPOINT})")
         log_info(f"• Web API: {self.api_base_url}")
         log_info(f"• Cơ chế lưu: REAL-TIME TỪNG CHAPTER (Tải xong chương nào đẩy ngay lên Bucket & Web API)")
@@ -1129,7 +1144,7 @@ def main():
     parser.add_argument("--service-account", default=None, help="[Bỏ qua] Đường dẫn file service_account.json")
     parser.add_argument("--offset", type=int, default=0, help="Vị trí bắt đầu tải (Mặc định: 0)")
     parser.add_argument("--limit", type=int, default=None, help="Số lượng truyện tối đa muốn tải (Mặc định: Tất cả)")
-    parser.add_argument("--order", choices=["oldest", "latest"], default="oldest", help="Thứ tự duyệt truyện (Mặc định: oldest)")
+    parser.add_argument("--order", choices=["oldest", "latest", "newest", "latest_uploaded"], default="oldest", help="Thứ tự duyệt truyện: newest/latest (mới nhất đến cũ nhất), oldest (cũ nhất đến mới nhất)")
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS, help=f"Số luồng tải ảnh song song (Mặc định: {DEFAULT_WORKERS})")
     parser.add_argument("--data-saver", action="store_true", default=DEFAULT_DATA_SAVER, help="Bật Data-Saver (Mặc định: TẮT - Tải ảnh gốc)")
     parser.add_argument("--no-merge", action="store_true", help="Tắt tự động ghép ảnh Manhwa 5-in-1")

@@ -631,7 +631,13 @@ class MangaDexClient:
                 "includes[]": ["cover_art", "author", "tag"],
                 "contentRating[]": ["safe", "suggestive", "erotica", "pornographic"]
             }
-            params["order[createdAt]"] = "asc" if order_by in ("oldest", "asc") else "desc"
+            order_norm = (order_by or "oldest").lower()
+            if order_norm in ("oldest", "asc"):
+                params["order[createdAt]"] = "asc"
+            elif order_norm in ("latest_uploaded", "chapter_desc"):
+                params["order[latestUploadedChapter]"] = "desc"
+            else:
+                params["order[createdAt]"] = "desc"
 
             res = self._rate_limited_get(f"{MANGADEX_API_BASE}/manga", params=params)
             if not res or res.status_code != 200:
@@ -1127,7 +1133,16 @@ class MangaDexSynchronizer:
 
     def sync_all_vietnamese_manga(self, order_by: str = "oldest", start_offset: int = 0, limit: int = None):
         total_available = self.client.get_total_vietnamese_manga_count()
+        order_norm = (order_by or "oldest").lower()
+        if order_norm in ("oldest", "asc"):
+            order_label = "CŨ NHẤT ➔ MỚI NHẤT (Oldest first)"
+        elif order_norm in ("latest_uploaded", "chapter_desc"):
+            order_label = "CHAPTER MỚI NHẤT ➔ CŨ NHẤT (Latest uploaded chapter)"
+        else:
+            order_label = "MỚI NHẤT ➔ CŨ NHẤT (Newest first)"
+
         log_info(f"🚀 BẮT ĐẦU ĐỒNG BỘ TOÀN BỘ MANGADEX TIẾNG VIỆT")
+        log_info(f"• Thứ tự duyệt truyện: {order_label}")
         log_info(f"• Cloud Storage Bucket: {GCS_BUCKET} ({GCS_ENDPOINT})")
         log_info(f"• Web API: {self.api_base_url}")
         log_info(f"• Cơ chế lưu: REAL-TIME TỪNG CHAPTER (Tải xong chương nào đẩy ngay lên Bucket & Web API)")
@@ -1199,7 +1214,7 @@ def main():
     parser.add_argument("--service-account", default=None, help="[Bỏ qua] Đường dẫn file service_account.json")
     parser.add_argument("--offset", type=int, default=0, help="Vị trí bắt đầu tải (Mặc định: 0)")
     parser.add_argument("--limit", type=int, default=None, help="Số lượng truyện tối đa muốn tải (Mặc định: Tất cả)")
-    parser.add_argument("--order", choices=["oldest", "latest"], default="oldest", help="Thứ tự duyệt truyện (Mặc định: oldest)")
+    parser.add_argument("--order", choices=["oldest", "latest", "newest", "latest_uploaded"], default="oldest", help="Thứ tự duyệt truyện: newest/latest (mới nhất đến cũ nhất), oldest (cũ nhất đến mới nhất)")
     parser.add_argument("--workers", type=int, default=DEFAULT_WORKERS, help=f"Số luồng tải ảnh song song (Mặc định: {DEFAULT_WORKERS})")
     parser.add_argument("--data-saver", action="store_true", default=DEFAULT_DATA_SAVER, help="Bật Data-Saver (Mặc định: TẮT - Tải ảnh gốc)")
     parser.add_argument("--no-merge", action="store_true", help="Tắt tự động ghép ảnh Manhwa 5-in-1")
@@ -1332,6 +1347,27 @@ setup_environment() {
 # 4. CÁC HÀM THỰC THI TẢI TRUYỆN (TURBO SPEED - 32 LUỒNG)
 # ==============================================================================
 run_download_all_foreground() {
+    ORDER="${1:-}"
+    if [ -z "$ORDER" ]; then
+        echo -e "\n${BOLD}Chọn thứ tự tải truyện:${NC}"
+        echo -e "  [1] 🆕 Từ MỚI NHẤT ➔ CŨ NHẤT (Khuyên dùng - Cập nhật truyện mới)"
+        echo -e "  [2] ⏳ Từ CŨ NHẤT ➔ MỚI NHẤT (Lưu trữ toàn bộ theo lịch sử)"
+        echo -n "Chọn [1-2] (Mặc định: 1): "
+        read -r ord_choice
+        if [ "$ord_choice" = "2" ]; then
+            ORDER="oldest"
+        else
+            ORDER="newest"
+        fi
+    fi
+
+    ORDER_VAL="newest"
+    ORDER_LABEL="MỚI NHẤT ➔ CŨ NHẤT"
+    if [ "$ORDER" = "oldest" ] || [ "$ORDER" = "--oldest" ]; then
+        ORDER_VAL="oldest"
+        ORDER_LABEL="CŨ NHẤT ➔ MỚI NHẤT"
+    fi
+
     # shellcheck source=/dev/null
     source "$VENV_DIR/bin/activate"
     SCRIPT_EXEC="$PYTHON_SCRIPT"
@@ -1339,8 +1375,8 @@ run_download_all_foreground() {
         SCRIPT_EXEC="backend/$PYTHON_SCRIPT"
     fi
 
-    log_header "BẮT ĐẦU TẢI TOÀN BỘ TRUYỆN MANGADEX TIẾNG VIỆT (32 LUỒNG)"
-    python3 "$SCRIPT_EXEC" --all --workers 32
+    log_header "BẮT ĐẦU TẢI TOÀN BỘ TRUYỆN MANGADEX TIẾNG VIỆT (32 LUỒNG - $ORDER_LABEL)"
+    python3 "$SCRIPT_EXEC" --all --order "$ORDER_VAL" --workers 32
 }
 
 run_download_single_manga() {
@@ -1362,6 +1398,28 @@ run_download_single_manga() {
 }
 
 run_in_background() {
+    ORDER="${1:-}"
+    if [ -z "$ORDER" ]; then
+        echo -e "\n${BOLD}Chọn thứ tự tải ngầm:${NC}"
+        echo -e "  [1] 🆕 Từ MỚI NHẤT ➔ CŨ NHẤT (Khuyên dùng - Cập nhật truyện mới)"
+        echo -e "  [2] ⏳ Từ CŨ NHẤT ➔ MỚI NHẤT (Lưu trữ toàn bộ theo lịch sử)"
+        echo -n "Chọn [1-2] (Mặc định: 1): "
+        read -r ord_choice
+        if [ "$ord_choice" = "2" ]; then
+            ORDER="oldest"
+        else
+            ORDER="newest"
+        fi
+    fi
+
+    if [ "$ORDER" = "oldest" ] || [ "$ORDER" = "--oldest" ]; then
+        ORDER_VAL="oldest"
+        ORDER_LABEL="CŨ NHẤT ➔ MỚI NHẤT"
+    else
+        ORDER_VAL="newest"
+        ORDER_LABEL="MỚI NHẤT ➔ CŨ NHẤT"
+    fi
+
     if [ -f "$PID_FILE" ]; then
         OLD_PID=$(cat "$PID_FILE")
         if ps -p "$OLD_PID" > /dev/null 2>&1; then
@@ -1378,12 +1436,14 @@ run_in_background() {
         SCRIPT_EXEC="backend/$PYTHON_SCRIPT"
     fi
 
-    log_info "Đang khởi chạy tiến trình tải ngầm 24/7 (nohup - 32 luồng)..."
-    nohup python3 "$SCRIPT_EXEC" --all --workers 32 >> "$LOG_FILE" 2>&1 &
+    log_info "Đang khởi chạy tiến trình tải ngầm 24/7 ($ORDER_LABEL) (nohup - 32 luồng)..."
+    nohup python3 "$SCRIPT_EXEC" --all --order "$ORDER_VAL" --workers 32 >> "$LOG_FILE" 2>&1 &
     NEW_PID=$!
     echo "$NEW_PID" > "$PID_FILE"
+    echo "$ORDER_VAL" > ".mangadex_order"
 
-    log_success "Tiến trình đã được đưa vào chạy ngầm! PID: ${BOLD}$NEW_PID${NC}"
+    log_success "Tiến trình đã được đưa vào chạy ngầm ($ORDER_LABEL)! PID: ${BOLD}$NEW_PID${NC}"
+    echo -e "• Thứ tự tải:  ${MAGENTA}${BOLD}$ORDER_LABEL${NC}"
     echo -e "• File nhật ký: ${CYAN}$LOG_FILE${NC}"
     echo -e "• Lệnh theo dõi trực tiếp: ${BOLD}tail -f $LOG_FILE${NC}\n"
 }
@@ -1393,7 +1453,22 @@ show_status() {
     if [ -f "$PID_FILE" ]; then
         PID=$(cat "$PID_FILE")
         if ps -p "$PID" > /dev/null 2>&1; then
+            ORDER_TYPE="Chưa rõ"
+            if [ -f ".mangadex_order" ]; then
+                ORDER_SAVED=$(cat ".mangadex_order" 2>/dev/null)
+                if [ "$ORDER_SAVED" = "oldest" ]; then
+                    ORDER_TYPE="Cũ nhất ➔ Mới nhất (Oldest first)"
+                else
+                    ORDER_TYPE="Mới nhất ➔ Cũ nhất (Newest first)"
+                fi
+            elif ps -p "$PID" -o args= 2>/dev/null | grep -q "oldest"; then
+                ORDER_TYPE="Cũ nhất ➔ Mới nhất (Oldest first)"
+            elif ps -p "$PID" -o args= 2>/dev/null | grep -qE "newest|latest"; then
+                ORDER_TYPE="Mới nhất ➔ Cũ nhất (Newest first)"
+            fi
+
             echo -e "Trạng thái: ${GREEN}${BOLD}ĐANG CHẠY NGẦM (Active)${NC} - PID: ${BOLD}$PID${NC}"
+            echo -e "Thứ tự tải: ${CYAN}${BOLD}$ORDER_TYPE${NC}"
         else
             echo -e "Trạng thái: ${YELLOW}ĐÃ DỪNG (Inactive)${NC}"
         fi
@@ -1408,7 +1483,7 @@ show_status() {
     if [ -n "$SWAP_INFO" ] && [ "$SWAP_INFO" -gt 0 ]; then
         echo -e "Bộ nhớ ảo:  ${GREEN}${BOLD}${SWAP_INFO}MB Swap${NC} (Đang dùng: ${SWAP_USED}MB)"
     else
-        echo -e "Bộ nhớ ảo:  ${YELLOW}Chưa có Swap (Khuyên dùng [6] để tạo Swap chống tràn RAM)${NC}"
+        echo -e "Bộ nhớ ảo:  ${YELLOW}Chưa có Swap (Khuyên dùng [7] để tạo Swap chống tràn RAM)${NC}"
     fi
 
     STATE_FILE="mangadex_temp_cache/mangadex_sync_state.json"
@@ -1443,13 +1518,13 @@ stop_background_process() {
             kill "$PID" || true
             sleep 1
             if ps -p "$PID" > /dev/null 2>&1; then kill -9 "$PID" || true; fi
-            rm -f "$PID_FILE"
+            rm -f "$PID_FILE" ".mangadex_order"
             log_success "Đã dừng tiến trình tải ngầm thành công!"
             return 0
         fi
     fi
     log_warning "Không có tiến trình tải ngầm nào đang chạy."
-    rm -f "$PID_FILE"
+    rm -f "$PID_FILE" ".mangadex_order"
 }
 
 # ==============================================================================
@@ -1465,11 +1540,26 @@ elif [ "$1" = "--setup-drive" ] || [ "$1" = "--setup-rclone" ]; then
     exit 0
 elif [ "$1" = "--all" ]; then
     setup_environment
-    run_download_all_foreground
+    ORDER="${2:-newest}"
+    run_download_all_foreground "$ORDER"
+    exit 0
+elif [ "$1" = "--bg-newest" ] || [ "$1" = "--bg-latest" ]; then
+    setup_environment
+    run_in_background "newest"
+    exit 0
+elif [ "$1" = "--bg-oldest" ]; then
+    setup_environment
+    run_in_background "oldest"
     exit 0
 elif [ "$1" = "--bg" ] || [ "$1" = "--daemon" ]; then
     setup_environment
-    run_in_background
+    ORDER="newest"
+    if [ "$2" = "oldest" ] || [ "$2" = "--oldest" ]; then
+        ORDER="oldest"
+    elif [ "$2" = "newest" ] || [ "$2" = "--newest" ] || [ "$2" = "latest" ] || [ "$2" = "--latest" ]; then
+        ORDER="newest"
+    fi
+    run_in_background "$ORDER"
     exit 0
 elif [ "$1" = "--status" ]; then
     show_status
@@ -1494,7 +1584,7 @@ while true; do
     if [ -n "$SWAP_VAL" ] && [ "$SWAP_VAL" -gt 0 ]; then
         SWAP_BADGE="${GREEN}🟢 ${SWAP_VAL}MB (Đã kích hoạt)${NC}"
     else
-        SWAP_BADGE="${YELLOW}🟡 0MB (Chọn [6] để tạo)${NC}"
+        SWAP_BADGE="${YELLOW}🟡 0MB (Chọn [7] để tạo)${NC}"
     fi
 
     echo -e "${CYAN}================================================================${NC}"
@@ -1514,24 +1604,26 @@ while true; do
     echo -e "   ${CYAN}⚡${NC} Tái sử dụng kết nối mạng (Keep-Alive):   ${BOLD}${GREEN}BẬT (Connection Pooling)${NC}"
     echo -e "   ${CYAN}⚡${NC} Nén WebP đa luồng (Multi-core CPU):      ${BOLD}${GREEN}BẬT (Cực nhanh)${NC}"
     echo -e "${CYAN}================================================================${NC}"
-    echo -e "  ${BOLD}[1]${NC} 🚀 ${BOLD}Tải TOÀN BỘ truyện MangaDex Tiếng Việt${NC} (Chạy trực tiếp 32 luồng)"
+    echo -e "  ${BOLD}[1]${NC} 🚀 ${BOLD}Tải TOÀN BỘ truyện trực tiếp trên màn hình${NC} (32 luồng)"
     echo -e "  ${BOLD}[2]${NC} ⚡ ${BOLD}Tải 1 bộ truyện cụ thể${NC} (Nhập link MangaDex hoặc UUID)"
-    echo -e "  ${BOLD}[3]${NC} 🔄 ${BOLD}Chạy ngầm trong nền 24/7 (nohup)${NC} - An toàn khi ngắt SSH"
-    echo -e "  ${BOLD}[4]${NC} 📊 ${BOLD}Xem trạng thái, thống kê & nhật ký${NC} (Logs)"
-    echo -e "  ${BOLD}[5]${NC} 🛑 ${BOLD}Dừng tiến trình tải ngầm${NC}"
-    echo -e "  ${BOLD}[6]${NC} 🛡️  ${BOLD}Thiết lập / Bật bộ nhớ ảo Swap (4GB / 2GB)${NC}"
+    echo -e "  ${BOLD}[3]${NC} 🆕 ${BOLD}Tải ngầm từ MỚI NHẤT ➔ CŨ NHẤT${NC} (nohup 24/7 - Khuyên dùng)"
+    echo -e "  ${BOLD}[4]${NC} ⏳ ${BOLD}Tải ngầm từ CŨ NHẤT ➔ MỚI NHẤT${NC} (nohup 24/7 - Lưu trữ lịch sử)"
+    echo -e "  ${BOLD}[5]${NC} 📊 ${BOLD}Xem trạng thái, thống kê & nhật ký${NC} (Logs)"
+    echo -e "  ${BOLD}[6]${NC} 🛑 ${BOLD}Dừng tiến trình tải ngầm${NC}"
+    echo -e "  ${BOLD}[7]${NC} 🛡️  ${BOLD}Thiết lập / Bật bộ nhớ ảo Swap (4GB / 2GB)${NC}"
     echo -e "  ${BOLD}[0]${NC} ❌ Thoát"
     echo -e "${CYAN}----------------------------------------------------------------${NC}"
-    echo -n "Chọn thao tác [0-6]: "
+    echo -n "Chọn thao tác [0-7]: "
     read -r choice
 
     case "$choice" in
         1) run_download_all_foreground ;;
         2) run_download_single_manga ;;
-        3) run_in_background ;;
-        4) show_status ;;
-        5) stop_background_process ;;
-        6) setup_swap_memory ;;
+        3) run_in_background "newest" ;;
+        4) run_in_background "oldest" ;;
+        5) show_status ;;
+        6) stop_background_process ;;
+        7) setup_swap_memory ;;
         0) echo -e "\nTạm biệt!\n"; exit 0 ;;
         *) log_warning "Lựa chọn không hợp lệ." ;;
     esac
