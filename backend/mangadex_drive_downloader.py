@@ -226,14 +226,55 @@ def upload_file_to_cloud(local_path: Path, object_name: str, content_type: str =
     raise Exception(f"Upload bucket failed sau {max_retries} lần thử: {last_err}")
 
 
-def check_chapter_exists_on_cloud(slug: str, chap_num_str: str) -> bool:
+def normalize_chapter_key(val) -> str:
+    """Chuẩn hóa số chapter về dạng chuỗi thống nhất (vd: 1 -> '1', 1.0 -> '1', 1.5 -> '1.5')"""
+    if val is None:
+        return ""
+    try:
+        f = float(val)
+        return f"{int(f)}" if f.is_integer() else f"{f}"
+    except (ValueError, TypeError):
+        s = str(val).strip()
+        if s.endswith(".0"):
+            return s[:-2]
+        return s
+
+
+def check_chapter_exists_on_cloud(slug: str, chap_num_str: str, cdn_base_url: str = CDN_BASE_URL, session: requests.Session = None) -> bool:
     """Kiểm tra xem chapter đã có sẵn trên Cloud Storage Bucket qua CDN hay chưa"""
     try:
-        url = f"{CDN_BASE_URL}/chapters/{slug}/chap{chap_num_str}/page_001.webp"
-        res = requests.head(url, timeout=3)
+        norm_key = normalize_chapter_key(chap_num_str)
+        url = f"{cdn_base_url.rstrip('/')}/chapters/{slug}/chap{norm_key}/page_001.webp"
+        http_client = session or requests
+        res = http_client.head(url, timeout=3)
         return res.status_code == 200
     except Exception:
         return False
+
+
+def get_existing_chapters_from_web(api_base_url: str, slug: str, session: requests.Session = None) -> set:
+    """
+    Truy vấn Web API (TruyenKomi) để lấy danh sách các số chapter đã tồn tại trong database.
+    Trả về set các chapter key đã chuẩn hóa (vd: {'1', '2', '2.5'}).
+    """
+    if not api_base_url or not slug:
+        return set()
+    url = f"{api_base_url.rstrip('/')}/comics/{slug}"
+    http_client = session or requests
+    try:
+        res = http_client.get(url, timeout=6)
+        if res.status_code == 200:
+            data = res.json()
+            chaps = data.get("chapters", [])
+            existing = set()
+            for c in chaps:
+                c_num = c.get("chapterNumber")
+                if c_num is not None:
+                    existing.add(normalize_chapter_key(c_num))
+            return existing
+    except Exception:
+        pass
+    return set()
 
 
 def sync_chapter_to_web_api(
@@ -339,13 +380,19 @@ class SyncStateManager:
 
     def is_chapter_synced(self, manga_id: str, chap_num_str: str) -> bool:
         chaps = self.data.setdefault("synced_chapters", {}).setdefault(manga_id, [])
-        return str(chap_num_str) in [str(x) for x in chaps]
+        norm_key = normalize_chapter_key(chap_num_str)
+        return norm_key in [normalize_chapter_key(x) for x in chaps]
 
     def mark_chapter_synced(self, manga_id: str, chap_num_str: str):
         chaps = self.data.setdefault("synced_chapters", {}).setdefault(manga_id, [])
-        if str(chap_num_str) not in [str(x) for x in chaps]:
-            chaps.append(str(chap_num_str))
+        norm_key = normalize_chapter_key(chap_num_str)
+        norm_existing = [normalize_chapter_key(x) for x in chaps]
+        if norm_key not in norm_existing:
+            chaps.append(norm_key)
             self.save()
+
+    def get_completed_info(self, manga_id: str) -> dict:
+        return self.data.get("completed_manga", {}).get(manga_id)
 
     def mark_completed(self, manga_id: str, title: str, slug: str, chapters_count: int, pages_count: int):
         self.data.setdefault("completed_manga", {})[manga_id] = {
@@ -557,6 +604,7 @@ class MangaDexClient:
                     "id": m_id, "title": title, "slug": slugify(title),
                     "author": ", ".join(authors) if authors else "Đang cập nhật",
                     "cover_url": cover_url, "tags": tags, "total_available": total,
+                    "last_chapter": attr.get("lastChapter"),
                     "created_at": attr.get("createdAt"),
                     "updated_at": attr.get("updatedAt")
                 }
@@ -743,18 +791,57 @@ class MangaDexSynchronizer:
         except Exception:
             return False
 
+    def _check_chapter_already_exists(
+        self,
+        manga_id: str,
+        slug: str,
+        chap_num,
+        web_existing_chapters: set = None,
+        local_chap_dir: Path = None,
+        check_cloud_cdn: bool = False
+    ) -> tuple:
+        """
+        Kiểm tra đa tầng xem chapter đã được tải / đồng bộ hay chưa:
+        1. Web API (Website TruyenKomi)
+        2. Checkpoint tiến trình (mangadex_sync_state.json)
+        3. Ổ cứng máy chủ (Local Temp Files)
+        4. Cloud Storage Bucket (CDN)
+        """
+        norm_key = normalize_chapter_key(chap_num)
+
+        # 1. Kiểm tra trên Web API (Chính xác 100% với dữ liệu website)
+        if web_existing_chapters and norm_key in web_existing_chapters:
+            return True, "Web API TruyenKomi"
+
+        # 2. Kiểm tra Checkpoint file tiến trình
+        if self.state.is_chapter_synced(manga_id, norm_key):
+            return True, "Checkpoint tiến trình"
+
+        # 3. Kiểm tra ổ cứng máy chủ (nếu còn file tạm WebP hợp lệ)
+        if local_chap_dir and local_chap_dir.exists():
+            existing_webp = [p for p in local_chap_dir.glob("*.webp") if p.stat().st_size > 0]
+            if existing_webp:
+                return True, "Ổ đĩa máy chủ (Local)"
+
+        # 4. Kiểm tra trực tiếp trên Cloud Storage Bucket qua CDN (nếu bật)
+        if check_cloud_cdn:
+            if check_chapter_exists_on_cloud(slug, norm_key, session=self.upload_session):
+                return True, "Cloud Bucket (CDN)"
+
+        return False, ""
+
     def sync_single_manga(self, manga_id_or_url: str) -> bool:
         manga_id = self.client.extract_manga_id(manga_id_or_url)
-        if self.state.is_completed(manga_id) and self.skip_existing:
-            log_info(f"Bộ truyện ID {manga_id} đã có trên Cloud Bucket. Bỏ qua.")
-            return True
-
         info = self.client.get_manga_details_and_chapters(manga_id)
         title = info["title"]
         slug = info["slug"]
         chapters = info["chapters"]
 
-        log_info(f"▶ Đang xử lý: [bold]{title}[/bold] (Slug: {slug}) | {len(chapters)} chapters")
+        if not chapters:
+            log_warning(f"⚠️ Bộ truyện '{title}' không có chapter Tiếng Việt nào!")
+            return False
+
+        log_info(f"▶ Đang xử lý: [bold]{title}[/bold] (Slug: {slug}) | Tổng {len(chapters)} chapters")
 
         local_comic_dir = self.temp_root / "chapters" / slug
         local_covers_dir = self.temp_root / "covers"
@@ -785,33 +872,79 @@ class MangaDexSynchronizer:
                     except Exception as err:
                         log_warning(f"  ⚠️ Lỗi upload bìa lên Bucket: {err}")
 
-        # 2. TẢI VÀ ĐỒNG BỘ TỪNG CHAPTER NGAY LẬP TỨC (REAL-TIME PER CHAPTER)
-        total_pages_downloaded = 0
-        skipped_chaps = 0
+        # 2. KIỂM TRA ĐA TẦNG CÁC CHAPTER ĐÃ CÓ TRƯỚC ĐÓ (WEB API / CLOUD / LOCAL / CHECKPOINT)
+        web_existing = set()
+        if self.upload_to_web:
+            web_existing = get_existing_chapters_from_web(self.api_base_url, slug, session=self.api_session)
+            if web_existing:
+                log_info(f"  🌐 Đã kết nối Web API: Tìm thấy {len(web_existing)} chapters đã lưu trên Website.")
+                for wk in web_existing:
+                    self.state.mark_chapter_synced(manga_id, wk)
 
-        for idx, chap in enumerate(chapters, 1):
+        # Phân loại chapter: đã có vs cần tải mới
+        already_synced = []
+        pending_download = []
+
+        for chap in chapters:
             num = chap["number"]
-            num_str = f"{int(num)}" if float(num).is_integer() else f"{num}"
-            chap_title = chap.get("title") or f"Chương {num_str}"
+            num_str = normalize_chapter_key(num)
             chap_dir = local_comic_dir / f"chap{num_str}"
 
-            # Bỏ qua nếu chapter đã được đồng bộ trong tiến trình hoặc còn trên máy
             if self.skip_existing:
-                if self.state.is_chapter_synced(manga_id, num_str):
-                    log_info(f"  ⏭️ [{idx}/{len(chapters)}] {chap_title} đã đồng bộ xong trước đó. Bỏ qua.")
-                    skipped_chaps += 1
+                exists, where = self._check_chapter_already_exists(
+                    manga_id=manga_id,
+                    slug=slug,
+                    chap_num=num,
+                    web_existing_chapters=web_existing,
+                    local_chap_dir=chap_dir,
+                    check_cloud_cdn=False
+                )
+                if exists:
+                    already_synced.append((chap, where))
+                    self.state.mark_chapter_synced(manga_id, num_str)
                     continue
 
-                if chap_dir.exists():
-                    existing_webp = list(chap_dir.glob("page_*.webp")) or list(chap_dir.glob("*.webp"))
-                    if len(existing_webp) >= 1:
-                        log_info(f"  ⏭️ [{idx}/{len(chapters)}] {chap_title} đã có sẵn trên máy. Bỏ qua.")
-                        skipped_chaps += 1
-                        continue
+            pending_download.append(chap)
 
+        total_chaps = len(chapters)
+        synced_count = len(already_synced)
+        pending_count = len(pending_download)
+
+        # Hiển thị thông tin kiểm tra chapter
+        if synced_count > 0:
+            log_info(f"  📊 Trạng thái kiểm tra: Đã có {synced_count}/{total_chaps} chapters | Cần tải mới: {pending_count} chapters")
+
+        # NẾU TẤT CẢ CHAPTER ĐÃ TẢI XONG -> BỎ QUA TOÀN BỘ TRUYỆN NGAY LẬP TỨC
+        if pending_count == 0 and self.skip_existing:
+            log_success(f"  ✨ Toàn bộ {total_chaps}/{total_chaps} chapters của '{title}' đã tải/đồng bộ xong trước đó. Bỏ qua không tải lại!\n")
+            self.state.mark_completed(
+                manga_id=manga_id, title=title, slug=slug,
+                chapters_count=total_chaps, pages_count=0
+            )
+            return True
+
+        # Hiển thị danh sách các chapter được bỏ qua
+        if already_synced:
+            if synced_count <= 6:
+                for c, where in already_synced:
+                    c_num_str = normalize_chapter_key(c["number"])
+                    c_name = c.get("title") or f"Chương {c_num_str}"
+                    log_info(f"  ⏭️ Bỏ qua {c_name} (Đã có trên {where})")
+            else:
+                first_k = normalize_chapter_key(already_synced[0][0]["number"])
+                last_k = normalize_chapter_key(already_synced[-1][0]["number"])
+                log_info(f"  ⏭️ Đã tự động bỏ qua {synced_count} chapters cũ (Chương {first_k} ➔ Chương {last_k})")
+
+        # 3. CHỈ TẢI CÁC CHAPTER CẦN THIẾT (PENDING DOWNLOAD)
+        total_pages_downloaded = 0
+        for idx, chap in enumerate(pending_download, 1):
+            num = chap["number"]
+            num_str = normalize_chapter_key(num)
+            chap_title = chap.get("title") or f"Chương {num_str}"
+            chap_dir = local_comic_dir / f"chap{num_str}"
             chap_dir.mkdir(parents=True, exist_ok=True)
 
-            log_info(f"  📥 [{idx}/{len(chapters)}] Đang tải {chap_title}...")
+            log_info(f"  📥 [{idx}/{pending_count}] Đang tải {chap_title}...")
 
             # Lấy link ảnh từ MangaDex (data_saver=False -> ẢNH GỐC)
             img_urls = self.client.get_chapter_image_urls(chap["id"], data_saver=self.data_saver)
@@ -919,7 +1052,7 @@ class MangaDexSynchronizer:
             manga_id=manga_id, title=title, slug=slug,
             chapters_count=len(chapters), pages_count=total_pages_downloaded
         )
-        log_success(f"🎉 Hoàn thành trọn bộ '{title}'!\n")
+        log_success(f"🎉 Hoàn thành cập nhật trọn bộ '{title}'!\n")
         return True
 
     def sync_all_vietnamese_manga(self, order_by: str = "oldest", start_offset: int = 0, limit: int = None):
@@ -944,8 +1077,23 @@ class MangaDexSynchronizer:
             title = item["title"]
 
             if self.state.is_completed(m_id) and self.skip_existing:
-                log_info(f"[{count}] ⏭️ Đã có trên Cloud Bucket: {title} (Bỏ qua)")
-                continue
+                last_chap_str = item.get("last_chapter")
+                comp_info = self.state.get_completed_info(m_id) or {}
+                prev_count = comp_info.get("chapters_count", 0)
+
+                has_new = False
+                if last_chap_str:
+                    try:
+                        if float(last_chap_str) > prev_count:
+                            has_new = True
+                    except Exception:
+                        pass
+
+                if not has_new:
+                    log_info(f"[{count}] ⏭️ Đã hoàn tất ({prev_count} chaps): {title} (Bỏ qua)")
+                    continue
+                else:
+                    log_info(f"[{count}] 🔄 Phát hiện chapter mới cho: {title} ({prev_count} ➔ {last_chap_str}). Đang cập nhật...")
 
             log_info(f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
             log_info(f"▶ [{count}] Đang tải: {title} (ID: {m_id})")
