@@ -56,7 +56,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.seoService.setHomeSeo();
     this.loadData();
-    this.startSpotlightAutoPlay();
     this.startSuggestAutoScroll();
   }
 
@@ -68,13 +67,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   loadData(): void {
     this.isLoading = true;
     this.isLoadingHot = true;
-
-    // Load Hero Spotlight (Trending: kết hợp Nhiều lượt xem + Nhiều Chapter + Mới cập nhật)
-    this.comicService.getFeaturedComics('trending', 5).subscribe({
-      next: (data) => {
-        this.featuredComics = data;
-      }
-    });
 
     // Load Hot Comics for Suggested Carousel (15 items)
     this.comicService.getFeaturedComics('views', 15).subscribe({
