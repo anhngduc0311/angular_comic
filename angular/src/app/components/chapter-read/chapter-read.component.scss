@@ -11,6 +11,7 @@
   padding-bottom: 28px;
   overflow-x: hidden;
 
+
   @media (max-width: 768px) {
     padding-top: 52px;
   }
@@ -212,6 +213,81 @@
     gap: 6px;
     flex-shrink: 0;
 
+    .zoom-header-group {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: var(--radius-pill);
+      padding: 2px;
+      height: 34px;
+      gap: 2px;
+
+      .btn-zoom-action {
+        width: 28px;
+        height: 28px;
+        border: none;
+        background: transparent;
+        border-radius: var(--radius-pill);
+        color: #cbd5e1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        cursor: pointer;
+        transition: var(--transition-fast);
+
+        &:hover:not([disabled]) {
+          background: var(--primary-orange);
+          color: #ffffff;
+        }
+
+        &[disabled] {
+          opacity: 0.3;
+          cursor: not-allowed;
+        }
+      }
+
+      .zoom-dropdown-wrap {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+
+        .btn-zoom-label {
+          height: 28px;
+          padding: 0 8px;
+          width: auto;
+          min-width: 58px;
+          background: transparent;
+          border: none;
+          color: #f8fafc;
+          font-size: 11.5px;
+          font-weight: 700;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          cursor: pointer;
+          border-radius: var(--radius-pill);
+          transition: var(--transition-fast);
+
+          &:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--primary-orange);
+          }
+
+          i {
+            font-size: 9px;
+            opacity: 0.7;
+          }
+        }
+      }
+
+      @media (max-width: 768px) {
+        display: none !important;
+      }
+    }
+
     .tool-btn {
       width: 34px;
       height: 34px;
@@ -262,10 +338,12 @@
   flex-direction: column;
   align-items: center;
 
+  transition: width 0.25s ease, max-width 0.25s ease;
+
   @media (max-width: 768px) {
     padding: 0;
-    width: 100% !important;
-    max-width: 100% !important;
+    width: 100%;
+    max-width: 100%;
   }
 
   /* CDN Error Alert Banner */
@@ -1098,4 +1176,88 @@
   from { opacity: 0; transform: translateY(-8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ==================== ZOOM LEVELS POPUP MENU ==================== */
+.zoom-levels-menu {
+  position: absolute;
+  min-width: 145px;
+  background: rgba(13, 17, 23, 0.96);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.75);
+  z-index: 1005;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: fadeInZoomMenu 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  top: calc(100% + 8px);
+  right: 0;
+
+  .zoom-menu-header {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #94a3b8;
+    padding: 6px 10px 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    i {
+      color: var(--primary-orange);
+      font-size: 11px;
+    }
+  }
+
+  .zoom-level-btn {
+    background: transparent;
+    border: none;
+    color: #cbd5e1;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 7px 12px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    width: 100%;
+    text-align: left;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #ffffff;
+    }
+
+    &.active {
+      background: rgba(253, 84, 0, 0.2);
+      color: var(--primary-orange);
+      font-weight: 700;
+
+      i {
+        color: var(--primary-orange);
+        font-size: 11px;
+      }
+    }
+  }
+}
+
+@keyframes fadeInZoomMenu {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 

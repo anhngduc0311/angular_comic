@@ -52,6 +52,52 @@
 
       <!-- Right: Reader Tools -->
       <div class="reader-tools">
+        <!-- Zoom Controls in Header -->
+        <div class="zoom-header-group" (click)="$event.stopPropagation()">
+          <button 
+            class="tool-btn btn-zoom-action" 
+            (click)="zoomOut()" 
+            [disabled]="isMinZoom" 
+            title="Thu nhỏ (Phím -)"
+            aria-label="Thu nhỏ"
+          >
+            <i class="fa fa-search-minus"></i>
+          </button>
+          
+          <div class="zoom-dropdown-wrap">
+            <button class="tool-btn btn-zoom-label" (click)="toggleZoomMenu()" title="Độ phóng to: {{ getZoomLabel() }}">
+              <span>{{ getZoomLabel() }}</span>
+              <i class="fa fa-caret-down"></i>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div class="zoom-levels-menu header-menu glass-panel" *ngIf="showZoomMenu">
+              <div class="zoom-menu-header">
+                <i class="fa fa-search"></i> Thu Phóng Trang
+              </div>
+              <button 
+                *ngFor="let lvl of zoomLevels" 
+                class="zoom-level-btn" 
+                [class.active]="zoomWidth === lvl.width"
+                (click)="selectZoomWidth(lvl.width)"
+              >
+                <span>{{ lvl.label }}</span>
+                <i class="fa fa-check" *ngIf="zoomWidth === lvl.width"></i>
+              </button>
+            </div>
+          </div>
+
+          <button 
+            class="tool-btn btn-zoom-action" 
+            (click)="zoomIn()" 
+            [disabled]="isMaxZoom" 
+            title="Phóng to (Phím +)"
+            aria-label="Phóng to"
+          >
+            <i class="fa fa-search-plus"></i>
+          </button>
+        </div>
+
         <!-- Auto Scroll Toggle -->
         <button 
           class="tool-btn" 
@@ -95,7 +141,7 @@
   </header>
 
   <!-- ==================== 2. IMAGE STREAM VIEWPORT ==================== -->
-  <main class="reader-main-stream" [style.max-width.px]="zoomWidth > 0 ? zoomWidth : '100%'">
+  <main class="reader-main-stream" [ngStyle]="getMainStreamStyle()">
     <div class="reading-images-list" *ngIf="chapter.pages && chapter.pages.length > 0; else noPages">
       <!-- Global Failed Images Alert Banner -->
       <div class="cdn-error-banner glass-panel" *ngIf="totalFailedCount > 0">
@@ -258,6 +304,8 @@
       </div>
     </div>
   </section>
+
+
 </div>
 
 <!-- ==================== 4. REPORT MODAL ==================== -->

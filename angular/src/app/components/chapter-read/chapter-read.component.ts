@@ -50,6 +50,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   // Zoom Controls state
   zoomWidth: number = 900; // 900px default (100%)
+  showZoomMenu: boolean = false;
   zoomLevels = [
     { label: '50%', width: 500 },
     { label: '75%', width: 700 },
@@ -59,6 +60,15 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     { label: '200%', width: 1800 },
     { label: 'Tràn màn', width: 0 }
   ];
+
+  get isMinZoom(): boolean {
+    return this.zoomWidth === 500;
+  }
+
+  get isMaxZoom(): boolean {
+    return this.zoomWidth === 0;
+  }
+
 
   // Auto-Scroll State
   isAutoScrolling: boolean = false;
@@ -160,7 +170,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   onReaderClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    if (target.closest('button, select, input, a, textarea, .report-modal-dialog, .floating-reader-tools, .reader-header, .restore-toast, .zen-hint-pill, .reader-bottom-nav')) {
+    if (target.closest('button, select, input, a, textarea, .report-modal-dialog, .floating-reader-tools, .reader-header, .restore-toast, .zen-hint-pill, .reader-bottom-nav, .zoom-header-group, .zoom-levels-menu')) {
       return;
     }
     this.toggleHeader();
@@ -246,7 +256,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     const savedZoom = localStorage.getItem('truyenkomi_reader_zoom');
     if (savedZoom !== null) {
       const parsed = parseInt(savedZoom, 10);
-      if (!isNaN(parsed)) {
+      if (!isNaN(parsed) && [500, 700, 900, 1150, 1400, 1800, 0].includes(parsed)) {
         this.zoomWidth = parsed;
       }
     }
@@ -255,6 +265,15 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   setZoomWidth(width: number): void {
     this.zoomWidth = width;
     localStorage.setItem('truyenkomi_reader_zoom', width.toString());
+  }
+
+  toggleZoomMenu(): void {
+    this.showZoomMenu = !this.showZoomMenu;
+  }
+
+  selectZoomWidth(width: number): void {
+    this.setZoomWidth(width);
+    this.showZoomMenu = false;
   }
 
   zoomIn(): void {
@@ -279,11 +298,32 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   resetZoom(): void {
     this.setZoomWidth(900);
+    this.showZoomMenu = false;
   }
 
   getZoomLabel(): string {
     const found = this.zoomLevels.find(l => l.width === this.zoomWidth);
-    return found ? found.label : `${this.zoomWidth}px`;
+    return found ? found.label : (this.zoomWidth === 0 ? 'Tràn màn' : `${this.zoomWidth}px`);
+  }
+
+  getMainStreamStyle(): { [key: string]: string } {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+    if (isMobile) {
+      return { width: '100%', 'max-width': '100%' };
+    }
+    // Desktop
+    if (this.zoomWidth === 0) {
+      return { width: '100%', 'max-width': '100%' };
+    }
+    return { width: '100%', 'max-width': `${this.zoomWidth}px` };
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.zoom-dropdown-wrap')) {
+      this.showZoomMenu = false;
+    }
   }
 
   @HostListener('window:scroll', [])
