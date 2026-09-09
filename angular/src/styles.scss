@@ -264,6 +264,8 @@ button, input, select, textarea {
       align-items: center;
       gap: 6px;
       transition: var(--transition-fast);
+      white-space: nowrap;
+      flex-shrink: 0;
 
       i {
         font-size: 13px;
@@ -278,6 +280,7 @@ button, input, select, textarea {
     .active {
       color: var(--text-main);
       font-weight: 700;
+      word-break: break-word;
     }
   }
 }

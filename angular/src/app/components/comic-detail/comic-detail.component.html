@@ -259,10 +259,12 @@
             </div>
             <div class="comment-body">
               <div class="comment-user-row">
-                <span class="user-name">{{ cm.username }}</span>
-                <span *ngIf="cm.userRealm" class="realm-badge" [ngClass]="cm.userRealm.frameClass.replace('avatar-frame-', 'realm-')">
-                  {{ cm.userRealm.title }}
-                </span>
+                <div class="comment-user-meta">
+                  <span class="user-name">{{ cm.username }}</span>
+                  <span *ngIf="cm.userRealm" class="realm-badge" [ngClass]="cm.userRealm.frameClass.replace('avatar-frame-', 'realm-')">
+                    {{ cm.userRealm.title }}
+                  </span>
+                </div>
                 <span class="comment-time"><i class="fa fa-clock-o"></i> {{ cm.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
               </div>
               <p class="comment-text">{{ cm.content }}</p>
