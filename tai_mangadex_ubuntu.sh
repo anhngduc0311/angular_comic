@@ -29,6 +29,23 @@ PID_FILE=".mangadex_sync.pid"
 VENV_DIR=".venv_mangadex"
 PYTHON_SCRIPT="mangadex_drive_downloader.py"
 
+PYTHON_BIN="/usr/bin/python3"
+if [ ! -x "$PYTHON_BIN" ]; then
+    PYTHON_BIN="$(command -v python3 2>/dev/null || which python3 2>/dev/null || echo "python3")"
+fi
+
+get_python_runner() {
+    if [ -f "$VENV_DIR/bin/python3" ]; then
+        echo "$VENV_DIR/bin/python3"
+    elif [ -f "$VENV_DIR/bin/python" ]; then
+        echo "$VENV_DIR/bin/python"
+    elif [ -x "$PYTHON_BIN" ]; then
+        echo "$PYTHON_BIN"
+    else
+        echo "python3"
+    fi
+}
+
 # Màu sắc hiển thị terminal
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -1369,10 +1386,12 @@ setup_environment() {
     # Tự động kiểm tra và tạo bộ nhớ ảo Swap chống tràn RAM
     setup_swap_memory
 
+    export DEBIAN_FRONTEND=noninteractive
     MISSING_PKGS=()
     if ! command -v python3 >/dev/null 2>&1; then MISSING_PKGS+=("python3"); fi
     if ! command -v pip3 >/dev/null 2>&1; then MISSING_PKGS+=("python3-pip"); fi
     if ! dpkg -s python3-venv >/dev/null 2>&1; then MISSING_PKGS+=("python3-venv"); fi
+    if ! dpkg -s python3-virtualenv >/dev/null 2>&1 && ! command -v virtualenv >/dev/null 2>&1; then MISSING_PKGS+=("python3-virtualenv"); fi
     if ! command -v curl >/dev/null 2>&1; then MISSING_PKGS+=("curl"); fi
 
     if [ ${#MISSING_PKGS[@]} -gt 0 ]; then
@@ -1381,15 +1400,61 @@ setup_environment() {
         $SUDO apt-get install -y "${MISSING_PKGS[@]}" ca-certificates
     fi
 
-    if [ ! -d "$VENV_DIR" ]; then
-        log_info "Đang tạo môi trường ảo Python Virtualenv ($VENV_DIR)..."
-        python3 -m venv "$VENV_DIR"
+    # Cập nhật đường dẫn tuyệt đối của Python interpreter
+    if [ -x "/usr/bin/python3" ]; then
+        PYTHON_BIN="/usr/bin/python3"
+    else
+        PYTHON_BIN="$(command -v python3 2>/dev/null || which python3 2>/dev/null || echo "python3")"
     fi
 
-    # shellcheck source=/dev/null
-    source "$VENV_DIR/bin/activate"
-    pip install --upgrade pip >/dev/null 2>&1 || true
-    pip install --quiet requests urllib3 pillow rich
+    # Khởi tạo môi trường ảo Virtualenv với cơ chế Fallback đa tầng (chống lỗi interpreter path gh-96861 trên Ubuntu)
+    if [ ! -d "$VENV_DIR" ] || [ ! -f "$VENV_DIR/bin/activate" ]; then
+        log_info "Đang tạo môi trường ảo Python Virtualenv ($VENV_DIR)..."
+        rm -rf "$VENV_DIR"
+
+        VENV_CREATED=0
+        # Cách 1: Gọi qua đường dẫn tuyệt đối PYTHON_BIN (Khắc phục lỗi gh-96861 của venv)
+        if "$PYTHON_BIN" -m venv "$VENV_DIR" >/dev/null 2>&1; then
+            VENV_CREATED=1
+        fi
+
+        # Cách 2: Thử virtualenv nếu cách 1 gặp lỗi interpreter path
+        if [ "$VENV_CREATED" -eq 0 ]; then
+            log_warning "venv mặc định gặp lỗi interpreter path, đang kích hoạt virtualenv..."
+            $SUDO apt-get install -y python3-virtualenv python3-venv >/dev/null 2>&1 || true
+            if command -v virtualenv >/dev/null 2>&1 && virtualenv -p "$PYTHON_BIN" "$VENV_DIR" >/dev/null 2>&1; then
+                VENV_CREATED=1
+            elif "$PYTHON_BIN" -m virtualenv "$VENV_DIR" >/dev/null 2>&1; then
+                VENV_CREATED=1
+            fi
+        fi
+
+        # Cách 3: Thử cài python3-full nếu cần
+        if [ "$VENV_CREATED" -eq 0 ]; then
+            $SUDO apt-get install -y python3-full >/dev/null 2>&1 || true
+            if "$PYTHON_BIN" -m venv "$VENV_DIR" >/dev/null 2>&1; then
+                VENV_CREATED=1
+            fi
+        fi
+
+        if [ "$VENV_CREATED" -eq 1 ]; then
+            log_success "Đã khởi tạo môi trường ảo $VENV_DIR thành công!"
+        else
+            log_warning "Không thể khởi tạo thư mục venv riêng, chuyển sang dùng Python hệ thống."
+        fi
+    fi
+
+    # Cài đặt / cập nhật các thư viện cần thiết
+    if [ -f "$VENV_DIR/bin/activate" ]; then
+        # shellcheck source=/dev/null
+        source "$VENV_DIR/bin/activate"
+        pip install --upgrade pip >/dev/null 2>&1 || true
+        pip install --quiet requests urllib3 pillow rich
+    else
+        "$PYTHON_BIN" -m pip install --upgrade pip >/dev/null 2>&1 || true
+        "$PYTHON_BIN" -m pip install --quiet --break-system-packages requests urllib3 pillow rich 2>/dev/null || \
+        "$PYTHON_BIN" -m pip install --quiet requests urllib3 pillow rich
+    fi
 
     log_success "Môi trường máy Ubuntu đã sẵn sàng 100%!"
 }
@@ -1419,15 +1484,18 @@ run_download_all_foreground() {
         ORDER_LABEL="CŨ NHẤT ➔ MỚI NHẤT"
     fi
 
-    # shellcheck source=/dev/null
-    source "$VENV_DIR/bin/activate"
+    if [ -f "$VENV_DIR/bin/activate" ]; then
+        # shellcheck source=/dev/null
+        source "$VENV_DIR/bin/activate"
+    fi
+    PY_RUNNER="$(get_python_runner)"
     SCRIPT_EXEC="$PYTHON_SCRIPT"
     if [ -f "backend/$PYTHON_SCRIPT" ]; then
         SCRIPT_EXEC="backend/$PYTHON_SCRIPT"
     fi
 
     log_header "BẮT ĐẦU TẢI TOÀN BỘ TRUYỆN MANGADEX TIẾNG VIỆT (32 LUỒNG - $ORDER_LABEL)"
-    python3 "$SCRIPT_EXEC" --all --order "$ORDER_VAL" --workers 32
+    "$PY_RUNNER" "$SCRIPT_EXEC" --all --order "$ORDER_VAL" --workers 32
 }
 
 run_download_single_manga() {
@@ -1438,14 +1506,17 @@ run_download_single_manga() {
         return 1
     fi
 
-    # shellcheck source=/dev/null
-    source "$VENV_DIR/bin/activate"
+    if [ -f "$VENV_DIR/bin/activate" ]; then
+        # shellcheck source=/dev/null
+        source "$VENV_DIR/bin/activate"
+    fi
+    PY_RUNNER="$(get_python_runner)"
     SCRIPT_EXEC="$PYTHON_SCRIPT"
     if [ -f "backend/$PYTHON_SCRIPT" ]; then
         SCRIPT_EXEC="backend/$PYTHON_SCRIPT"
     fi
 
-    python3 "$SCRIPT_EXEC" --url "$manga_url" --workers 32
+    "$PY_RUNNER" "$SCRIPT_EXEC" --url "$manga_url" --workers 32
 }
 
 run_in_background() {
@@ -1480,15 +1551,18 @@ run_in_background() {
         fi
     fi
 
-    # shellcheck source=/dev/null
-    source "$VENV_DIR/bin/activate"
+    if [ -f "$VENV_DIR/bin/activate" ]; then
+        # shellcheck source=/dev/null
+        source "$VENV_DIR/bin/activate"
+    fi
+    PY_RUNNER="$(get_python_runner)"
     SCRIPT_EXEC="$PYTHON_SCRIPT"
     if [ -f "backend/$PYTHON_SCRIPT" ]; then
         SCRIPT_EXEC="backend/$PYTHON_SCRIPT"
     fi
 
     log_info "Đang khởi chạy tiến trình tải ngầm 24/7 ($ORDER_LABEL) (nohup - 32 luồng)..."
-    nohup python3 "$SCRIPT_EXEC" --all --order "$ORDER_VAL" --workers 32 >> "$LOG_FILE" 2>&1 &
+    nohup "$PY_RUNNER" "$SCRIPT_EXEC" --all --order "$ORDER_VAL" --workers 32 >> "$LOG_FILE" 2>&1 &
     NEW_PID=$!
     echo "$NEW_PID" > "$PID_FILE"
     echo "$ORDER_VAL" > ".mangadex_order"
@@ -1546,7 +1620,8 @@ show_status() {
     STATE_FILE="mangadex_temp_cache/mangadex_sync_state.json"
     if [ -f "$STATE_FILE" ]; then
         echo -e "\n${BOLD}📊 Thống kê đã đồng bộ lên Cloud Storage Bucket & Web:${NC}"
-        python3 -c "
+        PY_RUNNER="$(get_python_runner)"
+        "$PY_RUNNER" -c "
 import json
 try:
     with open('$STATE_FILE', 'r', encoding='utf-8') as f:
@@ -1629,11 +1704,14 @@ elif [ "$1" = "--stop" ]; then
     exit 0
 elif [ "$1" = "--url" ] && [ -n "$2" ]; then
     setup_environment
-    # shellcheck source=/dev/null
-    source "$VENV_DIR/bin/activate"
+    if [ -f "$VENV_DIR/bin/activate" ]; then
+        # shellcheck source=/dev/null
+        source "$VENV_DIR/bin/activate"
+    fi
+    PY_RUNNER="$(get_python_runner)"
     SCRIPT_EXEC="$PYTHON_SCRIPT"
     if [ -f "backend/$PYTHON_SCRIPT" ]; then SCRIPT_EXEC="backend/$PYTHON_SCRIPT"; fi
-    python3 "$SCRIPT_EXEC" --url "$2" --workers 32
+    "$PY_RUNNER" "$SCRIPT_EXEC" --url "$2" --workers 32
     exit 0
 fi
 
