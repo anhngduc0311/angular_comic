@@ -98,20 +98,51 @@
           </button>
         </div>
 
-        <!-- Auto Scroll Toggle -->
-        <button 
-          class="tool-btn" 
-          [class.active]="isAutoScrolling" 
-          (click)="toggleAutoScroll()" 
-          title="Tự động cuộn trang (Phím Space / S)"
-        >
-          <i class="fa fa-play-circle" *ngIf="!isAutoScrolling"></i>
-          <i class="fa fa-pause-circle text-orange" *ngIf="isAutoScrolling"></i>
-        </button>
+        <!-- Auto Scroll Header Group (Play/Pause + Speed) -->
+        <div class="autoscroll-header-group" [class.is-active]="isAutoScrolling" (click)="$event.stopPropagation()">
+          <button 
+            class="tool-btn btn-as-action" 
+            [class.active]="isAutoScrolling" 
+            (click)="toggleAutoScroll()" 
+            [title]="isAutoScrolling ? 'Tạm dừng tự đọc (Phím Space / S)' : 'Bắt đầu tự đọc truyện (Phím Space / S)'"
+            aria-label="Tự động cuộn"
+          >
+            <i class="fa fa-play" *ngIf="!isAutoScrolling"></i>
+            <i class="fa fa-pause text-orange" *ngIf="isAutoScrolling"></i>
+          </button>
+
+          <div class="as-speed-dropdown-wrap">
+            <button 
+              class="tool-btn btn-as-speed" 
+              (click)="toggleSpeedMenu()" 
+              [title]="'Tốc độ cuộn: ' + autoScrollSpeed + 'x. Bấm để chọn tốc độ'"
+              aria-label="Chọn tốc độ đọc"
+            >
+              <span>{{ autoScrollSpeed }}x</span>
+              <i class="fa fa-caret-down"></i>
+            </button>
+
+            <!-- Speed Dropdown Menu -->
+            <div class="as-speed-menu header-menu glass-panel" *ngIf="showSpeedMenu">
+              <div class="speed-menu-header">
+                <i class="fa fa-tachometer"></i> Tốc Độ Đọc
+              </div>
+              <button 
+                *ngFor="let s of autoScrollSpeeds" 
+                class="speed-option-btn" 
+                [class.active]="autoScrollSpeed === s.speed"
+                (click)="selectSpeed(s.speed)"
+              >
+                <span>{{ s.label }}</span>
+                <i class="fa fa-check" *ngIf="autoScrollSpeed === s.speed"></i>
+              </button>
+            </div>
+          </div>
+        </div>
 
         <!-- Fullscreen Toggle -->
         <button 
-          class="tool-btn" 
+          class="tool-btn btn-fullscreen" 
           (click)="toggleFullscreen()" 
           title="Toàn màn hình (Phím F)"
         >
@@ -304,7 +335,6 @@
       </div>
     </div>
   </section>
-
 
 </div>
 

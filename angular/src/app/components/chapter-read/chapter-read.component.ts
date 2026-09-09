@@ -72,7 +72,8 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   // Auto-Scroll State
   isAutoScrolling: boolean = false;
-  autoScrollSpeed: number = 2; // Default 2x speed
+  autoScrollSpeed: number = 2; // Default 2x speed (85px/s)
+  showSpeedMenu: boolean = false;
   autoScrollSpeeds = [
     { label: '1x (Chậm)', speed: 1 },
     { label: '2x (Vừa)', speed: 2 },
@@ -81,6 +82,15 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   ];
   private autoScrollAnimFrame: number | null = null;
   private lastFrameTime: number = 0;
+  private scrollSubpixelAccumulator: number = 0;
+  private isUserTouching: boolean = false;
+
+  private speedPixelsPerSecond: { [speed: number]: number } = {
+    1: 45,
+    2: 85,
+    3: 140,
+    4: 220
+  };
 
   // Report Modal States
   showReportModal: boolean = false;
@@ -170,7 +180,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   onReaderClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    if (target.closest('button, select, input, a, textarea, .report-modal-dialog, .floating-reader-tools, .reader-header, .restore-toast, .zen-hint-pill, .reader-bottom-nav, .zoom-header-group, .zoom-levels-menu')) {
+    if (target.closest('button, select, input, a, textarea, .report-modal-dialog, .floating-reader-tools, .reader-header, .restore-toast, .zen-hint-pill, .reader-bottom-nav, .zoom-header-group, .zoom-levels-menu, .autoscroll-header-group, .as-speed-menu')) {
       return;
     }
     this.toggleHeader();
@@ -215,22 +225,53 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   startAutoScroll(): void {
     if (this.isAutoScrolling) return;
     this.isAutoScrolling = true;
+    this.scrollSubpixelAccumulator = 0;
     this.lastFrameTime = performance.now();
+
+    // Disable CSS smooth-scroll so rapid programmatic frames don't stutter/freeze in iOS Safari
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.add('is-autoscrolling');
+    }
 
     const scrollStep = (currentTime: number) => {
       if (!this.isAutoScrolling) return;
 
-      const delta = (currentTime - this.lastFrameTime) / 1000;
+      const delta = Math.min((currentTime - this.lastFrameTime) / 1000, 0.1);
       this.lastFrameTime = currentTime;
 
-      // Smooth frame-based scrolling (28px per sec * multiplier)
-      const pxToScroll = 28 * this.autoScrollSpeed * delta;
-      window.scrollBy(0, pxToScroll);
+      // Only advance scroll if user isn't actively dragging screen with finger
+      if (!this.isUserTouching) {
+        const speedInPxPerSec = this.speedPixelsPerSecond[this.autoScrollSpeed] || (50 * this.autoScrollSpeed);
+        this.scrollSubpixelAccumulator += speedInPxPerSec * delta;
 
-      // Stop if reached bottom of page
-      if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 15)) {
-        this.stopAutoScroll();
-        return;
+        const intPixels = Math.floor(this.scrollSubpixelAccumulator);
+        if (intPixels >= 1) {
+          this.scrollSubpixelAccumulator -= intPixels;
+
+          const currentY = window.pageYOffset || document.documentElement.scrollTop || (document.body ? document.body.scrollTop : 0) || 0;
+          const maxScroll = Math.max(
+            document.documentElement.scrollHeight,
+            document.body ? document.body.scrollHeight : 0
+          ) - window.innerHeight;
+
+          // Stop if reached bottom of page
+          if (currentY >= maxScroll - 15) {
+            this.stopAutoScroll();
+            return;
+          }
+
+          // Primary method: native scroll with behavior 'auto' (avoids WebKit smooth-scroll cancel bug)
+          window.scrollBy({ top: intPixels, left: 0, behavior: 'auto' });
+
+          // Fallback verification for mobile Safari / iOS WebKit:
+          const newY = window.pageYOffset || document.documentElement.scrollTop || (document.body ? document.body.scrollTop : 0) || 0;
+          if (newY === currentY && intPixels > 0 && currentY < maxScroll - 15) {
+            document.documentElement.scrollTop = currentY + intPixels;
+            if (document.body) {
+              document.body.scrollTop = currentY + intPixels;
+            }
+          }
+        }
       }
 
       this.autoScrollAnimFrame = requestAnimationFrame(scrollStep);
@@ -241,15 +282,51 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   stopAutoScroll(): void {
     this.isAutoScrolling = false;
+    this.scrollSubpixelAccumulator = 0;
     if (this.autoScrollAnimFrame !== null) {
       cancelAnimationFrame(this.autoScrollAnimFrame);
       this.autoScrollAnimFrame = null;
     }
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('is-autoscrolling');
+    }
+  }
+
+  cycleAutoScrollSpeed(): void {
+    let nextSpeed = this.autoScrollSpeed + 1;
+    if (nextSpeed > 4) nextSpeed = 1;
+    this.setAutoScrollSpeed(nextSpeed);
+  }
+
+  @HostListener('window:touchstart', [])
+  onTouchStart(): void {
+    this.isUserTouching = true;
+  }
+
+  @HostListener('window:touchend', [])
+  onTouchEnd(): void {
+    this.isUserTouching = false;
+    this.lastFrameTime = performance.now();
+  }
+
+  @HostListener('window:touchcancel', [])
+  onTouchCancel(): void {
+    this.isUserTouching = false;
+    this.lastFrameTime = performance.now();
   }
 
   setAutoScrollSpeed(speed: number): void {
     this.autoScrollSpeed = speed;
     localStorage.setItem('truyenkomi_autoscroll_speed', speed.toString());
+  }
+
+  toggleSpeedMenu(): void {
+    this.showSpeedMenu = !this.showSpeedMenu;
+  }
+
+  selectSpeed(speed: number): void {
+    this.setAutoScrollSpeed(speed);
+    this.showSpeedMenu = false;
   }
 
   loadSavedZoom(): void {
@@ -323,6 +400,9 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     const target = event.target as HTMLElement;
     if (!target.closest('.zoom-dropdown-wrap')) {
       this.showZoomMenu = false;
+    }
+    if (!target.closest('.as-speed-dropdown-wrap')) {
+      this.showSpeedMenu = false;
     }
   }
 
