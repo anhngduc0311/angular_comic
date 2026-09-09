@@ -1251,7 +1251,55 @@ EOF
 }
 
 # ==============================================================================
-# 2. KIỂM TRA VÀ THIẾT LẬP BỘ NHỚ ẢO SWAP (CHỐNG TRÀN RAM / OOM KILLER)
+# 2. KIỂM TRA VÀ THIẾT LẬP FILE MÔI TRƯỜNG .ENV (TỪ .ENV.EXAMPLE)
+# ==============================================================================
+setup_env_file() {
+    FORCE="${1:-0}"
+    if [ -f ".env" ] && [ "$FORCE" != "1" ] && [ "$FORCE" != "--force" ]; then
+        return 0
+    fi
+
+    log_header "KIỂM TRA VÀ THIẾT LẬP FILE CẤU HÌNH .ENV"
+
+    if [ -f ".env.example" ]; then
+        log_info "Đang khởi tạo file .env từ .env.example..."
+        cp .env.example .env
+        log_success "Đã tạo thành công file .env từ .env.example!"
+    elif [ -f "../.env.example" ]; then
+        log_info "Đang sao chép file cấu hình từ ../.env.example sang .env..."
+        cp ../.env.example .env
+        log_success "Đã tạo thành công file .env từ ../.env.example!"
+    else
+        log_info "Không tìm thấy .env.example. Đang tự động tạo file .env chuẩn với cấu hình Cloud & Web API..."
+        cat << 'EOF' > .env
+# ==================================================
+# 🚀 TruyenKomi Environment Configuration (.env)
+# ==================================================
+
+# 1. Primary Cloud Storage (Google Cloud Storage - S3 Interoperability)
+R2_ENDPOINT="storage.googleapis.com"
+R2_ACCESS_KEY="GOOGQHRXVRS7YCR24JBLB33S"
+R2_SECRET_KEY="3Iamo8whmuUeT2B+CMtRnfW6qdIsmwXVec47tF52"
+R2_BUCKET_NAME="truyenkomi"
+R2_SECURE=true
+R2_CDN_BASE_URL="https://img.truyenkomi.site"
+
+# 2. Web App & Backend API
+PUBLIC_DOMAIN="https://truyenkomi.com"
+API_BASE_URL="https://truyenkomi.com/api"
+EOF
+        log_success "Đã tạo file .env mặc định thành công!"
+    fi
+
+    if [ -f ".env" ]; then
+        echo -e "• File cấu hình: ${CYAN}$(pwd)/.env${NC}"
+        echo -e "• Cloud Bucket:  ${GREEN}$(grep '^R2_BUCKET_NAME=' .env 2>/dev/null | cut -d'=' -f2 | tr -d '\"' || echo 'truyenkomi')${NC}"
+        echo -e "• Web API:       ${CYAN}$(grep '^API_BASE_URL=' .env 2>/dev/null | cut -d'=' -f2 | tr -d '\"' || echo 'https://truyenkomi.com/api')${NC}\n"
+    fi
+}
+
+# ==============================================================================
+# 3. KIỂM TRA VÀ THIẾT LẬP BỘ NHỚ ẢO SWAP (CHỐNG TRÀN RAM / OOM KILLER)
 # ==============================================================================
 setup_swap_memory() {
     log_header "KIỂM TRA BỘ NHỚ ẢO SWAP (CHỐNG TRÀN RAM KHI CHẠY 32 LUỒNG)"
@@ -1310,10 +1358,13 @@ setup_swap_memory() {
 }
 
 # ==============================================================================
-# 3. KIỂM TRA VÀ CÀI ĐẶT MÔI TRƯỜNG TRÊN UBUNTU
+# 4. KIỂM TRA VÀ CÀI ĐẶT MÔI TRƯỜNG TRÊN UBUNTU
 # ==============================================================================
 setup_environment() {
     log_header "BƯỚC 1/2: KIỂM TRA VÀ THIẾT LẬP MÔI TRƯỜNG UBUNTU"
+
+    # Tự động tạo file .env từ .env.example nếu chưa có
+    setup_env_file
 
     # Tự động kiểm tra và tạo bộ nhớ ảo Swap chống tràn RAM
     setup_swap_memory
@@ -1476,6 +1527,12 @@ show_status() {
         echo -e "Trạng thái: ${YELLOW}CHƯA KHỞI CHẠY TIẾN TRÌNH NGẦM${NC}"
     fi
 
+    if [ -f ".env" ]; then
+        echo -e "Cấu hình .env: ${GREEN}${BOLD}ĐÃ KÍCH HOẠT (.env)${NC}"
+    else
+        echo -e "Cấu hình .env: ${YELLOW}Chưa có .env (Chọn [8] để tạo từ .env.example)${NC}"
+    fi
+
     echo -e "Lưu trữ:    ${GREEN}${BOLD}Cloud Storage Bucket & Web API${NC} (Đã tắt Google Drive)"
 
     SWAP_INFO=$(free -m 2>/dev/null | awk '/^Swap:/ {print $2}')
@@ -1532,7 +1589,10 @@ stop_background_process() {
 # ==============================================================================
 extract_python_engine
 
-if [ "$1" = "--setup-swap" ] || [ "$1" = "--swap" ]; then
+if [ "$1" = "--setup-env" ] || [ "$1" = "--env" ]; then
+    setup_env_file 1
+    exit 0
+elif [ "$1" = "--setup-swap" ] || [ "$1" = "--swap" ]; then
     setup_swap_memory
     exit 0
 elif [ "$1" = "--setup-drive" ] || [ "$1" = "--setup-rclone" ]; then
@@ -1587,8 +1647,15 @@ while true; do
         SWAP_BADGE="${YELLOW}🟡 0MB (Chọn [7] để tạo)${NC}"
     fi
 
+    if [ -f ".env" ]; then
+        ENV_BADGE="${GREEN}🟢 Đã có file .env${NC}"
+    else
+        ENV_BADGE="${YELLOW}🟡 Chưa có (Chọn [8] để tạo)${NC}"
+    fi
+
     echo -e "${CYAN}================================================================${NC}"
     echo -e "${BOLD}${MAGENTA}🚀 MANGADEX TO CLOUD STORAGE & WEB SYNCHRONIZER (UBUNTU)${NC}"
+    echo -e "   File cấu hình: $ENV_BADGE (Đọc từ .env / .env.example)"
     echo -e "   Cloud Bucket: ${GREEN}truyenkomi${NC} (Google Cloud Storage / R2)"
     echo -e "   Web API:      ${CYAN}https://truyenkomi.com/api${NC}"
     echo -e "   Bộ nhớ ảo:    $SWAP_BADGE (Chống tràn RAM/OOM khi chạy 32 luồng)"
@@ -1611,9 +1678,10 @@ while true; do
     echo -e "  ${BOLD}[5]${NC} 📊 ${BOLD}Xem trạng thái, thống kê & nhật ký${NC} (Logs)"
     echo -e "  ${BOLD}[6]${NC} 🛑 ${BOLD}Dừng tiến trình tải ngầm${NC}"
     echo -e "  ${BOLD}[7]${NC} 🛡️  ${BOLD}Thiết lập / Bật bộ nhớ ảo Swap (4GB / 2GB)${NC}"
+    echo -e "  ${BOLD}[8]${NC} 📝 ${BOLD}Tạo / Khôi phục file .env từ .env.example${NC}"
     echo -e "  ${BOLD}[0]${NC} ❌ Thoát"
     echo -e "${CYAN}----------------------------------------------------------------${NC}"
-    echo -n "Chọn thao tác [0-7]: "
+    echo -n "Chọn thao tác [0-8]: "
     read -r choice
 
     case "$choice" in
@@ -1624,6 +1692,19 @@ while true; do
         5) show_status ;;
         6) stop_background_process ;;
         7) setup_swap_memory ;;
+        8)
+            if [ -f ".env" ]; then
+                echo -n "File .env đã tồn tại. Bạn có muốn ghi đè từ .env.example không? [y/N]: "
+                read -r ovr
+                if [ "$ovr" = "y" ] || [ "$ovr" = "Y" ]; then
+                    setup_env_file 1
+                else
+                    log_info "Giữ nguyên file .env hiện tại."
+                fi
+            else
+                setup_env_file 1
+            fi
+            ;;
         0) echo -e "\nTạm biệt!\n"; exit 0 ;;
         *) log_warning "Lựa chọn không hợp lệ." ;;
     esac
