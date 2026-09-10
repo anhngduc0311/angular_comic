@@ -84,6 +84,16 @@ namespace TruyenKomi.API.Services
                     "latest" => query.OrderByDescending(c => c.UpdatedAt),
                     "chapters" => query.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.UpdatedAt),
                     "views" => query.OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt),
+                    "romance" or "ngon-tinh" or "ngontinh" or "tinh-cam" => query.Where(c => c.ComicCategories.Any(cc => 
+                        cc.Category.Slug == "romance" || 
+                        cc.Category.Slug == "ngon-tinh" || 
+                        cc.Category.Slug == "tinh-cam" ||
+                        cc.Category.Slug.Contains("romance") ||
+                        cc.Category.Slug.Contains("ngon-tinh") ||
+                        cc.Category.Name.ToLower().Contains("romance") || 
+                        cc.Category.Name.ToLower().Contains("ngôn tình") || 
+                        cc.Category.Name.ToLower().Contains("tình cảm")
+                    )).OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt),
                     _ => query.OrderByDescending(c => c.Views)
                               .ThenByDescending(c => c.Chapters.Count)
                               .ThenByDescending(c => c.UpdatedAt)

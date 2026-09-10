@@ -155,5 +155,42 @@ namespace TruyenKomi.Tests
             var byChapters = await comicService.GetFeaturedComicsAsync("chapters", 10);
             Assert.Equal("c1", byChapters[0].Slug); // C1 has 3 chapters
         }
+
+        [Fact]
+        public async Task GetFeaturedComicsAsync_CriteriaRomance_ShouldFilterRomanceCategory()
+        {
+            // Arrange
+            var db = GetInMemoryDbContext();
+            var romanceCategory = new Category { Id = 10, Name = "Ngôn Tình", Slug = "ngon-tinh" };
+            var actionCategory = new Category { Id = 20, Name = "Hành Động", Slug = "hanh-dong" };
+            db.Categories.AddRange(romanceCategory, actionCategory);
+
+            var actionComic = new Comic { Id = 1, Title = "Action Hero", Slug = "action-hero", Views = 10000, IsPublic = true };
+            var romanceComic = new Comic { Id = 2, Title = "Romance Love", Slug = "romance-love", Views = 5000, IsPublic = true };
+            db.Comics.AddRange(actionComic, romanceComic);
+
+            db.ComicCategories.Add(new ComicCategory { ComicId = 1, CategoryId = 20 });
+            db.ComicCategories.Add(new ComicCategory { ComicId = 2, CategoryId = 10 });
+
+            db.Chapters.Add(new Chapter { Id = 1, ComicId = 1, ChapterNumber = 1, Title = "Ch 1" });
+            db.Chapters.Add(new Chapter { Id = 2, ComicId = 2, ChapterNumber = 1, Title = "Ch 1" });
+
+            await db.SaveChangesAsync();
+
+            var mockNotificationService = new Mock<INotificationService>();
+            var mockCache = new Mock<ICacheService>();
+            mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<List<ComicDto>>>>(), It.IsAny<TimeSpan?>()))
+                .Returns<string, Func<Task<List<ComicDto>>>, TimeSpan?>((k, cb, ttl) => cb());
+            var mockGamification = new Mock<IGamificationService>();
+            var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object, mockGamification.Object);
+
+            // Act
+            var results = await comicService.GetFeaturedComicsAsync("romance", 10);
+
+            // Assert
+            Assert.NotNull(results);
+            Assert.Single(results);
+            Assert.Equal("romance-love", results[0].Slug);
+        }
     }
 }
