@@ -11,34 +11,180 @@
     </ol>
 
     <div class="main_content">
-      <div class="section-heading">
-        <h1 class="text_list_update">
-          <i class="fa fa-th-large"></i> TẤT CẢ THỂ LOẠI TRUYỆN
-        </h1>
+      <!-- Section Heading -->
+      <div class="category-header-section">
+        <div class="title-wrap">
+          <h1 class="text_list_update">
+            <i class="fa fa-th-large"></i> TẤT CẢ THỂ LOẠI TRUYỆN
+          </h1>
+          <span class="total-genres-badge" *ngIf="!isLoading">
+            <i class="fa fa-layer-group"></i> {{ categories.length }} thể loại
+          </span>
+        </div>
+        <p class="section-subtitle">
+          Khám phá danh sách thể loại truyện tranh phong phú. Tra cứu nhanh theo bảng chữ cái từ A đến Z hoặc tìm kiếm theo tên thể loại.
+        </p>
       </div>
 
-      <div class="category-grid" *ngIf="!isLoading; else catSkeleton">
-        <a *ngFor="let cat of categories" [routerLink]="['/comics']" [queryParams]="{ category: cat.slug }" class="truyengg-category-card">
-          <div class="cat-header">
-            <h3>{{ cat.name }}</h3>
-            <span class="count">{{ cat.comicCount }} truyện</span>
+      <!-- Alphabet Filter & Search Ribbon -->
+      <div class="alphabet-control-card">
+        <!-- Alphabet Jump Bar -->
+        <div class="alphabet-bar-header">
+          <div class="bar-title">
+            <i class="fa fa-font"></i> Bảng chữ cái A - Z:
           </div>
-          <p class="desc">{{ cat.description || 'Truyện thuộc thể loại ' + cat.name + ' chọn lọc hấp dẫn.' }}</p>
-          <div class="cat-footer">
-            <span>Khám phá <i class="fa fa-angle-right"></i></span>
+          <div class="filter-count-info" *ngIf="!isLoading">
+            Hiển thị <strong>{{ totalFilteredCount }}</strong> / {{ categories.length }} thể loại
           </div>
-        </a>
+        </div>
+
+        <div class="alphabet-ribbon" [class.is-loading]="isLoading">
+          <button 
+            *ngFor="let letter of alphabetList" 
+            type="button"
+            class="letter-btn" 
+            [class.active]="selectedLetter === letter"
+            [class.all-btn]="letter === 'TẤT CẢ'"
+            [class.empty-letter]="letter !== 'TẤT CẢ' && (!letterCounts[letter] || letterCounts[letter] === 0)"
+            [disabled]="letter !== 'TẤT CẢ' && (!letterCounts[letter] || letterCounts[letter] === 0)"
+            (click)="selectLetter(letter)"
+            [title]="letter === 'TẤT CẢ' ? 'Tất cả thể loại' : 'Chữ cái ' + letter + ' (' + (letterCounts[letter] || 0) + ' thể loại)'">
+            <span class="letter-char">{{ letter }}</span>
+            <span class="letter-counter" *ngIf="letterCounts[letter] && letterCounts[letter] > 0 && letter !== 'TẤT CẢ'">
+              {{ letterCounts[letter] }}
+            </span>
+          </button>
+        </div>
+
+        <!-- Search & Tools Bar -->
+        <div class="tools-bar">
+          <!-- Search Box -->
+          <div class="search-box-wrapper">
+            <i class="fa fa-search search-icon"></i>
+            <input 
+              type="text" 
+              class="genre-search-input" 
+              placeholder="Tìm nhanh thể loại (vd: Ecchi, Elf, Romance, Isekai...)" 
+              [(ngModel)]="searchQuery" 
+            />
+            <button *ngIf="searchQuery" (click)="clearSearch()" class="clear-search-btn" title="Xóa tìm kiếm">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+
+          <!-- Sort Select -->
+          <div class="sort-selector-wrapper">
+            <label class="sort-label"><i class="fa fa-sort"></i> Sắp xếp:</label>
+            <select [(ngModel)]="sortBy" class="sort-select">
+              <option value="az">Tên thể loại (A → Z)</option>
+              <option value="za">Tên thể loại (Z → A)</option>
+              <option value="popular">Phổ biến nhất (Nhiều truyện)</option>
+            </select>
+          </div>
+
+          <!-- Reset Filter Button -->
+          <button 
+            *ngIf="hasActiveFilters" 
+            (click)="resetFilters()" 
+            class="btn-reset-filters" 
+            title="Đặt lại tất cả bộ lọc">
+            <i class="fa fa-rotate-left"></i> Đặt lại
+          </button>
+        </div>
+
+        <!-- Active Filter Badges -->
+        <div class="active-filter-chips" *ngIf="hasActiveFilters">
+          <span class="chip-label">Đang lọc:</span>
+          <span class="filter-chip" *ngIf="selectedLetter !== 'TẤT CẢ'">
+            Chữ cái: <strong># {{ selectedLetter }}</strong>
+            <i class="fa fa-times chip-remove" (click)="selectedLetter = 'TẤT CẢ'"></i>
+          </span>
+          <span class="filter-chip" *ngIf="searchQuery.trim().length > 0">
+            Từ khóa: <strong>"{{ searchQuery }}"</strong>
+            <i class="fa fa-times chip-remove" (click)="clearSearch()"></i>
+          </span>
+          <span class="filter-chip" *ngIf="sortBy !== 'az'">
+            Sắp xếp: <strong>{{ sortBy === 'popular' ? 'Phổ biến' : 'Z → A' }}</strong>
+            <i class="fa fa-times chip-remove" (click)="sortBy = 'az'"></i>
+          </span>
+        </div>
       </div>
 
+      <!-- Categories Display Section Grouped by Letter (# A, # B, # E, # F...) -->
+      <ng-container *ngIf="!isLoading; else catSkeleton">
+        <!-- Empty State -->
+        <div class="empty-state-card" *ngIf="groupedCategories.length === 0">
+          <div class="empty-icon-wrap">
+            <i class="fa fa-filter-circle-xmark"></i>
+          </div>
+          <h3>Không tìm thấy thể loại nào</h3>
+          <p>
+            Không có thể loại nào phù hợp với bộ lọc hiện tại
+            <span *ngIf="selectedLetter !== 'TẤT CẢ'">chữ cái "<strong>{{ selectedLetter }}</strong>"</span>
+            <span *ngIf="searchQuery"> và từ khóa "<strong>{{ searchQuery }}</strong>"</span>.
+          </p>
+          <button class="btn-clear-all" (click)="resetFilters()">
+            <i class="fa fa-rotate-left"></i> Xem tất cả thể loại
+          </button>
+        </div>
+
+        <!-- Grouped Letter Sections (# A, # B, # E, # F...) -->
+        <div class="category-letter-groups" *ngIf="groupedCategories.length > 0">
+          <section 
+            *ngFor="let group of groupedCategories" 
+            [id]="'group-' + group.letter" 
+            class="letter-group-section">
+            
+            <!-- Letter Section Header (# E, # F, etc.) -->
+            <div class="group-header">
+              <h2 class="group-title">
+                <span class="hash-symbol">#</span> {{ group.letter }}
+              </h2>
+            </div>
+
+            <!-- Category Cards (2-column layout matching user reference) -->
+            <div class="category-cards-grid">
+              <a 
+                *ngFor="let cat of group.categories" 
+                [routerLink]="['/comics']" 
+                [queryParams]="{ category: cat.slug }" 
+                class="category-card-item">
+                
+                <!-- Category ID Box (Left) -->
+                <div class="cat-number-box">
+                  {{ cat.id }}
+                </div>
+
+                <!-- Category Info (Right) -->
+                <div class="cat-info-box">
+                  <h3 class="cat-name" [title]="cat.name">{{ cat.name }}</h3>
+                  <span class="cat-count-text">{{ cat.comicCount || 0 }} truyện</span>
+                </div>
+              </a>
+            </div>
+          </section>
+        </div>
+      </ng-container>
+
+      <!-- Skeleton Loader -->
       <ng-template #catSkeleton>
-        <div class="category-grid">
-          <div class="truyengg-category-card skeleton-card" *ngFor="let _ of skeletonCategories">
-            <div class="skeleton skeleton-title" style="width: 60%; height: 20px; margin-bottom: 10px;"></div>
-            <div class="skeleton skeleton-text" style="width: 90%;"></div>
-            <div class="skeleton skeleton-text" style="width: 50%;"></div>
+        <div class="category-letter-groups">
+          <div class="letter-group-section" *ngFor="let _ of [1, 2]">
+            <div class="skeleton" style="width: 80px; height: 36px; margin-bottom: 16px; border-radius: 8px;"></div>
+            <div class="category-cards-grid">
+              <div class="category-card-item skeleton-card" *ngFor="let _ of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]">
+                <div class="skeleton" style="width: 36px; height: 36px; border-radius: 6px; flex-shrink: 0;"></div>
+                <div style="flex: 1;">
+                  <div class="skeleton" style="width: 65%; height: 16px; margin-bottom: 5px; border-radius: 4px;"></div>
+                  <div class="skeleton" style="width: 40%; height: 12px; border-radius: 4px;"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </ng-template>
     </div>
   </div>
 </div>
+
+
