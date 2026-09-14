@@ -464,12 +464,39 @@ export class AdminChaptersComponent implements OnInit {
     });
   }
 
-  async downloadChapter(chapter: ChapterDetail): Promise<void> {
+  downloadChapter(chapter: ChapterDetail): void {
     if (this.isDownloadingMap[chapter.id]) return;
 
     this.isDownloadingMap[chapter.id] = true;
-    this.downloadProgressMap[chapter.id] = 'Đang chuẩn bị...';
+    this.downloadProgressMap[chapter.id] = 'Đang chuẩn bị gói file ZIP...';
 
+    // 1. Ưu tiên tải trực tiếp từ Backend để vượt qua hoàn toàn rào cản CORS của CDN
+    this.comicService.downloadChapterZip(chapter.id).subscribe({
+      next: (blob: Blob) => {
+        const comicName = (this.comic?.title || 'Comic').replace(/[/\\?%*:|"<>]/g, '_').trim();
+        const zipFilename = `${comicName} - Chap ${chapter.chapterNumber}.zip`;
+
+        const downloadUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = zipFilename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(downloadUrl), 10000);
+
+        this.isDownloadingMap[chapter.id] = false;
+        delete this.downloadProgressMap[chapter.id];
+        this.showMessage(`Đã tải xuống thành công Chapter ${chapter.chapterNumber} (.zip)!`);
+      },
+      error: async (err) => {
+        console.warn('Backend download gặp sự cố, tự động fallback sang client-side download:', err);
+        await this.downloadChapterClientSide(chapter);
+      }
+    });
+  }
+
+  async downloadChapterClientSide(chapter: ChapterDetail): Promise<void> {
     try {
       // 1. Tải chi tiết chapter nếu pages chưa được nạp
       let pages = chapter.pages;
@@ -503,6 +530,17 @@ export class AdminChaptersComponent implements OnInit {
         this.downloadProgressMap[chapter.id] = `Đang tải ảnh ${pageNum}/${pages.length}...`;
 
         try {
+          if (page.imageUrl.startsWith('data:image/')) {
+            const res = await fetch(page.imageUrl);
+            const blob = await res.blob();
+            let ext = 'jpg';
+            if (page.imageUrl.includes('image/png')) ext = 'png';
+            else if (page.imageUrl.includes('image/webp')) ext = 'webp';
+            zip.file(`${String(pageNum).padStart(3, '0')}.${ext}`, blob);
+            successCount++;
+            continue;
+          }
+
           const response = await fetch(page.imageUrl);
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const blob = await response.blob();

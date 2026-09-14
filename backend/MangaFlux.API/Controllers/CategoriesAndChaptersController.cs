@@ -1,3 +1,7 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -42,6 +46,118 @@ namespace TruyenKomi.API.Controllers
             var chapter = await _comicService.GetChapterByIdAsync(id);
             if (chapter == null) return NotFound(new { message = "Không tìm thấy chương này." });
             return Ok(chapter);
+        }
+
+        [HttpGet("{id}/download")]
+        public async Task<IActionResult> DownloadChapter(int id)
+        {
+            var chapter = await _comicService.GetChapterByIdAsync(id);
+            if (chapter == null) return NotFound(new { message = "Không tìm thấy chương này." });
+            if (chapter.Pages == null || chapter.Pages.Count == 0)
+            {
+                return BadRequest(new { message = "Chương này chưa có trang ảnh nào để tải về." });
+            }
+
+            var sortedPages = chapter.Pages.OrderBy(p => p.PageNumber).ToList();
+            var memoryStream = new MemoryStream();
+
+            try
+            {
+                using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
+                {
+                    using var httpClient = new HttpClient();
+                    httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                    httpClient.Timeout = TimeSpan.FromSeconds(45);
+
+                    var throttler = new System.Threading.SemaphoreSlim(8);
+                    var downloadTasks = sortedPages.Select(async (page, index) =>
+                    {
+                        await throttler.WaitAsync();
+                        try
+                        {
+                            var imgUrl = page.ImageUrl;
+                            if (string.IsNullOrWhiteSpace(imgUrl)) return null;
+
+                            if (imgUrl.StartsWith("/"))
+                            {
+                                imgUrl = $"{Request.Scheme}://{Request.Host}{imgUrl}";
+                            }
+
+                            if (imgUrl.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var base64Parts = imgUrl.Split(',');
+                                if (base64Parts.Length == 2)
+                                {
+                                    var bytes = Convert.FromBase64String(base64Parts[1]);
+                                    var dataExt = "jpg";
+                                    if (imgUrl.Contains("image/png")) dataExt = "png";
+                                    else if (imgUrl.Contains("image/webp")) dataExt = "webp";
+                                    return new { Index = index + 1, Bytes = bytes, Extension = dataExt };
+                                }
+                            }
+
+                            var response = await httpClient.GetAsync(imgUrl);
+                            if (!response.IsSuccessStatusCode) return null;
+
+                            var imageBytes = await response.Content.ReadAsByteArrayAsync();
+                            var ext = "jpg";
+                            var match = System.Text.RegularExpressions.Regex.Match(imgUrl, @"\.(jpg|jpeg|png|webp|avif|gif)(?:\?.*)?$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                            if (match.Success)
+                            {
+                                ext = match.Groups[1].Value.ToLowerInvariant();
+                                if (ext == "jpeg") ext = "jpg";
+                            }
+                            else if (response.Content.Headers.ContentType?.MediaType != null)
+                            {
+                                var mime = response.Content.Headers.ContentType.MediaType.ToLowerInvariant();
+                                if (mime.Contains("png")) ext = "png";
+                                else if (mime.Contains("webp")) ext = "webp";
+                                else if (mime.Contains("avif")) ext = "avif";
+                                else if (mime.Contains("gif")) ext = "gif";
+                            }
+
+                            return new { Index = index + 1, Bytes = imageBytes, Extension = ext };
+                        }
+                        catch
+                        {
+                            return null;
+                        }
+                        finally
+                        {
+                            throttler.Release();
+                        }
+                    });
+
+                    var results = await Task.WhenAll(downloadTasks);
+                    var validResults = results.Where(r => r != null && r.Bytes != null && r.Bytes.Length > 0)
+                                              .OrderBy(r => r!.Index)
+                                              .ToList();
+
+                    if (validResults.Count == 0)
+                    {
+                        return StatusCode(502, new { message = "Không thể tải được trang ảnh nào từ máy chủ lưu trữ (vui lòng kiểm tra lại URL ảnh)." });
+                    }
+
+                    foreach (var item in validResults)
+                    {
+                        var entryName = $"{item!.Index:D3}.{item.Extension}";
+                        var entry = archive.CreateEntry(entryName, System.IO.Compression.CompressionLevel.Optimal);
+                        using var entryStream = entry.Open();
+                        await entryStream.WriteAsync(item.Bytes);
+                    }
+                }
+
+                memoryStream.Seek(0, SeekOrigin.Begin);
+                var comicTitle = string.IsNullOrWhiteSpace(chapter.ComicTitle) ? "Comic" : chapter.ComicTitle;
+                var safeComicTitle = System.Text.RegularExpressions.Regex.Replace(comicTitle, @"[/\\?%*:|""<>]", "_").Trim();
+                var fileName = $"{safeComicTitle} - Chap {chapter.ChapterNumber}.zip";
+
+                return File(memoryStream.ToArray(), "application/zip", fileName);
+            }
+            finally
+            {
+                await memoryStream.DisposeAsync();
+            }
         }
 
         [HttpGet("by-slug/{comicSlug}/chuong-{chapterNumber}")]

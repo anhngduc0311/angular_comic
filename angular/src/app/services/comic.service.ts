@@ -206,6 +206,10 @@ export class ComicService {
     return this.api.get<ChapterDetail[]>(`admin/comics/${comicId}/chapters`);
   }
 
+  downloadChapterZip(chapterId: number): Observable<Blob> {
+    return this.api.getBlob(`chapters/${chapterId}/download`);
+  }
+
   addChapter(data: any): Observable<any> {
     return this.api.post<any>('admin/chapters', data);
   }
