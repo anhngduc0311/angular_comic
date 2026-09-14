@@ -81,9 +81,9 @@ namespace TruyenKomi.API.Services
 
                 query = crit switch
                 {
-                    "latest" => query.OrderByDescending(c => c.UpdatedAt),
-                    "chapters" => query.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.UpdatedAt),
-                    "views" => query.OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt),
+                    "latest" => query.OrderByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
+                    "chapters" => query.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
+                    "views" => query.OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
                     "romance" or "ngon-tinh" or "ngontinh" or "tinh-cam" => query.Where(c => c.ComicCategories.Any(cc => 
                         cc.Category.Slug == "romance" || 
                         cc.Category.Slug == "ngon-tinh" || 
@@ -93,10 +93,11 @@ namespace TruyenKomi.API.Services
                         cc.Category.Name.ToLower().Contains("romance") || 
                         cc.Category.Name.ToLower().Contains("ngôn tình") || 
                         cc.Category.Name.ToLower().Contains("tình cảm")
-                    )).OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt),
+                    )).OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
                     _ => query.OrderByDescending(c => c.Views)
                               .ThenByDescending(c => c.Chapters.Count)
                               .ThenByDescending(c => c.UpdatedAt)
+                              .ThenByDescending(c => c.Id)
                 };
 
                 var result = await query
@@ -112,6 +113,7 @@ namespace TruyenKomi.API.Services
                         .Where(c => c.IsPublic)
                         .OrderByDescending(c => c.Views)
                         .ThenByDescending(c => c.UpdatedAt)
+                        .ThenByDescending(c => c.Id)
                         .Take(count)
                         .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                         .Include(c => c.Chapters)
@@ -129,12 +131,26 @@ namespace TruyenKomi.API.Services
             {
                 var comics = await _context.Comics
                     .AsNoTracking()
-                    .Where(c => c.IsPublic)
+                    .Where(c => c.IsPublic && c.Chapters.Any())
                     .OrderByDescending(c => c.UpdatedAt)
+                    .ThenByDescending(c => c.Id)
                     .Take(count)
                     .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                     .Include(c => c.Chapters)
                     .ToListAsync();
+
+                if (comics.Count == 0)
+                {
+                    comics = await _context.Comics
+                        .AsNoTracking()
+                        .Where(c => c.IsPublic)
+                        .OrderByDescending(c => c.UpdatedAt)
+                        .ThenByDescending(c => c.Id)
+                        .Take(count)
+                        .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                        .Include(c => c.Chapters)
+                        .ToListAsync();
+                }
 
                 return comics.Select(c => MapToComicDto(c)).ToList();
             }, TimeSpan.FromMinutes(15))) ?? new List<ComicDto>();
@@ -208,11 +224,11 @@ namespace TruyenKomi.API.Services
 
             comicsQuery = (sortBy?.ToLowerInvariant()) switch
             {
-                "views" => comicsQuery.OrderByDescending(c => c.Views),
-                "rating" => comicsQuery.OrderByDescending(c => c.Rating),
-                "title" or "az" => comicsQuery.OrderBy(c => c.Title),
-                "chapters" => comicsQuery.OrderByDescending(c => c.Chapters.Count),
-                _ => comicsQuery.OrderByDescending(c => c.UpdatedAt)
+                "views" => comicsQuery.OrderByDescending(c => c.Views).ThenByDescending(c => c.Id),
+                "rating" => comicsQuery.OrderByDescending(c => c.Rating).ThenByDescending(c => c.Id),
+                "title" or "az" => comicsQuery.OrderBy(c => c.Title).ThenBy(c => c.Id),
+                "chapters" => comicsQuery.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.Id),
+                _ => comicsQuery.OrderByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id)
             };
 
             page = page < 1 ? 1 : page;
@@ -1563,6 +1579,8 @@ namespace TruyenKomi.API.Services
                     ChapterNumber = ch.ChapterNumber,
                     Title = ch.Title,
                     Views = ch.Views,
+                    IsPublic = ch.IsPublic,
+                    PublishedAt = ch.PublishedAt,
                     CreatedAt = ch.CreatedAt
                 }).ToList() ?? new List<ChapterDto>();
 
@@ -1605,6 +1623,8 @@ namespace TruyenKomi.API.Services
                     ChapterNumber = latestChapter.ChapterNumber,
                     Title = latestChapter.Title,
                     Views = latestChapter.Views,
+                    IsPublic = latestChapter.IsPublic,
+                    PublishedAt = latestChapter.PublishedAt,
                     CreatedAt = latestChapter.CreatedAt
                 },
                 RecentChapters = recentChapters

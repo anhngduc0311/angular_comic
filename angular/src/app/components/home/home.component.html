@@ -128,10 +128,20 @@
                     <a [title]="comic.title" [routerLink]="['/comic', comic.slug]">{{ comic.title }}</a>
                   </h3>
                 </div>
-                <div class="last_chapter" *ngIf="comic.latestChapter">
-                  <a [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]">
+                <div class="last_chapter">
+                  <a *ngIf="comic.latestChapter" [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]">
                     Chương {{ comic.latestChapter.chapterNumber }}
                   </a>
+                  <a *ngIf="!comic.latestChapter && comic.recentChapters && comic.recentChapters.length > 0"
+                    [routerLink]="['/comic', comic.slug, 'chapter', comic.recentChapters[0].id]">
+                    Chương {{ comic.recentChapters[0].chapterNumber }}
+                  </a>
+                  <span *ngIf="!comic.latestChapter && (!comic.recentChapters || comic.recentChapters.length === 0) && comic.totalChapters && comic.totalChapters > 0" class="ch-updating">
+                    Chương {{ comic.totalChapters }}
+                  </span>
+                  <span *ngIf="!comic.latestChapter && (!comic.recentChapters || comic.recentChapters.length === 0) && (!comic.totalChapters || comic.totalChapters === 0)" class="ch-updating">
+                    <i class="fa fa-clock-o"></i> Đang cập nhật
+                  </span>
                 </div>
               </div>
             </div>

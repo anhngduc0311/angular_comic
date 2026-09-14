@@ -48,31 +48,67 @@ namespace TruyenKomi.API.Services
                 .Include(b => b.Comic).ThenInclude(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                 .Include(b => b.Comic).ThenInclude(c => c.Chapters)
                 .OrderByDescending(b => b.CreatedAt)
+                .ThenByDescending(b => b.Id)
                 .ToListAsync();
 
-            return bookmarks.Select(b => new BookmarkDto
+            return bookmarks.Select(b => 
             {
-                Id = b.Id,
-                ComicId = b.ComicId,
-                CreatedAt = b.CreatedAt,
-                Comic = new ComicDto
-                {
-                    Id = b.Comic.Id,
-                    Title = b.Comic.Title,
-                    Slug = b.Comic.Slug,
-                    CoverImage = b.Comic.CoverImage,
-                    Author = b.Comic.Author,
-                    Status = b.Comic.Status,
-                    Rating = b.Comic.Rating,
-                    Views = b.Comic.Views,
-                    UpdatedAt = b.Comic.UpdatedAt,
-                    Categories = b.Comic.ComicCategories.Select(cc => new CategoryDto
+                var orderedChapters = b.Comic.Chapters?
+                    .OrderByDescending(ch => ch.ChapterNumber)
+                    .ToList();
+                var latestChapter = orderedChapters?.FirstOrDefault();
+                var recentChapters = orderedChapters?
+                    .Take(3)
+                    .Select(ch => new ChapterDto
                     {
-                        Id = cc.Category.Id,
-                        Name = cc.Category.Name,
-                        Slug = cc.Category.Slug
-                    }).ToList()
-                }
+                        Id = ch.Id,
+                        ComicId = ch.ComicId,
+                        ChapterNumber = ch.ChapterNumber,
+                        Title = ch.Title,
+                        Views = ch.Views,
+                        IsPublic = ch.IsPublic,
+                        PublishedAt = ch.PublishedAt,
+                        CreatedAt = ch.CreatedAt
+                    }).ToList() ?? new List<ChapterDto>();
+
+                return new BookmarkDto
+                {
+                    Id = b.Id,
+                    ComicId = b.ComicId,
+                    CreatedAt = b.CreatedAt,
+                    Comic = new ComicDto
+                    {
+                        Id = b.Comic.Id,
+                        Title = b.Comic.Title,
+                        Slug = b.Comic.Slug,
+                        CoverImage = b.Comic.CoverImage,
+                        Author = b.Comic.Author,
+                        Status = b.Comic.Status,
+                        Rating = b.Comic.Rating,
+                        Views = b.Comic.Views,
+                        UpdatedAt = b.Comic.UpdatedAt,
+                        TotalChapters = b.Comic.Chapters?.Count ?? 0,
+                        LatestChapter = latestChapter == null ? null : new ChapterDto
+                        {
+                            Id = latestChapter.Id,
+                            ComicId = latestChapter.ComicId,
+                            ChapterNumber = latestChapter.ChapterNumber,
+                            Title = latestChapter.Title,
+                            Views = latestChapter.Views,
+                            IsPublic = latestChapter.IsPublic,
+                            PublishedAt = latestChapter.PublishedAt,
+                            CreatedAt = latestChapter.CreatedAt
+                        },
+                        RecentChapters = recentChapters,
+                        Country = ComicService.ResolveComicCountry(b.Comic),
+                        Categories = b.Comic.ComicCategories?.Select(cc => new CategoryDto
+                        {
+                            Id = cc.Category.Id,
+                            Name = cc.Category.Name,
+                            Slug = cc.Category.Slug
+                        }).ToList() ?? new List<CategoryDto>()
+                    }
+                };
             }).ToList();
         }
 

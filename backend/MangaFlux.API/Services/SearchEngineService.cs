@@ -128,6 +128,7 @@ namespace TruyenKomi.API.Services
                         (c.Author != null && c.Author.Contains(qText)) || 
                         (c.OtherNames != null && c.OtherNames.Contains(qText))))
                     .OrderByDescending(c => c.Views)
+                    .ThenByDescending(c => c.Id)
                     .Take(limit * 3)
                     .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                     .Include(c => c.Chapters)
@@ -285,11 +286,11 @@ namespace TruyenKomi.API.Services
             // 8. Sorting directly in SQL Server
             query = (filter.SortBy?.ToLowerInvariant()) switch
             {
-                "views" => query.OrderByDescending(c => c.Views),
-                "rating" => query.OrderByDescending(c => c.Rating),
-                "az" or "title" => query.OrderBy(c => c.Title),
-                "chapters" => query.OrderByDescending(c => c.Chapters.Count),
-                _ => query.OrderByDescending(c => c.UpdatedAt)
+                "views" => query.OrderByDescending(c => c.Views).ThenByDescending(c => c.Id),
+                "rating" => query.OrderByDescending(c => c.Rating).ThenByDescending(c => c.Id),
+                "az" or "title" => query.OrderBy(c => c.Title).ThenBy(c => c.Id),
+                "chapters" => query.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.Id),
+                _ => query.OrderByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id)
             };
 
             int page = filter.Page < 1 ? 1 : filter.Page;
