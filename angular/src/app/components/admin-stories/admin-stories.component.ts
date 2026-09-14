@@ -29,6 +29,15 @@ export class AdminStoriesComponent implements OnInit {
   selectedCategory: string = 'All';
   sortBy: 'latest' | 'views' | 'rating' | 'title' | 'chapters' = 'latest';
 
+  // Pagination States
+  currentPage: number = 1;
+  pageSize: number = 10;
+  pageSizeOptions: number[] = [10, 20, 50, 100];
+  totalPages: number = 1;
+  pagedComics: Comic[] = [];
+  startIndex: number = 0;
+  endIndex: number = 0;
+
   // Form Modal State
   showFormModal: boolean = false;
   isEditing: boolean = false;
@@ -68,15 +77,15 @@ export class AdminStoriesComponent implements OnInit {
     this.loadData();
   }
 
-  loadData(): void {
+  loadData(preservePage: boolean = false): void {
     this.isLoading = true;
-    this.comicService.getLatestComics(100).subscribe({
+    this.comicService.getLatestComics(500).subscribe({
       next: (data) => {
         this.comics = data.map(c => ({
           ...c,
           isPublic: c.isPublic !== undefined ? c.isPublic : true
         }));
-        this.applyFilters();
+        this.applyFilters(!preservePage);
         this.isLoading = false;
       },
       error: (err) => {
@@ -89,7 +98,7 @@ export class AdminStoriesComponent implements OnInit {
     this.comicService.getCategories().subscribe(cats => this.categories = cats);
   }
 
-  applyFilters(): void {
+  applyFilters(resetPage: boolean = true): void {
     let result = [...this.comics];
 
     // Search by title or author
@@ -136,6 +145,74 @@ export class AdminStoriesComponent implements OnInit {
     });
 
     this.filteredComics = result;
+    this.updatePagination(resetPage);
+  }
+
+  updatePagination(resetPage: boolean = false): void {
+    const total = this.filteredComics.length;
+    this.totalPages = Math.max(1, Math.ceil(total / this.pageSize));
+
+    if (resetPage || this.currentPage < 1) {
+      this.currentPage = 1;
+    } else if (this.currentPage > this.totalPages) {
+      this.currentPage = this.totalPages;
+    }
+
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = Math.min(start + this.pageSize, total);
+
+    this.startIndex = total === 0 ? 0 : start + 1;
+    this.endIndex = end;
+    this.pagedComics = this.filteredComics.slice(start, end);
+  }
+
+  onPageChange(newPage: number): void {
+    if (newPage >= 1 && newPage <= this.totalPages && newPage !== this.currentPage) {
+      this.currentPage = newPage;
+      this.updatePagination(false);
+
+      const tableElem = document.querySelector('.table-container');
+      if (tableElem) {
+        tableElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  onPageSizeChange(): void {
+    this.pageSize = Number(this.pageSize);
+    this.updatePagination(true);
+  }
+
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const total = this.totalPages;
+    const current = this.currentPage;
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+      return pages;
+    }
+
+    pages.push(1);
+
+    if (current > 3) {
+      pages.push('...');
+    }
+
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+
+    if (current < total - 2) {
+      pages.push('...');
+    }
+
+    pages.push(total);
+
+    return pages;
   }
 
   toggleVisibility(comic: Comic): void {
@@ -143,7 +220,7 @@ export class AdminStoriesComponent implements OnInit {
       next: (res) => {
         comic.isPublic = res.isPublic;
         this.showMessage(`Đã chuyển '${comic.title}' sang ${res.isPublic ? 'Công khai' : 'Đang ẩn'}.`);
-        this.applyFilters();
+        this.applyFilters(false);
       },
       error: () => this.showMessage('Chuyển đổi trạng thái thất bại.', true)
     });
@@ -158,7 +235,7 @@ export class AdminStoriesComponent implements OnInit {
             ? `Đã chọn '${comic.title}' làm Truyện Hot Trang Chủ!`
             : `Đã bỏ chọn Truyện Hot cho '${comic.title}'.`
         );
-        this.applyFilters();
+        this.applyFilters(false);
       },
       error: () => this.showMessage('Chuyển đổi trạng thái Truyện Hot thất bại.', true)
     });
@@ -185,7 +262,7 @@ export class AdminStoriesComponent implements OnInit {
     this.comicService.unpinAllFeaturedComics().subscribe({
       next: (res) => {
         this.comics.forEach(c => c.isFeatured = false);
-        this.applyFilters();
+        this.applyFilters(false);
         this.showMessage(`Đã gỡ Hot thành công cho toàn bộ ${res.count} truyện!`);
         this.isUnpinning = false;
       },
@@ -267,7 +344,7 @@ export class AdminStoriesComponent implements OnInit {
         next: () => {
           this.showMessage('Cập nhật bộ truyện thành công!');
           this.closeFormModal();
-          this.loadData();
+          this.loadData(true);
         },
         error: () => this.showMessage('Cập nhật bộ truyện thất bại.', true)
       });
@@ -276,7 +353,7 @@ export class AdminStoriesComponent implements OnInit {
         next: () => {
           this.showMessage('Thêm bộ truyện mới thành công!');
           this.closeFormModal();
-          this.loadData();
+          this.loadData(false);
         },
         error: () => this.showMessage('Thêm bộ truyện thất bại.', true)
       });
@@ -288,7 +365,7 @@ export class AdminStoriesComponent implements OnInit {
       this.comicService.deleteComic(comic.id).subscribe({
         next: () => {
           this.showMessage(`Đã xóa bộ truyện "${comic.title}".`);
-          this.loadData();
+          this.loadData(true);
         },
         error: () => this.showMessage('Xóa bộ truyện thất bại.', true)
       });
@@ -335,7 +412,7 @@ export class AdminStoriesComponent implements OnInit {
       next: () => {
         this.showMessage(`Đã cập nhật ảnh bìa cho truyện "${comic.title}".`);
         this.closeCoverModal();
-        this.loadData();
+        this.loadData(true);
       },
       error: () => this.showMessage('Cập nhật ảnh bìa thất bại.', true)
     });

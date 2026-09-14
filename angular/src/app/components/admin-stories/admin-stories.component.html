@@ -113,6 +113,14 @@
           <option value="title">Tên A-Z</option>
         </select>
       </div>
+
+      <!-- Page Size Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-list-ol"></i> Hiển Thị:</label>
+        <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+          <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }} truyện / trang</option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -160,7 +168,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let comic of filteredComics">
+        <tr *ngFor="let comic of pagedComics">
           <td>#{{ comic.id }}</td>
           <td>
             <div class="cover-thumb-wrap" (click)="openCoverManager(comic)" title="Bấm để đổi ảnh bìa">
@@ -230,7 +238,64 @@
         </tr>
       </tbody>
     </table>
-  </div>
+
+    <!-- Pagination Footer -->
+    <div class="table-pagination-footer" *ngIf="filteredComics.length > 0">
+      <div class="pagination-info">
+        Hiển thị <strong>{{ startIndex }}</strong> - <strong>{{ endIndex }}</strong> trong <strong>{{ filteredComics.length }}</strong> bộ truyện (Trang <strong>{{ currentPage }}</strong> / <strong>{{ totalPages }}</strong>)
+      </div>
+
+      <div class="pagination-actions">
+        <!-- Select Items Per Page in Footer -->
+        <div class="footer-page-size">
+          <label>Hiển thị:</label>
+          <select [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+            <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }} / trang</option>
+          </select>
+        </div>
+
+        <!-- Pagination Controls List -->
+        <ul class="pagination-list" *ngIf="totalPages > 1">
+          <!-- First Page -->
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <button type="button" class="page-link" [disabled]="currentPage === 1" (click)="onPageChange(1)" title="Trang đầu">
+              <i class="fa-solid fa-angles-left"></i>
+            </button>
+          </li>
+
+          <!-- Previous Page -->
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <button type="button" class="page-link" [disabled]="currentPage === 1" (click)="onPageChange(currentPage - 1)" title="Trang trước">
+              <i class="fa-solid fa-angle-left"></i>
+            </button>
+          </li>
+
+          <!-- Page Numbers -->
+          <li class="page-item" *ngFor="let p of getPageNumbers()" [class.active]="p === currentPage" [class.dots]="p === '...'">
+            <button type="button" class="page-link" *ngIf="p !== '...'; else dotsBlock" (click)="onPageChange(+p)">
+              {{ p }}
+            </button>
+            <ng-template #dotsBlock>
+              <span class="page-dots">...</span>
+            </ng-template>
+          </li>
+
+          <!-- Next Page -->
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <button type="button" class="page-link" [disabled]="currentPage === totalPages" (click)="onPageChange(currentPage + 1)" title="Trang sau">
+              <i class="fa-solid fa-angle-right"></i>
+            </button>
+          </li>
+
+          <!-- Last Page -->
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <button type="button" class="page-link" [disabled]="currentPage === totalPages" (click)="onPageChange(totalPages)" title="Trang cuối">
+              <i class="fa-solid fa-angles-right"></i>
+            </button>
+          </li>
+        </ul>
+      </div>
+    </div>
 </div>
 
 <!-- ==========================================================================

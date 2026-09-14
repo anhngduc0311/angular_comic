@@ -411,6 +411,10 @@ button, input, select, textarea {
   overflow: visible;
   transition: transform 0.25s ease;
   position: relative;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 
   &:hover {
     transform: translateY(-4px);
@@ -427,6 +431,7 @@ button, input, select, textarea {
   .book_avatar {
     position: relative;
     width: 100%;
+    max-width: 100%;
     aspect-ratio: 3 / 4.2;
     overflow: hidden;
     border-radius: 6px;
@@ -435,13 +440,16 @@ button, input, select, textarea {
     a {
       display: block;
       width: 100%;
+      max-width: 100%;
       height: 100%;
     }
 
     img {
       width: 100%;
+      max-width: 100%;
       height: 100%;
       object-fit: cover;
+      display: block;
       transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -534,9 +542,13 @@ button, input, select, textarea {
     display: flex;
     flex-direction: column;
     flex: 1;
+    min-width: 0;
+    width: 100%;
 
     .book_name {
       margin-bottom: 4px;
+      min-width: 0;
+      width: 100%;
 
       h3 {
         font-size: 14.5px;
@@ -551,12 +563,16 @@ button, input, select, textarea {
           -webkit-box-orient: vertical;
           overflow: hidden;
           transition: color 0.2s;
+          word-break: break-word;
+          overflow-wrap: break-word;
         }
       }
     }
 
     .last_chapter {
       margin-top: 3px;
+      min-width: 0;
+      width: 100%;
       a {
         font-size: 12.5px;
         color: var(--text-muted);
@@ -575,6 +591,8 @@ button, input, select, textarea {
       flex-direction: column;
       gap: 1px;
       margin-top: 2px;
+      min-width: 0;
+      width: 100%;
 
       .chapter-row-clean {
         display: flex;
@@ -692,34 +710,34 @@ button, input, select, textarea {
 .list_grid,
 .comics-grid-modern {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px 8px;
   list-style: none;
   padding: 0;
   margin: 0;
 
   @media (min-width: 480px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 14px 10px;
   }
 
   @media (min-width: 640px) {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 16px 12px;
   }
 
   @media (min-width: 768px) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 20px 14px;
   }
 
   @media (min-width: 1024px) {
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 22px 16px;
   }
 
   @media (min-width: 1280px) {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 24px 18px;
   }
 }
