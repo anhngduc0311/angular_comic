@@ -149,6 +149,13 @@ namespace TruyenKomi.API.Controllers
             return Ok(stats);
         }
 
+        [HttpGet("comics")]
+        public async Task<IActionResult> GetAllComics()
+        {
+            var comics = await _comicService.GetAllComicsForAdminAsync();
+            return Ok(comics);
+        }
+
         [HttpGet("comics/{id}")]
         public async Task<IActionResult> GetComicById(int id)
         {

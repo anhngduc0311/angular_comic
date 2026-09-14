@@ -79,7 +79,7 @@ export class AdminStoriesComponent implements OnInit {
 
   loadData(preservePage: boolean = false): void {
     this.isLoading = true;
-    this.comicService.getLatestComics(500).subscribe({
+    this.comicService.getAdminComics().subscribe({
       next: (data) => {
         this.comics = data.map(c => ({
           ...c,

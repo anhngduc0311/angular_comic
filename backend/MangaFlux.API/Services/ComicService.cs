@@ -26,6 +26,7 @@ namespace TruyenKomi.API.Services
         Task<PagedSearchResultDto<CommentDto>> GetComicCommentsBySlugAsync(string slug, int page = 1, int pageSize = 20, int? currentUserId = null);
 
         // Admin operations
+        Task<List<ComicDto>> GetAllComicsForAdminAsync();
         Task<DashboardStatsDto> GetDashboardStatsAsync();
         Task<ComicDto> CreateComicAsync(ComicCreateUpdateDto dto);
         Task<ComicDto?> UpdateComicAsync(int id, ComicCreateUpdateDto dto);
@@ -720,6 +721,19 @@ namespace TruyenKomi.API.Services
         }
 
         // Admin CRUD
+        public async Task<List<ComicDto>> GetAllComicsForAdminAsync()
+        {
+            var comics = await _context.Comics
+                .AsNoTracking()
+                .OrderByDescending(c => c.UpdatedAt)
+                .ThenByDescending(c => c.Id)
+                .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                .Include(c => c.Chapters)
+                .ToListAsync();
+
+            return comics.Select(c => MapToComicDto(c)).ToList();
+        }
+
         public async Task<ComicDto> CreateComicAsync(ComicCreateUpdateDto dto)
         {
             var rawSlug = string.IsNullOrWhiteSpace(dto.Slug) ? dto.Title : dto.Slug;

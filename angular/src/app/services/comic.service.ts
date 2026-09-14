@@ -174,6 +174,10 @@ export class ComicService {
     return this.api.get<DashboardStats>('admin/stats');
   }
 
+  getAdminComics(): Observable<Comic[]> {
+    return this.api.get<Comic[]>('admin/comics');
+  }
+
   createComic(data: any): Observable<Comic> {
     return this.api.post<Comic>('admin/comics', data);
   }
