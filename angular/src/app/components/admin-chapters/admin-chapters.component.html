@@ -146,6 +146,13 @@
               <a [routerLink]="['/read', chap.id]" target="_blank" class="btn btn-icon btn-view" title="Đọc thử chapter">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
               </a>
+              <button type="button" 
+                      (click)="downloadChapter(chap)" 
+                      class="btn btn-icon btn-download" 
+                      [disabled]="isDownloadingMap[chap.id]" 
+                      [title]="isDownloadingMap[chap.id] ? downloadProgressMap[chap.id] : 'Tải xuống Chapter ' + chap.chapterNumber + ' (.zip)'">
+                <i class="fa-solid" [class.fa-download]="!isDownloadingMap[chap.id]" [class.fa-spinner]="isDownloadingMap[chap.id]" [class.fa-spin]="isDownloadingMap[chap.id]"></i>
+              </button>
               <button (click)="openEditModal(chap)" class="btn btn-icon btn-edit" title="Chỉnh sửa chapter">
                 <i class="fa-solid fa-pen-to-square"></i>
               </button>
@@ -209,6 +216,12 @@
             <h4><i class="fa-solid fa-images text-gradient"></i> Danh Sách Trang Ảnh ({{ chapterForm.imageUrls.length }} trang)</h4>
 
             <div class="upload-tools">
+              <!-- ZIP File Upload Button -->
+              <label class="btn btn-sm btn-secondary btn-upload-zip" [class.disabled]="isUnzipping" title="Chọn file .zip hoặc .cbz chứa ảnh để tự động giải nén">
+                <i class="fa-solid fa-file-zipper"></i> Tải lên từ file ZIP
+                <input type="file" accept=".zip,.cbz" (change)="onZipFileSelected($event)" style="display: none;" [disabled]="isUnzipping" />
+              </label>
+
               <!-- Multi-file Upload Button -->
               <label class="btn btn-sm btn-secondary btn-upload">
                 <i class="fa-solid fa-cloud-arrow-up"></i> Upload Ảnh từ Máy
@@ -236,6 +249,12 @@
           <div class="upload-progress-box bg-glass-dark" *ngIf="isUploading">
             <i class="fa-solid fa-spinner fa-spin text-primary"></i>
             <span>{{ uploadProgressText }}</span>
+          </div>
+
+          <!-- Unzip Progress Indicator -->
+          <div class="upload-progress-box unzip-progress-box bg-glass-dark" *ngIf="isUnzipping">
+            <i class="fa-solid fa-file-zipper fa-bounce text-warning"></i>
+            <span>{{ unzipProgressText }}</span>
           </div>
 
           <!-- Bulk URL Paste Panel -->

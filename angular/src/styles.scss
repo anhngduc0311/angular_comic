@@ -970,6 +970,23 @@ button, input, select, textarea {
       box-shadow: 0 4px 15px rgba(244, 63, 94, 0.3);
     }
   }
+
+  &.btn-download {
+    &:hover:not(:disabled) {
+      background: rgba(14, 165, 233, 0.15);
+      border-color: #0ea5e9;
+      color: #0ea5e9;
+      box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: wait;
+      border-color: rgba(14, 165, 233, 0.5);
+      color: #0ea5e9;
+      background: rgba(14, 165, 233, 0.1);
+    }
+  }
 }
 
 /* Global Alert Notifications */

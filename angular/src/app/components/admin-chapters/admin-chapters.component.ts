@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ComicService } from '../../services/comic.service';
 import { ComicDetail, ChapterDetail, ChapterPage } from '../../models/comic.model';
+import JSZip from 'jszip';
 
 @Component({
   selector: 'app-admin-chapters',
@@ -56,6 +57,14 @@ export class AdminChaptersComponent implements OnInit {
   isUploading: boolean = false;
   uploadProgressText: string = '';
   isSaving: boolean = false;
+
+  // Download chapter as ZIP states
+  isDownloadingMap: { [chapterId: number]: boolean } = {};
+  downloadProgressMap: { [chapterId: number]: string } = {};
+
+  // Unzip ZIP chapter states
+  isUnzipping: boolean = false;
+  unzipProgressText: string = '';
 
   constructor(
     private route: ActivatedRoute,
@@ -231,6 +240,108 @@ export class AdminChaptersComponent implements OnInit {
     input.value = ''; // reset file input
   }
 
+  async onZipFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    this.isUnzipping = true;
+    this.unzipProgressText = `Đang đọc file ${file.name}...`;
+
+    try {
+      // 1. Gợi ý số chapter từ tên file nếu chưa sửa và chapterNumber đang mặc định
+      if (!this.isEditing) {
+        const match = file.name.match(/(?:chap|chapter|c|ch)?[_.\s-]*([0-9]+(?:\.[0-9]+)?)/i);
+        if (match && match[1]) {
+          const parsedNum = parseFloat(match[1]);
+          if (!isNaN(parsedNum)) {
+            this.chapterForm.chapterNumber = parsedNum;
+            this.chapterForm.title = `Chapter ${parsedNum}`;
+          }
+        }
+      }
+
+      // 2. Đọc file nén ZIP bằng JSZip
+      const zip = await JSZip.loadAsync(file);
+      const validExts = ['.jpg', '.jpeg', '.png', '.webp', '.avif', '.gif'];
+
+      // Lọc các file ảnh hợp lệ, loại bỏ các file rác của hệ điều hành
+      const entries: { name: string; entry: any }[] = [];
+      zip.forEach((relativePath, zipEntry) => {
+        if (zipEntry.dir) return;
+        const lower = relativePath.toLowerCase();
+        if (lower.includes('__macosx') || lower.includes('.ds_store') || lower.includes('thumbs.db')) return;
+        if (validExts.some(ext => lower.endsWith(ext))) {
+          entries.push({ name: relativePath, entry: zipEntry });
+        }
+      });
+
+      if (entries.length === 0) {
+        this.showMessage('Không tìm thấy file ảnh hợp lệ (.jpg, .png, .webp) nào bên trong file ZIP.', true);
+        this.isUnzipping = false;
+        input.value = '';
+        return;
+      }
+
+      // 3. Sắp xếp tự nhiên theo tên file (natural alphanumeric sort: 1, 2, ... 10 thay vì 1, 10, 2)
+      entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+
+      this.unzipProgressText = `Đã tìm thấy ${entries.length} trang ảnh. Đang trích xuất dữ liệu...`;
+
+      // 4. Trích xuất từng file thành File object
+      const extractedFiles: File[] = [];
+      for (let i = 0; i < entries.length; i++) {
+        const item = entries[i];
+        const blob = await item.entry.async('blob');
+        const filename = item.name.split('/').pop() || `page_${i + 1}.jpg`;
+        const imageFile = new File([blob], filename, { type: blob.type || 'image/jpeg' });
+        extractedFiles.push(imageFile);
+      }
+
+      // 5. Upload các trang ảnh lên Cloud Storage
+      this.unzipProgressText = `Đang tải ${extractedFiles.length} trang ảnh lên máy chủ lưu trữ...`;
+      this.comicService.uploadImages(extractedFiles, 'chapters').subscribe({
+        next: (res) => {
+          this.isUnzipping = false;
+          if (res && res.urls && res.urls.length > 0) {
+            this.chapterForm.imageUrls.push(...res.urls);
+            this.showMessage(`Đã giải nén và tải lên thành công ${res.urls.length} trang ảnh từ file ZIP!`);
+          }
+        },
+        error: (err) => {
+          console.warn('Lỗi upload ảnh ZIP qua API, tự động fallback sang Base64:', err);
+          let loadedCount = 0;
+          extractedFiles.forEach(f => {
+            const reader = new FileReader();
+            reader.onload = (e: ProgressEvent<FileReader>) => {
+              if (e.target?.result) {
+                this.chapterForm.imageUrls.push(e.target.result as string);
+              }
+              loadedCount++;
+              if (loadedCount === extractedFiles.length) {
+                this.isUnzipping = false;
+                this.showMessage(`Đã giải nén và thêm ${extractedFiles.length} ảnh vào chapter.`);
+              }
+            };
+            reader.onerror = () => {
+              loadedCount++;
+              if (loadedCount === extractedFiles.length) {
+                this.isUnzipping = false;
+              }
+            };
+            reader.readAsDataURL(f);
+          });
+        }
+      });
+    } catch (err) {
+      console.error('Lỗi khi đọc file ZIP:', err);
+      this.showMessage('Không thể đọc hoặc giải nén file ZIP này. Vui lòng thử lại.', true);
+      this.isUnzipping = false;
+    }
+
+    input.value = '';
+  }
+
   toggleBulkUrlInput(): void {
     this.showBulkUrlInput = !this.showBulkUrlInput;
   }
@@ -351,6 +462,105 @@ export class AdminChaptersComponent implements OnInit {
       },
       error: () => this.showMessage('Đổi trạng thái hiển thị chapter thất bại.', true)
     });
+  }
+
+  async downloadChapter(chapter: ChapterDetail): Promise<void> {
+    if (this.isDownloadingMap[chapter.id]) return;
+
+    this.isDownloadingMap[chapter.id] = true;
+    this.downloadProgressMap[chapter.id] = 'Đang chuẩn bị...';
+
+    try {
+      // 1. Tải chi tiết chapter nếu pages chưa được nạp
+      let pages = chapter.pages;
+      if (!pages || pages.length === 0) {
+        try {
+          const detail = await this.comicService.getChapterById(chapter.id).toPromise();
+          if (detail && detail.pages) {
+            pages = detail.pages;
+            chapter.pages = detail.pages;
+          }
+        } catch (e) {
+          console.warn('Không thể tải chi tiết chapter qua getChapterById:', e);
+        }
+      }
+
+      if (!pages || pages.length === 0) {
+        this.showMessage(`Chapter ${chapter.chapterNumber} chưa có trang ảnh nào để tải về.`, true);
+        this.isDownloadingMap[chapter.id] = false;
+        delete this.downloadProgressMap[chapter.id];
+        return;
+      }
+
+      this.downloadProgressMap[chapter.id] = `Bắt đầu tải ${pages.length} ảnh...`;
+      const zip = new JSZip();
+
+      // 2. Lần lượt tải từng ảnh
+      let successCount = 0;
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const pageNum = i + 1;
+        this.downloadProgressMap[chapter.id] = `Đang tải ảnh ${pageNum}/${pages.length}...`;
+
+        try {
+          const response = await fetch(page.imageUrl);
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          const blob = await response.blob();
+
+          let ext = 'jpg';
+          const match = page.imageUrl.match(/\.(jpg|jpeg|png|webp|avif|gif)(?:\?.*)?$/i);
+          if (match) {
+            ext = match[1].toLowerCase();
+            if (ext === 'jpeg') ext = 'jpg';
+          } else if (blob.type) {
+            const typeMatch = blob.type.split('/')[1];
+            if (typeMatch) ext = typeMatch;
+          }
+
+          const filename = `${String(pageNum).padStart(3, '0')}.${ext}`;
+          zip.file(filename, blob);
+          successCount++;
+        } catch (err) {
+          console.warn(`Lỗi khi tải trang ${pageNum} (${page.imageUrl}):`, err);
+        }
+      }
+
+      if (successCount === 0) {
+        this.showMessage(`Không thể tải trang ảnh nào của Chapter ${chapter.chapterNumber} (vui lòng kiểm tra lại URL ảnh).`, true);
+        this.isDownloadingMap[chapter.id] = false;
+        delete this.downloadProgressMap[chapter.id];
+        return;
+      }
+
+      // 3. Đóng gói ZIP
+      this.downloadProgressMap[chapter.id] = 'Đang đóng gói file ZIP...';
+      const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+      });
+
+      // 4. Kích hoạt tải xuống trình duyệt
+      const comicName = (this.comic?.title || 'Comic').replace(/[/\\?%*:|"<>]/g, '_').trim();
+      const zipFilename = `${comicName} - Chap ${chapter.chapterNumber}.zip`;
+
+      const downloadUrl = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = zipFilename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 10000);
+
+      this.showMessage(`Đã tải xuống thành công Chapter ${chapter.chapterNumber} (${successCount} trang ảnh)!`);
+    } catch (err) {
+      console.error('Lỗi tải chapter:', err);
+      this.showMessage('Đã xảy ra lỗi khi tải chapter về máy.', true);
+    } finally {
+      this.isDownloadingMap[chapter.id] = false;
+      delete this.downloadProgressMap[chapter.id];
+    }
   }
 
   deleteChapter(chapter: ChapterDetail): void {
