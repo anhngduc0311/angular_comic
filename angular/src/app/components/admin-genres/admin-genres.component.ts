@@ -25,6 +25,9 @@ export class AdminGenresComponent implements OnInit {
   sortBy: 'name' | 'nameDesc' | 'comicCount' | 'comicCountAsc' | 'id' = 'name';
   filterStatus: 'all' | 'has_comics' | 'no_comics' = 'all';
 
+  // View Mode: 'grid' (thẻ gọn) or 'table' (bảng)
+  viewMode: 'grid' | 'table' = (typeof localStorage !== 'undefined' && localStorage.getItem('admin_genres_view_mode') as 'grid' | 'table') || 'grid';
+
   // Modal Form State
   showFormModal: boolean = false;
   isEditing: boolean = false;
@@ -128,6 +131,17 @@ export class AdminGenresComponent implements OnInit {
   setFilterStatus(status: 'all' | 'has_comics' | 'no_comics'): void {
     this.filterStatus = status;
     this.applyFilters();
+  }
+
+  setViewMode(mode: 'grid' | 'table'): void {
+    this.viewMode = mode;
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('admin_genres_view_mode', mode);
+      }
+    } catch (e) {
+      console.warn('Cannot persist viewMode to localStorage', e);
+    }
   }
 
   // --- SLUG AUTO GENERATION ---

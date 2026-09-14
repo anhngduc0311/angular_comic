@@ -32,6 +32,8 @@ namespace TruyenKomi.API.Services
         Task<bool> UpdateComicMetadataAsync(int comicId, string? author, string? translatorGroup, string? otherNames, string? ageLimit, string? coverImage, int? views = null, DateTime? createdAt = null, DateTime? updatedAt = null);
         Task SyncComicCategoriesAsync(int comicId, List<string> categoryNames);
         Task<bool> ToggleComicVisibilityAsync(int id);
+        Task<bool> ToggleComicFeaturedAsync(int id);
+        Task<int> UnpinAllFeaturedComicsAsync();
         Task<bool> DeleteComicAsync(int id);
         Task<List<ChapterDetailDto>> GetAdminChaptersByComicIdAsync(int comicId);
         Task<ChapterDto> AddChapterAsync(ChapterCreateDto dto);
@@ -81,9 +83,9 @@ namespace TruyenKomi.API.Services
 
                 query = crit switch
                 {
-                    "latest" => query.OrderByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
-                    "chapters" => query.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
-                    "views" => query.OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
+                    "latest" => query.OrderByDescending(c => c.IsFeatured).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
+                    "chapters" => query.OrderByDescending(c => c.IsFeatured).ThenByDescending(c => c.Chapters.Count).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
+                    "views" => query.OrderByDescending(c => c.IsFeatured).ThenByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
                     "romance" or "ngon-tinh" or "ngontinh" or "tinh-cam" => query.Where(c => c.ComicCategories.Any(cc => 
                         cc.Category.Slug == "romance" || 
                         cc.Category.Slug == "ngon-tinh" || 
@@ -93,8 +95,9 @@ namespace TruyenKomi.API.Services
                         cc.Category.Name.ToLower().Contains("romance") || 
                         cc.Category.Name.ToLower().Contains("ngôn tình") || 
                         cc.Category.Name.ToLower().Contains("tình cảm")
-                    )).OrderByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
-                    _ => query.OrderByDescending(c => c.Views)
+                    )).OrderByDescending(c => c.IsFeatured).ThenByDescending(c => c.Views).ThenByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id),
+                    _ => query.OrderByDescending(c => c.IsFeatured)
+                              .ThenByDescending(c => c.Views)
                               .ThenByDescending(c => c.Chapters.Count)
                               .ThenByDescending(c => c.UpdatedAt)
                               .ThenByDescending(c => c.Id)
@@ -111,7 +114,8 @@ namespace TruyenKomi.API.Services
                     result = await _context.Comics
                         .AsNoTracking()
                         .Where(c => c.IsPublic)
-                        .OrderByDescending(c => c.Views)
+                        .OrderByDescending(c => c.IsFeatured)
+                        .ThenByDescending(c => c.Views)
                         .ThenByDescending(c => c.UpdatedAt)
                         .ThenByDescending(c => c.Id)
                         .Take(count)
@@ -955,6 +959,43 @@ namespace TruyenKomi.API.Services
             await _context.SaveChangesAsync();
             await InvalidateComicCacheAsync(comic.Slug);
             return comic.IsPublic;
+        }
+
+        public async Task<bool> ToggleComicFeaturedAsync(int id)
+        {
+            var comic = await _context.Comics.FindAsync(id);
+            if (comic == null) return false;
+
+            comic.IsFeatured = !comic.IsFeatured;
+            comic.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            await InvalidateComicCacheAsync(comic.Slug);
+            return comic.IsFeatured;
+        }
+
+        public async Task<int> UnpinAllFeaturedComicsAsync()
+        {
+            var featuredComics = await _context.Comics
+                .Where(c => c.IsFeatured)
+                .ToListAsync();
+
+            if (!featuredComics.Any()) return 0;
+
+            foreach (var comic in featuredComics)
+            {
+                comic.IsFeatured = false;
+                comic.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            await InvalidateComicCacheAsync();
+            foreach (var comic in featuredComics)
+            {
+                await InvalidateComicCacheAsync(comic.Slug);
+            }
+
+            return featuredComics.Count;
         }
 
         public async Task<bool> DeleteComicAsync(int id)

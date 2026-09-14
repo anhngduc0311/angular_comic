@@ -309,20 +309,10 @@
   </div>
 
   <!-- Mobile Auth / User CTA -->
-  <div class="drawer-footer">
-    <button class="btn-leaderboard-drawer w-100 mb-2" (click)="openLeaderboard()">
-      <i class="fa fa-trophy text-amber"></i> Bảng Xếp Hạng Tu Vi
+  <div class="drawer-footer" *ngIf="!authService.isLoggedIn">
+    <button class="btn-primary-gradient w-100" routerLink="/auth" (click)="closeMobileMenu()">
+      <i class="fa fa-user-circle"></i> Đăng Nhập / Đăng Ký
     </button>
-    <ng-container *ngIf="!authService.isLoggedIn">
-      <button class="btn-primary-gradient w-100" routerLink="/auth" (click)="closeMobileMenu()">
-        <i class="fa fa-user-circle"></i> Đăng Nhập / Đăng Ký
-      </button>
-    </ng-container>
-    <ng-container *ngIf="authService.isLoggedIn">
-      <button class="btn-logout-drawer" (click)="logout()">
-        <i class="fa fa-sign-out"></i> Đăng Xuất
-      </button>
-    </ng-container>
   </div>
 </div>
 

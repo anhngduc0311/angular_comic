@@ -6,6 +6,16 @@
       <p>Quản lý chi tiết toàn bộ kho truyện, tìm kiếm, chỉnh sửa, tải ảnh bìa và phân quyền hiển thị.</p>
     </div>
     <div class="header-actions">
+      <button type="button" 
+              class="btn btn-unpin-all" 
+              (click)="unpinAllFeatured()" 
+              [disabled]="featuredCount === 0 || isUnpinning" 
+              [title]="featuredCount > 0 ? 'Gỡ toàn bộ truyện hot đang được ghim ra ngoài trang chủ' : 'Hiện không có truyện nào đang được ghim Hot'">
+        <i class="fa-solid" [class.fa-fire-flame-curved]="!isUnpinning" [class.fa-spinner]="isUnpinning" [class.fa-spin]="isUnpinning"></i>
+        <span>Gỡ Hot Toàn Bộ</span>
+        <span class="badge-count" *ngIf="featuredCount > 0">{{ featuredCount }}</span>
+      </button>
+
       <a routerLink="/admin/stories/create" class="btn btn-primary">
         <i class="fa-solid fa-plus"></i> Thêm Truyện Mới
       </a>
@@ -73,6 +83,16 @@
         </select>
       </div>
 
+      <!-- Hot / Featured Filter -->
+      <div class="filter-item">
+        <label><i class="fa-solid fa-fire text-warning"></i> Tiêu Điểm:</label>
+        <select [(ngModel)]="selectedFeatured" (change)="applyFilters()">
+          <option value="All">Tất cả truyện</option>
+          <option value="Featured">🔥 Truyện Hot Home</option>
+          <option value="Normal">Truyện thường</option>
+        </select>
+      </div>
+
       <!-- Category Filter -->
       <div class="filter-item">
         <label><i class="fa-solid fa-folder-tree"></i> Thể Loại:</label>
@@ -109,7 +129,7 @@
       <i class="fa-solid fa-folder-open"></i>
       <h3>Không tìm thấy truyện phù hợp</h3>
       <p>Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc của bạn.</p>
-      <button (click)="searchTerm = ''; selectedStatus = 'All'; selectedVisibility = 'All'; selectedCategory = 'All'; applyFilters()" class="btn btn-secondary btn-sm">
+      <button (click)="searchTerm = ''; selectedStatus = 'All'; selectedVisibility = 'All'; selectedFeatured = 'All'; selectedCategory = 'All'; applyFilters()" class="btn btn-secondary btn-sm">
         <i class="fa-solid fa-arrow-rotate-left"></i> Đặt lại bộ lọc
       </button>
     </div>
@@ -121,9 +141,20 @@
           <th style="width: 50px;">ID</th>
           <th style="width: 80px;">Ảnh Bìa</th>
           <th>Thông Tin Bộ Truyện</th>
-          <th>Thể Loại</th>
           <th>Trạng Thái</th>
           <th>Lượt Xem</th>
+          <th style="width: 140px; text-align: center;">
+            <div class="th-hot-header">
+              <span>Truyện Hot</span>
+              <button *ngIf="featuredCount > 0" 
+                      type="button"
+                      (click)="unpinAllFeatured()" 
+                      class="th-quick-unpin-btn" 
+                      [title]="'Gỡ Hot toàn bộ ' + featuredCount + ' truyện'">
+                <i class="fa-solid fa-xmark"></i> Gỡ hết
+              </button>
+            </div>
+          </th>
           <th>Hiển Thị</th>
           <th style="width: 140px; text-align: right;">Hành Động</th>
         </tr>
@@ -144,15 +175,9 @@
               <strong class="comic-title">{{ comic.title }}</strong>
               <span class="comic-author" *ngIf="comic.author"><i class="fa-solid fa-user-pen"></i> {{ comic.author }}</span>
               <div class="comic-badges">
-                <span class="badge badge-featured" *ngIf="comic.isFeatured"><i class="fa-solid fa-star"></i> Hero Slide</span>
+                <span class="badge badge-featured" *ngIf="comic.isFeatured"><i class="fa-solid fa-fire"></i> HOT HOME</span>
                 <span class="rating-tag"><i class="fa-solid fa-star text-warning"></i> {{ comic.rating }}</span>
               </div>
-            </div>
-          </td>
-          <td>
-            <div class="category-tags">
-              <span *ngFor="let cat of comic.categories" class="cat-tag">{{ cat.name }}</span>
-              <span *ngIf="!comic.categories.length" class="text-muted font-italic">Chưa xếp loại</span>
             </div>
           </td>
           <td>
@@ -164,6 +189,16 @@
             <div class="views-cell">
               <span class="views-count"><i class="fa-solid fa-eye"></i> {{ comic.views | number }}</span>
             </div>
+          </td>
+          <td style="text-align: center;">
+            <!-- Toggle Featured / Hot Switch -->
+            <button class="hot-toggle-btn"
+                    [class.is-hot]="comic.isFeatured"
+                    (click)="toggleFeatured(comic)"
+                    [title]="comic.isFeatured ? 'Bấm để hủy Truyện Hot ngoài Home' : 'Bấm để chọn truyện này lên mục Truyện Hot ngoài Home'">
+              <i class="fa-solid fa-fire"></i>
+              <span>{{ comic.isFeatured ? 'Hot Home' : 'Chọn Hot' }}</span>
+            </button>
           </td>
           <td>
             <!-- Toggle Visibility Switch -->
@@ -250,7 +285,7 @@
           <div class="form-group checkbox-row full-width">
             <label class="checkbox-label">
               <input type="checkbox" [(ngModel)]="comicForm.isFeatured" name="isFeatured" /> 
-              <span><i class="fa-solid fa-star text-warning"></i> Đặt làm Truyện Nổi Bật (Hero Slide Trang Chủ)</span>
+              <span><i class="fa-solid fa-fire text-warning"></i> Đặt làm TRUYỆN HOT (Ghim hiển thị ưu tiên Trang Chủ)</span>
             </label>
 
             <label class="checkbox-label">

@@ -132,11 +132,13 @@
     <p>Đang tải danh sách thể loại...</p>
   </div>
 
-  <!-- Genre Cards Grid -->
-  <div class="genres-grid-container" *ngIf="!isLoading">
+  <!-- Genres Rows List Section -->
+  <div class="genres-list-wrapper" *ngIf="!isLoading">
     <!-- Results summary info -->
     <div class="results-meta" *ngIf="filteredGenres.length > 0">
-      <span>Hiển thị <strong>{{ filteredGenres.length }}</strong> thể loại</span>
+      <div class="meta-count">
+        <span>Hiển thị <strong>{{ filteredGenres.length }}</strong> thể loại</span>
+      </div>
     </div>
 
     <!-- Empty State -->
@@ -149,60 +151,50 @@
       </button>
     </div>
 
-    <!-- Cards Grid -->
-    <div class="genres-grid" *ngIf="filteredGenres.length > 0">
-      <div *ngFor="let genre of filteredGenres" class="genre-card bg-glass">
-        <!-- Card Cover Banner -->
-        <div class="card-cover">
-          <img [src]="genre.imageUrl || defaultFallbackCover"
-               [alt]="genre.name"
-               (error)="onImageError($event)"
-               loading="lazy" />
-          <div class="cover-gradient"></div>
-          
-          <span class="card-id-tag">#{{ genre.id }}</span>
+    <!-- Genres List Rows -->
+    <div class="genre-rows-container bg-glass" *ngIf="filteredGenres.length > 0">
+      <div *ngFor="let genre of filteredGenres" class="genre-row-item">
+        <!-- ID Tag -->
+        <span class="genre-id">#{{ genre.id }}</span>
 
-          <span class="comic-count-badge" [class.badge-zero]="!genre.comicCount || genre.comicCount === 0">
-            <i class="fa-solid fa-book"></i>
-            <span>{{ genre.comicCount || 0 }} truyện</span>
-          </span>
+        <!-- Genre Name -->
+        <span class="genre-name" [title]="genre.name">{{ genre.name }}</span>
+
+        <!-- Slug Badge -->
+        <span class="genre-slug-badge" [title]="'Slug: ' + genre.slug">/{{ genre.slug }}</span>
+
+        <!-- Description -->
+        <span class="genre-desc" [title]="genre.description || 'Chưa có mô tả'">
+          {{ genre.description || 'Chưa có mô tả chi tiết cho thể loại này.' }}
+        </span>
+
+        <!-- Comic Count Pill Badge -->
+        <div class="genre-comic-pill" [class.is-empty]="!genre.comicCount || genre.comicCount === 0" title="{{ genre.comicCount || 0 }} truyện thuộc thể loại này">
+          <i class="fa-solid fa-book-bookmark"></i>
+          <span>{{ genre.comicCount || 0 }}</span>
         </div>
 
-        <!-- Card Body -->
-        <div class="card-body">
-          <div class="genre-header">
-            <h3 class="genre-name" [title]="genre.name">{{ genre.name }}</h3>
-            <span class="genre-slug-tag" [title]="'Slug: ' + genre.slug">/{{ genre.slug }}</span>
-          </div>
+        <!-- Actions Group -->
+        <div class="genre-actions">
+          <a [routerLink]="['/categories']"
+             [queryParams]="{ category: genre.slug }"
+             target="_blank"
+             class="btn-row-action btn-view"
+             title="Xem danh sách truyện thể loại {{ genre.name }}">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
 
-          <p class="genre-desc" [class.empty-desc]="!genre.description">
-            {{ genre.description || 'Chưa có mô tả chi tiết cho thể loại này.' }}
-          </p>
+          <button (click)="openEditModal(genre)"
+                  class="btn-row-action btn-edit"
+                  title="Chỉnh sửa thể loại {{ genre.name }}">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
 
-          <!-- Action Buttons Bar -->
-          <div class="card-actions">
-            <a [routerLink]="['/categories']"
-               [queryParams]="{ category: genre.slug }"
-               class="btn-action btn-view"
-               title="Xem danh sách truyện thể loại {{ genre.name }}">
-              <i class="fa-solid fa-arrow-up-right-from-square"></i>
-              <span>Xem Truyện</span>
-            </a>
-
-            <button (click)="openEditModal(genre)"
-                    class="btn-action btn-edit"
-                    title="Chỉnh sửa thể loại {{ genre.name }}">
-              <i class="fa-solid fa-pen-to-square"></i>
-              <span>Sửa</span>
-            </button>
-
-            <button (click)="deleteGenre(genre)"
-                    class="btn-action btn-delete"
-                    title="Xóa thể loại {{ genre.name }}">
-              <i class="fa-solid fa-trash-can"></i>
-              <span>Xóa</span>
-            </button>
-          </div>
+          <button (click)="deleteGenre(genre)"
+                  class="btn-row-action btn-delete"
+                  title="Xóa thể loại {{ genre.name }}">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
         </div>
       </div>
     </div>

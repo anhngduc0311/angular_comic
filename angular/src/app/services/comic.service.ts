@@ -186,6 +186,14 @@ export class ComicService {
     return this.api.put<{ success: boolean; isPublic: boolean }>(`admin/comics/${id}/toggle-visibility`, {});
   }
 
+  toggleComicFeatured(id: number): Observable<{ success: boolean; isFeatured: boolean }> {
+    return this.api.put<{ success: boolean; isFeatured: boolean }>(`admin/comics/${id}/toggle-featured`, {});
+  }
+
+  unpinAllFeaturedComics(): Observable<{ success: boolean; count: number }> {
+    return this.api.put<{ success: boolean; count: number }>('admin/comics/unpin-all-featured', {});
+  }
+
   deleteComic(id: number): Observable<{ success: boolean }> {
     return this.api.delete<{ success: boolean }>(`admin/comics/${id}`);
   }

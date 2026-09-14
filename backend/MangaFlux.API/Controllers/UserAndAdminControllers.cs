@@ -179,6 +179,20 @@ namespace TruyenKomi.API.Controllers
             return Ok(new { success = true, isPublic });
         }
 
+        [HttpPut("comics/{id}/toggle-featured")]
+        public async Task<IActionResult> ToggleFeatured(int id)
+        {
+            var isFeatured = await _comicService.ToggleComicFeaturedAsync(id);
+            return Ok(new { success = true, isFeatured });
+        }
+
+        [HttpPut("comics/unpin-all-featured")]
+        public async Task<IActionResult> UnpinAllFeatured()
+        {
+            var count = await _comicService.UnpinAllFeaturedComicsAsync();
+            return Ok(new { success = true, count });
+        }
+
         [HttpDelete("comics/{id}")]
         public async Task<IActionResult> DeleteComic(int id)
         {

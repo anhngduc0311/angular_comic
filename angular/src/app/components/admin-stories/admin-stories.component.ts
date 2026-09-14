@@ -25,6 +25,7 @@ export class AdminStoriesComponent implements OnInit {
   searchTerm: string = '';
   selectedStatus: string = 'All';
   selectedVisibility: string = 'All'; // 'All', 'Public', 'Hidden'
+  selectedFeatured: 'All' | 'Featured' | 'Normal' = 'All';
   selectedCategory: string = 'All';
   sortBy: 'latest' | 'views' | 'rating' | 'title' | 'chapters' = 'latest';
 
@@ -112,6 +113,13 @@ export class AdminStoriesComponent implements OnInit {
       result = result.filter(c => c.isPublic === false);
     }
 
+    // Filter Hot / Featured
+    if (this.selectedFeatured === 'Featured') {
+      result = result.filter(c => c.isFeatured);
+    } else if (this.selectedFeatured === 'Normal') {
+      result = result.filter(c => !c.isFeatured);
+    }
+
     // Filter Category
     if (this.selectedCategory !== 'All') {
       const catId = Number(this.selectedCategory);
@@ -138,6 +146,54 @@ export class AdminStoriesComponent implements OnInit {
         this.applyFilters();
       },
       error: () => this.showMessage('Chuyển đổi trạng thái thất bại.', true)
+    });
+  }
+
+  toggleFeatured(comic: Comic): void {
+    this.comicService.toggleComicFeatured(comic.id).subscribe({
+      next: (res) => {
+        comic.isFeatured = res.isFeatured;
+        this.showMessage(
+          res.isFeatured
+            ? `Đã chọn '${comic.title}' làm Truyện Hot Trang Chủ!`
+            : `Đã bỏ chọn Truyện Hot cho '${comic.title}'.`
+        );
+        this.applyFilters();
+      },
+      error: () => this.showMessage('Chuyển đổi trạng thái Truyện Hot thất bại.', true)
+    });
+  }
+
+  get featuredCount(): number {
+    return this.comics.filter(c => c.isFeatured).length;
+  }
+
+  isUnpinning: boolean = false;
+
+  unpinAllFeatured(): void {
+    if (this.featuredCount === 0) {
+      this.showMessage('Hiện tại không có bộ truyện nào được ghim Hot.', true);
+      return;
+    }
+
+    const count = this.featuredCount;
+    if (!confirm(`Bạn có chắc chắn muốn gỡ Hot toàn bộ ${count} bộ truyện đang ghim ngoài trang chủ không?`)) {
+      return;
+    }
+
+    this.isUnpinning = true;
+    this.comicService.unpinAllFeaturedComics().subscribe({
+      next: (res) => {
+        this.comics.forEach(c => c.isFeatured = false);
+        this.applyFilters();
+        this.showMessage(`Đã gỡ Hot thành công cho toàn bộ ${res.count} truyện!`);
+        this.isUnpinning = false;
+      },
+      error: (err) => {
+        console.error('Lỗi khi gỡ hot toàn bộ:', err);
+        this.showMessage('Gỡ Hot toàn bộ thất bại, vui lòng thử lại.', true);
+        this.isUnpinning = false;
+      }
     });
   }
 
