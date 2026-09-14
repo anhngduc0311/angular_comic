@@ -154,6 +154,10 @@ namespace TruyenKomi.API.Data
             modelBuilder.Entity<Comic>().Property(c => c.Rating).HasPrecision(3, 2);
             modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.IsFeatured, c.UpdatedAt });
             modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.UpdatedAt });
+            modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.Views, c.Id });
+            modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.Rating, c.Id });
+            modelBuilder.Entity<Comic>().HasIndex(c => new { c.IsPublic, c.UpdatedAt, c.Id });
+            modelBuilder.Entity<Bookmark>().HasIndex(b => new { b.UserId, b.CreatedAt, b.Id });
 
             // ComicRating Constraints & Relationships
             modelBuilder.Entity<ComicRating>()

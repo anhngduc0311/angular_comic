@@ -223,4 +223,12 @@ export class SearchComponent implements OnInit {
       target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80';
     }
   }
+
+  trackByComicId(index: number, comic: Comic): number {
+    return comic.id;
+  }
+
+  trackByChapterId(index: number, ch: any): number {
+    return ch.id;
+  }
 }

@@ -75,7 +75,7 @@
       <!-- Result View: GRID MODE -->
       <div class="list_grid_out" *ngIf="!isLoading && results.length > 0">
         <ul class="list_grid grid">
-          <li class="comic-item" *ngFor="let comic of results; let i = index">
+          <li class="comic-item" *ngFor="let comic of results; let i = index; trackBy: trackByComicId">
             <div class="book_avatar">
               <a [routerLink]="['/comic', comic.slug]">
                 <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
@@ -96,7 +96,7 @@
                 </h3>
               </div>
               <div class="chapters-preview" *ngIf="comic.recentChapters && comic.recentChapters.length > 0; else singleLatestSearch">
-                <div class="chapter-row-clean" *ngFor="let ch of comic.recentChapters | slice:0:3">
+                <div class="chapter-row-clean" *ngFor="let ch of comic.recentChapters | slice:0:3; trackBy: trackByChapterId">
                   <a [routerLink]="['/comic', comic.slug, 'chapter', ch.id]" class="ch-name">Chapter {{ ch.chapterNumber }}</a>
                   <span class="ch-time">{{ formatTimeAgo(ch.createdAt || comic.updatedAt) }}</span>
                 </div>

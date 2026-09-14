@@ -20,7 +20,7 @@
 
       <div class="list_grid_out" *ngIf="!isLoading && bookmarks.length > 0">
         <ul class="list_grid grid">
-          <li class="comic-item" *ngFor="let b of bookmarks; let i = index">
+          <li class="comic-item" *ngFor="let b of bookmarks; let i = index; trackBy: trackByBookmarkId">
             <div class="book_avatar">
               <a [routerLink]="['/comic', b.comic.slug]">
                 <img [src]="b.comic.coverImage" [alt]="b.comic.title" loading="lazy" />
@@ -44,7 +44,7 @@
                 </h3>
               </div>
               <div class="chapters-preview" *ngIf="b.comic.recentChapters && b.comic.recentChapters.length > 0; else singleLatestFollowed">
-                <div class="chapter-row-clean" *ngFor="let ch of b.comic.recentChapters | slice:0:3">
+                <div class="chapter-row-clean" *ngFor="let ch of b.comic.recentChapters | slice:0:3; trackBy: trackByChapterId">
                   <a [routerLink]="['/comic', b.comic.slug, 'chapter', ch.id]" class="ch-name">Chapter {{ ch.chapterNumber }}</a>
                   <span class="ch-time">{{ formatTimeAgo(ch.createdAt || b.comic.updatedAt) }}</span>
                 </div>

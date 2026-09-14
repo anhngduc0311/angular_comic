@@ -186,7 +186,7 @@
       </div>
 
       <div 
-        *ngFor="let page of chapter.pages; let idx = index" 
+        *ngFor="let page of chapter.pages; let idx = index; trackBy: trackByPageId" 
         class="page-image-wrapper"
         [class.is-loaded]="pageStates[idx]?.loaded"
         [class.is-error]="pageStates[idx]?.error"

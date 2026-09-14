@@ -857,4 +857,12 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
       }
     });
   }
+
+  trackByPageId(index: number, page: any): number {
+    return page.id || index;
+  }
+
+  trackByChapterId(index: number, ch: any): number {
+    return ch.id;
+  }
 }

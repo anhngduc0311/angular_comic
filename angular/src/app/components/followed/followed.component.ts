@@ -64,4 +64,12 @@ export class FollowedComponent implements OnInit {
     if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
     return Math.floor(n).toString();
   }
+
+  trackByBookmarkId(index: number, b: Bookmark): number {
+    return b.id;
+  }
+
+  trackByChapterId(index: number, ch: any): number {
+    return ch.id;
+  }
 }

@@ -105,7 +105,7 @@
         <div class="suggest-slider-viewport" #suggestContainer (scroll)="onSuggestScroll()">
           <div class="suggest-slider-track">
             <!-- Original & Cloned items for seamless infinite loop -->
-            <div class="comic-card-v3 suggest-card" *ngFor="let comic of displayHotComics; let i = index">
+            <div class="comic-card-v3 suggest-card" *ngFor="let comic of displayHotComics; let i = index; trackBy: trackByComicIndex">
               <div class="book_avatar">
                 <a [routerLink]="['/comic', comic.slug]">
                   <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
@@ -177,7 +177,7 @@
 
       <!-- Latest Comics Grid -->
       <div class="comics-grid-modern" *ngIf="!isLoading; else gridSkeleton">
-        <div class="comic-card-v3" *ngFor="let comic of filteredComics; let i = index">
+        <div class="comic-card-v3" *ngFor="let comic of filteredComics; let i = index; trackBy: trackByComicId">
           <div class="book_avatar">
             <a [routerLink]="['/comic', comic.slug]">
               <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
@@ -203,7 +203,7 @@
 
             <div class="chapters-preview"
               *ngIf="comic.recentChapters && comic.recentChapters.length > 0; else singleLatestGrid">
-              <div class="chapter-row-clean" *ngFor="let ch of comic.recentChapters | slice:0:3">
+              <div class="chapter-row-clean" *ngFor="let ch of comic.recentChapters | slice:0:3; trackBy: trackByChapterId">
                 <a [routerLink]="['/comic', comic.slug, 'chapter', ch.id]" class="ch-name">Chapter {{ ch.chapterNumber
                   }}</a>
                 <span class="ch-time">{{ formatTimeAgo(ch.createdAt || comic.updatedAt) }}</span>

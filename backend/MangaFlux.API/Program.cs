@@ -20,6 +20,7 @@ using TruyenKomi.API.Validators;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Prometheus;
+using Microsoft.AspNetCore.ResponseCompression;
 
 // 0. Auto-load .env file if present in current or parent directories
 var currentDir = Directory.GetCurrentDirectory();
@@ -173,6 +174,28 @@ builder.Services.AddRateLimiter(options =>
     });
 });
 
+// 2d. High-Performance Response Compression (Brotli & Gzip)
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+    options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+    {
+        "application/json",
+        "text/json",
+        "image/svg+xml"
+    });
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = System.IO.Compression.CompressionLevel.Fastest;
+});
+
 // 3. Configure CORS (Allow Angular Frontend)
 builder.Services.AddCors(options =>
 {
@@ -250,7 +273,27 @@ app.UseExceptionHandler();
 app.UseSwagger();
 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "TruyenKomi API v1"));
 
+app.UseResponseCompression();
 app.UseCors("AllowAngularApp");
+
+// HTTP Cache-Control header for public GET requests (Comics, Categories)
+app.Use(async (context, next) =>
+{
+    if (context.Request.Method == HttpMethods.Get)
+    {
+        var path = context.Request.Path.Value?.ToLowerInvariant() ?? "";
+        if (path.StartsWith("/api/comics") || path.StartsWith("/api/categories"))
+        {
+            context.Response.GetTypedHeaders().CacheControl = new Microsoft.Net.Http.Headers.CacheControlHeaderValue
+            {
+                Public = true,
+                MaxAge = TimeSpan.FromSeconds(60)
+            };
+        }
+    }
+    await next();
+});
+
 app.UseMiddleware<AntiScraperMiddleware>();
 app.UseRateLimiter();
 app.UseMiddleware<ImageCacheMiddleware>();
