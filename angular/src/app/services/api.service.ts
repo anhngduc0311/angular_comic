@@ -11,6 +11,10 @@ export class ApiService {
 
   constructor(private http: HttpClient) {}
 
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   get<T>(endpoint: string): Observable<T> {
     return this.http.get<T>(`${this.baseUrl}/${endpoint}`, { withCredentials: true });
   }

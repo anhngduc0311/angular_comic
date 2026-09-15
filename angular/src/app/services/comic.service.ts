@@ -210,6 +210,10 @@ export class ComicService {
     return this.api.getBlob(`chapters/${chapterId}/download`);
   }
 
+  getImageProxyUrl(imageUrl: string): string {
+    return `${this.api.getBaseUrl()}/chapters/proxy-image?url=${encodeURIComponent(imageUrl)}`;
+  }
+
   addChapter(data: any): Observable<any> {
     return this.api.post<any>('admin/chapters', data);
   }

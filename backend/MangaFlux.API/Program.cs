@@ -124,6 +124,7 @@ builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IStorageService, MinioStorageService>();
 builder.Services.AddScoped<ISearchEngineService, SearchEngineService>();
+builder.Services.AddHttpClient();
 
 // 2b. Register FluentValidation
 builder.Services.AddFluentValidationAutoValidation();
@@ -204,7 +205,8 @@ builder.Services.AddCors(options =>
         policy.SetIsOriginAllowed(_ => true)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .WithExposedHeaders("Content-Disposition");
     });
 });
 

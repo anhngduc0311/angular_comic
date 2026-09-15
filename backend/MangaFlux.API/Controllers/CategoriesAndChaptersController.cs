@@ -34,10 +34,12 @@ namespace TruyenKomi.API.Controllers
     public class ChaptersController : ControllerBase
     {
         private readonly IComicService _comicService;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public ChaptersController(IComicService comicService)
+        public ChaptersController(IComicService comicService, IHttpClientFactory httpClientFactory)
         {
             _comicService = comicService;
+            _httpClientFactory = httpClientFactory;
         }
 
         [HttpGet("{id}")]
@@ -49,6 +51,7 @@ namespace TruyenKomi.API.Controllers
         }
 
         [HttpGet("{id}/download")]
+        [DisableRateLimiting]
         public async Task<IActionResult> DownloadChapter(int id)
         {
             var chapter = await _comicService.GetChapterByIdAsync(id);
@@ -65,11 +68,12 @@ namespace TruyenKomi.API.Controllers
             {
                 using (var archive = new System.IO.Compression.ZipArchive(memoryStream, System.IO.Compression.ZipArchiveMode.Create, true))
                 {
-                    using var httpClient = new HttpClient();
+                    var httpClient = _httpClientFactory.CreateClient();
+                    httpClient.DefaultRequestHeaders.Clear();
                     httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
                     httpClient.Timeout = TimeSpan.FromSeconds(45);
 
-                    var throttler = new System.Threading.SemaphoreSlim(8);
+                    var throttler = new System.Threading.SemaphoreSlim(16);
                     var downloadTasks = sortedPages.Select(async (page, index) =>
                     {
                         await throttler.WaitAsync();
@@ -141,7 +145,7 @@ namespace TruyenKomi.API.Controllers
                     foreach (var item in validResults)
                     {
                         var entryName = $"{item!.Index:D3}.{item.Extension}";
-                        var entry = archive.CreateEntry(entryName, System.IO.Compression.CompressionLevel.Optimal);
+                        var entry = archive.CreateEntry(entryName, System.IO.Compression.CompressionLevel.Fastest);
                         using var entryStream = entry.Open();
                         await entryStream.WriteAsync(item.Bytes);
                     }
@@ -152,11 +156,52 @@ namespace TruyenKomi.API.Controllers
                 var safeComicTitle = System.Text.RegularExpressions.Regex.Replace(comicTitle, @"[/\\?%*:|""<>]", "_").Trim();
                 var fileName = $"{safeComicTitle} - Chap {chapter.ChapterNumber}.zip";
 
+                Response.Headers["Access-Control-Expose-Headers"] = "Content-Disposition";
                 return File(memoryStream.ToArray(), "application/zip", fileName);
             }
             finally
             {
                 await memoryStream.DisposeAsync();
+            }
+        }
+
+        [HttpGet("proxy-image")]
+        [DisableRateLimiting]
+        public async Task<IActionResult> ProxyImage([FromQuery] string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return BadRequest(new { message = "Thiếu URL ảnh cần tải." });
+            }
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || 
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            {
+                return BadRequest(new { message = "URL ảnh không hợp lệ." });
+            }
+
+            try
+            {
+                var httpClient = _httpClientFactory.CreateClient();
+                httpClient.DefaultRequestHeaders.Clear();
+                httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+                httpClient.Timeout = TimeSpan.FromSeconds(30);
+
+                var response = await httpClient.GetAsync(uri);
+                if (!response.IsSuccessStatusCode)
+                {
+                    return StatusCode((int)response.StatusCode, new { message = "Không thể tải ảnh từ máy chủ nguồn." });
+                }
+
+                var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+                var bytes = await response.Content.ReadAsByteArrayAsync();
+
+                Response.Headers["Cache-Control"] = "public, max-age=86400";
+                return File(bytes, contentType);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Lỗi khi tải ảnh proxy: {ex.Message}" });
             }
         }
 

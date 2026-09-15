@@ -468,7 +468,7 @@ export class AdminChaptersComponent implements OnInit {
     if (this.isDownloadingMap[chapter.id]) return;
 
     this.isDownloadingMap[chapter.id] = true;
-    this.downloadProgressMap[chapter.id] = 'Đang chuẩn bị gói file ZIP...';
+    this.downloadProgressMap[chapter.id] = 'Đang tải file ZIP từ máy chủ...';
 
     // 1. Ưu tiên tải trực tiếp từ Backend để vượt qua hoàn toàn rào cản CORS của CDN
     this.comicService.downloadChapterZip(chapter.id).subscribe({
@@ -491,6 +491,7 @@ export class AdminChaptersComponent implements OnInit {
       },
       error: async (err) => {
         console.warn('Backend download gặp sự cố, tự động fallback sang client-side download:', err);
+        this.downloadProgressMap[chapter.id] = 'Máy chủ bận, đang chuyển sang tải client-side...';
         await this.downloadChapterClientSide(chapter);
       }
     });
@@ -522,7 +523,7 @@ export class AdminChaptersComponent implements OnInit {
       this.downloadProgressMap[chapter.id] = `Bắt đầu tải ${pages.length} ảnh...`;
       const zip = new JSZip();
 
-      // 2. Lần lượt tải từng ảnh
+      // 2. Lần lượt tải từng ảnh (thử direct fetch trước, fallback qua proxy nếu bị CORS)
       let successCount = 0;
       for (let i = 0; i < pages.length; i++) {
         const page = pages[i];
@@ -541,8 +542,17 @@ export class AdminChaptersComponent implements OnInit {
             continue;
           }
 
-          const response = await fetch(page.imageUrl);
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          let response: Response;
+          try {
+            response = await fetch(page.imageUrl);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          } catch (directErr) {
+            // Khi bị chặn CORS từ CDN (img.truyenkomi.site), tự động gọi qua proxy của Backend
+            const proxyUrl = this.comicService.getImageProxyUrl(page.imageUrl);
+            response = await fetch(proxyUrl);
+            if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
+          }
+
           const blob = await response.blob();
 
           let ext = 'jpg';
@@ -564,18 +574,18 @@ export class AdminChaptersComponent implements OnInit {
       }
 
       if (successCount === 0) {
-        this.showMessage(`Không thể tải trang ảnh nào của Chapter ${chapter.chapterNumber} (vui lòng kiểm tra lại URL ảnh).`, true);
+        this.showMessage(`Không thể tải trang ảnh nào của Chapter ${chapter.chapterNumber}. Vui lòng kiểm tra lại kết nối mạng.`, true);
         this.isDownloadingMap[chapter.id] = false;
         delete this.downloadProgressMap[chapter.id];
         return;
       }
 
-      // 3. Đóng gói ZIP
+      // 3. Đóng gói ZIP (Dùng Level 1 để nén nhanh hơn gấp 5 lần với ảnh đã nén sẵn)
       this.downloadProgressMap[chapter.id] = 'Đang đóng gói file ZIP...';
       const zipBlob = await zip.generateAsync({
         type: 'blob',
         compression: 'DEFLATE',
-        compressionOptions: { level: 6 }
+        compressionOptions: { level: 1 }
       });
 
       // 4. Kích hoạt tải xuống trình duyệt
@@ -591,7 +601,7 @@ export class AdminChaptersComponent implements OnInit {
       document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 10000);
 
-      this.showMessage(`Đã tải xuống thành công Chapter ${chapter.chapterNumber} (${successCount} trang ảnh)!`);
+      this.showMessage(`Đã tải xuống thành công Chapter ${chapter.chapterNumber} (${successCount}/${pages.length} trang ảnh)!`);
     } catch (err) {
       console.error('Lỗi tải chapter:', err);
       this.showMessage('Đã xảy ra lỗi khi tải chapter về máy.', true);
