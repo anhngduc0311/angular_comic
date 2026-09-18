@@ -21,7 +21,7 @@
       <div class="history-list-box" *ngIf="!isLoading && historyItems.length > 0">
         <div class="history-item-row" *ngFor="let item of historyItems">
           <a [routerLink]="['/comic', item.comic.slug]" class="thumb">
-            <img [src]="item.comic.coverImage" [alt]="item.comic.title" />
+            <img [src]="item.comic.coverImage" [alt]="item.comic.title" referrerpolicy="no-referrer" />
           </a>
           <div class="details">
             <h3 class="title">

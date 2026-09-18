@@ -23,7 +23,7 @@
           <li class="comic-item" *ngFor="let b of bookmarks; let i = index; trackBy: trackByBookmarkId">
             <div class="book_avatar">
               <a [routerLink]="['/comic', b.comic.slug]">
-                <img [src]="b.comic.coverImage" [alt]="b.comic.title" loading="lazy" />
+                <img [src]="b.comic.coverImage" [alt]="b.comic.title" referrerpolicy="no-referrer" loading="lazy" />
               </a>
               <button class="btn-remove-bookmark" (click)="removeBookmark(b.comicId, $event)" title="Bỏ theo dõi">
                 <i class="fa fa-times"></i>

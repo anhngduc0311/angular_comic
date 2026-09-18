@@ -105,7 +105,7 @@
             [class.selected]="i === selectedIndex"
             (click)="selectComic(item.slug)"
           >
-            <img [src]="item.coverImage || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=100&q=80'" [alt]="item.title" (error)="onImgError($event)" class="item-thumb" />
+            <img [src]="item.coverImage || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=100&q=80'" [alt]="item.title" referrerpolicy="no-referrer" (error)="onImgError($event)" class="item-thumb" />
             <div class="item-meta">
               <h4 class="item-title">{{ item.title }}</h4>
               <div class="item-sub">
@@ -238,7 +238,7 @@
         [class.selected]="i === selectedIndex"
         (click)="selectComic(item.slug)"
       >
-        <img [src]="item.coverImage || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=100&q=80'" [alt]="item.title" (error)="onImgError($event)" class="item-thumb" />
+        <img [src]="item.coverImage || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=100&q=80'" [alt]="item.title" referrerpolicy="no-referrer" (error)="onImgError($event)" class="item-thumb" />
         <div class="item-meta">
           <h4 class="item-title">{{ item.title }}</h4>
           <div class="item-sub">

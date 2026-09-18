@@ -78,7 +78,7 @@
           <li class="comic-item" *ngFor="let comic of results; let i = index; trackBy: trackByComicId">
             <div class="book_avatar">
               <a [routerLink]="['/comic', comic.slug]">
-                <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" (error)="onImgError($event)" />
+                <img [src]="comic.coverImage" [alt]="comic.title" referrerpolicy="no-referrer" loading="lazy" (error)="onImgError($event)" />
               </a>
               <div class="top-notice-right" *ngIf="comic.isFeatured || comic.views > 10000 || i % 2 === 0">
                 <span class="type-label hot">HOT!</span>

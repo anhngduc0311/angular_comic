@@ -119,7 +119,7 @@
             <div class="comic-card-v3 suggest-card" *ngFor="let comic of hotComics; let i = index; trackBy: trackByComicId">
               <div class="book_avatar">
                 <a [routerLink]="['/comic', comic.slug]">
-                  <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" decoding="async" width="300" height="420" (error)="onImgError($event)" />
+                  <img [src]="comic.coverImage" [alt]="comic.title" referrerpolicy="no-referrer" loading="lazy" decoding="async" width="300" height="420" (error)="onImgError($event)" />
                 </a>
                 <div class="top-notice-left" *ngIf="comic.updatedAt">
                   <span class="time-badge">{{ formatTimeAgo(comic.updatedAt) }}</span>
@@ -199,7 +199,7 @@
         <div class="comic-card-v3" *ngFor="let comic of filteredComics; let i = index; trackBy: trackByComicId">
           <div class="book_avatar">
             <a [routerLink]="['/comic', comic.slug]">
-              <img [src]="comic.coverImage" [alt]="comic.title" loading="lazy" decoding="async" width="300" height="420" (error)="onImgError($event)" />
+              <img [src]="comic.coverImage" [alt]="comic.title" referrerpolicy="no-referrer" loading="lazy" decoding="async" width="300" height="420" (error)="onImgError($event)" />
             </a>
             <div class="top-notice-right" *ngIf="comic.isFeatured || comic.views > 10000 || i % 2 === 0">
               <span class="type-label hot">HOT!</span>

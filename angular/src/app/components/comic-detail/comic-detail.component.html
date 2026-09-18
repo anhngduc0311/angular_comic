@@ -19,7 +19,7 @@
         <!-- Cover Column -->
         <div class="comic-cover-box">
           <div class="cover-card-3d">
-            <img [src]="comic.coverImage" [alt]="comic.title" (error)="onImgError($event)" class="cover-img" />
+            <img [src]="comic.coverImage" [alt]="comic.title" referrerpolicy="no-referrer" (error)="onImgError($event)" class="cover-img" />
           </div>
 
           <div class="cover-quick-stats desktop-only">
