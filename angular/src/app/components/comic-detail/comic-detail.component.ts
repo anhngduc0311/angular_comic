@@ -148,12 +148,14 @@ export class ComicDetailComponent implements OnInit {
 
   get firstChapterNumber(): number | null {
     if (!this.comic || !this.comic.chapters || this.comic.chapters.length === 0) return null;
-    return this.comic.chapters[0].chapterNumber;
+    const sorted = [...this.comic.chapters].sort((a, b) => a.chapterNumber - b.chapterNumber);
+    return sorted[0].chapterNumber;
   }
 
   get latestChapterNumber(): number | null {
     if (!this.comic || !this.comic.chapters || this.comic.chapters.length === 0) return null;
-    return this.comic.chapters[this.comic.chapters.length - 1].chapterNumber;
+    const sorted = [...this.comic.chapters].sort((a, b) => b.chapterNumber - a.chapterNumber);
+    return sorted[0].chapterNumber;
   }
 
   private prefetchedChapters = new Set<number>();
@@ -176,8 +178,8 @@ export class ComicDetailComponent implements OnInit {
     this.comicService.getChapterBySlugAndNumber(this.comic.slug, chapterNumber).subscribe({
       next: (detail) => {
         if (detail && detail.pages && detail.pages.length > 0) {
-          // Tải trước 5 trang đầu của chương vào browser cache
-          this.comicService.preloadChapterImages(detail.pages, 5);
+          // Tải trước 8 trang đầu của chương vào browser cache
+          this.comicService.preloadChapterImages(detail.pages, 8);
         }
       },
       error: () => {}

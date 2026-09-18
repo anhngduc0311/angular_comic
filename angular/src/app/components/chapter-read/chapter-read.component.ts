@@ -105,6 +105,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   errorTypeOptions = ERROR_TYPE_OPTIONS;
 
   // CDN Image Loading & Error Handling States
+  useDataSaver: boolean = true; // Default True for 20x faster WebP loading
   pageStates: { [index: number]: PageLoadingState | undefined } = {};
   totalFailedCount: number = 0;
   totalLoadedCount: number = 0;
@@ -125,6 +126,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadSavedDataSaver();
     this.loadSavedZoom();
     this.loadSavedAutoScrollSpeed();
     this.loadSavedPinState();
@@ -591,20 +593,22 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   prefetchCurrentChapterPages(): void {
     if (!this.chapter || !this.chapter.pages) return;
-    // Tải trước 6 trang đầu ngay lập tức với độ ưu tiên cao vào browser cache
-    const initialPages = this.chapter.pages.slice(0, 6);
+    // Tải trước 8 trang đầu ngay lập tức với độ ưu tiên cao vào browser cache
+    const initialPages = this.chapter.pages.slice(0, 8);
     initialPages.forEach((page, i) => {
       this.preloadedPageIndices.add(i);
+      const url = this.getOptimizedPageUrl(page.imageUrl);
       const img = new Image();
+      img.referrerPolicy = 'no-referrer';
       if ('fetchPriority' in img) {
-        (img as any).fetchPriority = i < 2 ? 'high' : 'auto';
+        (img as any).fetchPriority = i < 3 ? 'high' : 'auto';
       }
-      img.src = page.imageUrl;
+      img.src = url;
     });
   }
 
   /**
-   * Cơ chế cửa sổ trượt: Tự động tải trước 4 trang kế tiếp bám theo vị trí cuộn thực tế của người đọc
+   * Cơ chế cửa sổ trượt: Tự động tải trước 6 trang kế tiếp bám theo vị trí cuộn thực tế của người đọc
    */
   checkAndPreloadSlidingPages(): void {
     if (!this.chapter || !this.chapter.pages || this.chapter.pages.length === 0) return;
@@ -613,7 +617,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     this.preloadScrollThrottle = setTimeout(() => {
       this.preloadScrollThrottle = null;
       this.performSlidingPreload();
-    }, 150);
+    }, 120);
   }
 
   private performSlidingPreload(): void {
@@ -632,8 +636,8 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Tải trước 4 trang tiếp theo vào bộ nhớ đệm
-    const bufferCount = 4;
+    // Tải trước 6 trang tiếp theo vào bộ nhớ đệm
+    const bufferCount = 6;
     const end = Math.min(this.chapter.pages.length, currentIdx + bufferCount + 1);
     for (let i = currentIdx + 1; i < end; i++) {
       if (!this.preloadedPageIndices.has(i)) {
@@ -641,10 +645,11 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
         const page = this.chapter.pages[i];
         if (page && page.imageUrl) {
           const img = new Image();
+          img.referrerPolicy = 'no-referrer';
           if ('fetchPriority' in img) {
             (img as any).fetchPriority = 'low';
           }
-          img.src = page.imageUrl;
+          img.src = this.getOptimizedPageUrl(page.imageUrl);
         }
       }
     }
@@ -727,6 +732,30 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     this.showReportModal = false;
   }
 
+  getOptimizedPageUrl(rawUrl: string): string {
+    if (!rawUrl) return '';
+    if (this.useDataSaver && rawUrl.includes('uploads.mangadex.org/data/') && !rawUrl.includes('/data-saver/')) {
+      return rawUrl.replace('/data/', '/data-saver/');
+    } else if (!this.useDataSaver && rawUrl.includes('uploads.mangadex.org/data-saver/')) {
+      return rawUrl.replace('/data-saver/', '/data/');
+    }
+    return rawUrl;
+  }
+
+  loadSavedDataSaver(): void {
+    const saved = localStorage.getItem('truyenkomi_data_saver');
+    this.useDataSaver = saved !== null ? saved === 'true' : true;
+  }
+
+  toggleDataSaver(): void {
+    this.useDataSaver = !this.useDataSaver;
+    localStorage.setItem('truyenkomi_data_saver', String(this.useDataSaver));
+    if (this.chapter && this.chapter.pages) {
+      this.initPageStates(this.chapter.pages);
+      this.prefetchCurrentChapterPages();
+    }
+  }
+
   initPageStates(pages: any[]): void {
     this.pageStates = {};
     this.totalFailedCount = 0;
@@ -739,7 +768,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
         error: false,
         retrying: false,
         retryCount: 0,
-        url: page.imageUrl
+        url: this.getOptimizedPageUrl(page.imageUrl)
       };
     });
   }

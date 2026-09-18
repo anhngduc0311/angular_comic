@@ -140,6 +140,17 @@
           </div>
         </div>
 
+        <!-- Turbo Data-Saver Toggle -->
+        <button 
+          class="tool-btn btn-turbo-toggle" 
+          [class.active]="useDataSaver"
+          (click)="toggleDataSaver()" 
+          [title]="useDataSaver ? 'Đang bật Chế Độ Siêu Tốc (WebP tối ưu). Bấm để xem ảnh gốc HD' : 'Đang xem Ảnh Gốc HD. Bấm để bật Chế Độ Siêu Tốc WebP'"
+        >
+          <i class="fa fa-bolt" [class.text-orange]="useDataSaver"></i>
+          <span class="turbo-label">{{ useDataSaver ? 'Siêu tốc' : 'HD' }}</span>
+        </button>
+
         <!-- Fullscreen Toggle -->
         <button 
           class="tool-btn btn-fullscreen" 
@@ -248,6 +259,7 @@
         <img 
           [src]="pageStates[idx]?.url || page.imageUrl" 
           [alt]="chapter.comicTitle + ' - Chap ' + chapter.chapterNumber + ' - Trang ' + (idx + 1)"
+          referrerpolicy="no-referrer"
           [attr.loading]="idx < 4 ? 'eager' : 'lazy'"
           [attr.fetchpriority]="idx < 2 ? 'high' : (idx < 5 ? 'auto' : 'low')"
           decoding="async"

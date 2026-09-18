@@ -33,7 +33,11 @@ namespace TruyenKomi.API.Middleware
             var path = context.Request.Path.Value ?? string.Empty;
 
             // Allow Health checks, metrics, and internal crawler import API to pass without restriction
-            if (path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
+            var isInternalCrawler = context.Request.Headers["X-Internal-Crawler"] == "truyenkomi_crawler_internal" ||
+                                   context.Request.Headers["User-Agent"].ToString().Contains("TruyenKomiCrawler");
+
+            if (isInternalCrawler ||
+                path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("/api/comics/import-scraped", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("/api/comics/fix-dates", StringComparison.OrdinalIgnoreCase) ||

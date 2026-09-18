@@ -95,7 +95,24 @@ services:
       - frontend
       - redis
 
+  # 7. MangaDex Zero-Storage Auto Crawler Daemon
+  crawler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.crawler
+    container_name: truyenkomi-crawler
+    restart: always
+    environment:
+      - API_BASE_URL=http://api:5000/api
+      - CRAWLER_ORDER=latest
+      - CRAWLER_INTERVAL=10
+    depends_on:
+      - api
+    volumes:
+      - crawler_data:/app/data
+
 volumes:
   postgres_data:
   redis_data:
   meili_data:
+  crawler_data:

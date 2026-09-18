@@ -1,0 +1,13 @@
+FROM python:3.11-alpine
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+ENV TZ=Asia/Ho_Chi_Minh
+
+RUN apk add --no-cache tzdata
+RUN pip install --no-cache-dir requests urllib3 rich python-dotenv
+
+COPY mangadex_drive_downloader.py ./
+
+CMD ["python", "mangadex_drive_downloader.py", "--all", "--order=latest", "--continuous", "--interval=10", "--api=http://api:5000/api"]

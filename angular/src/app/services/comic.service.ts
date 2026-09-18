@@ -125,16 +125,21 @@ export class ComicService {
    * Tải trước ảnh vào bộ nhớ đệm trình duyệt (Browser Cache)
    * Giúp khi chuyển trang hoặc mở chương, ảnh đã có sẵn trong máy không cần chờ mạng.
    */
-  preloadChapterImages(pages: { imageUrl: string }[], count: number = 5): void {
+  preloadChapterImages(pages: { imageUrl: string }[], count: number = 8): void {
     if (!pages || !pages.length) return;
     const targets = pages.slice(0, count);
     targets.forEach((p, idx) => {
       if (p && p.imageUrl) {
-        const img = new Image();
-        if ('fetchPriority' in img) {
-          (img as any).fetchPriority = idx < 2 ? 'high' : 'auto';
+        let url = p.imageUrl;
+        if (url.includes('uploads.mangadex.org/data/')) {
+          url = url.replace('uploads.mangadex.org/data/', 'uploads.mangadex.org/data-saver/');
         }
-        img.src = p.imageUrl;
+        const img = new Image();
+        img.referrerPolicy = 'no-referrer';
+        if ('fetchPriority' in img) {
+          (img as any).fetchPriority = idx < 3 ? 'high' : 'auto';
+        }
+        img.src = url;
       }
     });
   }
