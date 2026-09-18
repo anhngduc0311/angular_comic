@@ -122,7 +122,7 @@ namespace TruyenKomi.API.Services
                 string qText = query.Trim();
                 var candidates = await _context.Comics
                     .AsNoTracking()
-                    .Where(c => c.IsPublic && (
+                    .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)) && (
                         c.Title.Contains(qText) || 
                         c.Slug.Contains(cleanQuery) || 
                         (c.Author != null && c.Author.Contains(qText)) || 
@@ -196,7 +196,7 @@ namespace TruyenKomi.API.Services
         {
             var query = _context.Comics
                 .AsNoTracking()
-                .Where(c => c.IsPublic);
+                .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)));
 
             // 1. Status Filter
             if (!string.IsNullOrWhiteSpace(filter.Status) && filter.Status != "All")
@@ -333,7 +333,7 @@ namespace TruyenKomi.API.Services
 
                 var query = _context.Comics
                     .AsNoTracking()
-                    .Where(c => c.IsPublic)
+                    .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                     .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
                     .Include(c => c.Chapters)
                     .AsQueryable();

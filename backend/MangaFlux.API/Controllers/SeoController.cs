@@ -29,7 +29,7 @@ namespace TruyenKomi.API.Controllers
 
             var comics = await _context.Comics
                 .AsNoTracking()
-                .Where(c => c.IsPublic)
+                .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                 .Select(c => new
                 {
                     c.Slug,

@@ -165,7 +165,7 @@ namespace TruyenKomi.API.Services
         {
             var comicsQuery = _context.Comics
                 .AsNoTracking()
-                .Where(c => c.IsPublic)
+                .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(query))
@@ -499,7 +499,7 @@ namespace TruyenKomi.API.Services
                 var query = _context.Categories.AsNoTracking();
                 if (onlyWithComics)
                 {
-                    query = query.Where(cat => cat.ComicCategories.Any(cc => cc.Comic.IsPublic));
+                    query = query.Where(cat => cat.ComicCategories.Any(cc => cc.Comic.IsPublic && cc.Comic.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5))));
                 }
 
                 var result = await query
@@ -510,7 +510,7 @@ namespace TruyenKomi.API.Services
                         Slug = cat.Slug,
                         Description = cat.Description,
                         ImageUrl = cat.ImageUrl,
-                        ComicCount = cat.ComicCategories.Count(cc => cc.Comic.IsPublic)
+                        ComicCount = cat.ComicCategories.Count(cc => cc.Comic.IsPublic && cc.Comic.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                     })
                     .OrderByDescending(cat => cat.ComicCount)
                     .ThenBy(cat => cat.Name)

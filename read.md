@@ -39,6 +39,7 @@ cd docker_env
 docker compose up -d
 docker compose down -v
 
+docker compose logs -f crawler
 
 docker-compose up -d postgres redis meilisearch
 
