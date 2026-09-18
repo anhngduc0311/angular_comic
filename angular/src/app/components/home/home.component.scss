@@ -4,6 +4,9 @@
 
 .home-page-wrapper {
   padding-bottom: 60px;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 /* ==================== 2. COMMUNITY & PARTNER BANNERS ==================== */
@@ -330,6 +333,9 @@
 .suggest-carousel-section {
   margin-bottom: 36px;
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 
   .suggest-carousel-wrapper {
     position: relative;
