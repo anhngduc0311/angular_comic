@@ -16,7 +16,12 @@ CREATE TABLE IF NOT EXISTS "Users" (
     "RefreshToken" TEXT NULL,
     "RefreshTokenExpiryTime" TIMESTAMP NULL,
     "GoogleId" VARCHAR(255) NULL,
-    "AuthProvider" VARCHAR(50) NOT NULL DEFAULT 'Local'
+    "AuthProvider" VARCHAR(50) NOT NULL DEFAULT 'Local',
+    "Exp" INT NOT NULL DEFAULT 0,
+    "LastAttendanceDate" TIMESTAMP NULL,
+    "AttendanceStreak" INT NOT NULL DEFAULT 0,
+    "AvatarFrame" VARCHAR(100) NULL DEFAULT 'frame-default',
+    "ActiveBadge" VARCHAR(100) NULL
 );
 
 -- 2. Table: Categories
@@ -46,6 +51,7 @@ CREATE TABLE IF NOT EXISTS "Comics" (
     "Status" VARCHAR(50) NOT NULL DEFAULT 'Ongoing',
     "Views" INT NOT NULL DEFAULT 0,
     "Rating" NUMERIC(3,2) NOT NULL DEFAULT 5.0,
+    "RatingCount" INT NOT NULL DEFAULT 0,
     "IsFeatured" BOOLEAN NOT NULL DEFAULT FALSE,
     "IsPublic" BOOLEAN NOT NULL DEFAULT TRUE,
     "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -166,11 +172,26 @@ CREATE TABLE IF NOT EXISTS "Reports" (
     CONSTRAINT "FK_Reports_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE SET NULL
 );
 
+-- 13. Table: ComicRatings
+CREATE TABLE IF NOT EXISTS "ComicRatings" (
+    "Id" SERIAL PRIMARY KEY,
+    "UserId" INT NOT NULL,
+    "ComicId" INT NOT NULL,
+    "Score" INT NOT NULL,
+    "Review" TEXT NULL,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "UpdatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_ComicRatings_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_ComicRatings_Comics" FOREIGN KEY ("ComicId") REFERENCES "Comics"("Id") ON DELETE CASCADE,
+    CONSTRAINT "UQ_User_Comic_Rating" UNIQUE ("UserId", "ComicId")
+);
+
 -- Performance Optimization Indexes
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Comics_Slug" ON "Comics"("Slug");
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Categories_Slug" ON "Categories"("Slug");
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Username" ON "Users"("Username");
 CREATE UNIQUE INDEX IF NOT EXISTS "IX_Users_Email" ON "Users"("Email");
+CREATE INDEX IF NOT EXISTS "IX_Users_Exp" ON "Users"("Exp");
 CREATE INDEX IF NOT EXISTS "IX_Chapters_ComicId" ON "Chapters"("ComicId");
 CREATE INDEX IF NOT EXISTS "IX_Chapters_ComicId_ChapterNumber" ON "Chapters"("ComicId", "ChapterNumber");
 CREATE INDEX IF NOT EXISTS "IX_ChapterPages_ChapterId" ON "ChapterPages"("ChapterId");
@@ -179,3 +200,5 @@ CREATE INDEX IF NOT EXISTS "IX_Bookmarks_UserId" ON "Bookmarks"("UserId");
 CREATE INDEX IF NOT EXISTS "IX_Comments_ComicId_CreatedAt" ON "Comments"("ComicId", "CreatedAt");
 CREATE INDEX IF NOT EXISTS "IX_Notifications_UserId_IsRead_CreatedAt" ON "Notifications"("UserId", "IsRead", "CreatedAt");
 CREATE INDEX IF NOT EXISTS "IX_Comics_IsPublic_IsFeatured_UpdatedAt" ON "Comics"("IsPublic", "IsFeatured", "UpdatedAt");
+CREATE INDEX IF NOT EXISTS "IX_ComicRatings_UserId_ComicId" ON "ComicRatings"("UserId", "ComicId");
+

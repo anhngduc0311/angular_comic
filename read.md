@@ -28,7 +28,7 @@ Password: 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
 
 cd ~/angular_comic
 git branch -a
-git checkout truyenggclone
+git checkout mangadex
 chmod +x deploy.sh
 ./deploy.sh
 

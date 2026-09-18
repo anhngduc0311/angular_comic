@@ -1,9 +1,10 @@
-import { Component, ElementRef, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, ViewChild, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { ComicService } from '../../services/comic.service';
 import { SeoService } from '../../services/seo.service';
-import { Comic, Category } from '../../models/comic.model';
+import { Comic } from '../../models/comic.model';
 
 @Component({
   selector: 'app-home',
@@ -12,17 +13,16 @@ import { Comic, Category } from '../../models/comic.model';
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
 })
-export class HomeComponent implements OnInit, OnDestroy {
+export class HomeComponent implements OnInit {
   @ViewChild('suggestContainer') suggestContainer?: ElementRef<HTMLDivElement>;
 
-  featuredComics: Comic[] = [];
   latestComics: Comic[] = [];
   hotComics: Comic[] = [];
-  categories: Category[] = [];
 
-  activeSpotlightIndex: number = 0;
-  private spotlightTimer?: any;
-
+  private readonly destroyRef = inject(DestroyRef);
+  latestError = false;
+  hotError = false;
+  filteredComics: Comic[] = [];
 
   selectedFilter: string = 'all';
   filterChips = [
@@ -38,9 +38,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   isLoading: boolean = true;
   isLoadingHot: boolean = true;
-  page: number = 1;
 
-  skeletonHotCards: number[] = Array(8).fill(0);
   skeletonCards: number[] = Array(12).fill(0);
 
   constructor(
@@ -48,163 +46,86 @@ export class HomeComponent implements OnInit, OnDestroy {
     private seoService: SeoService
   ) {}
 
-  private suggestTimer?: any;
-  private isSuggestHovered: boolean = false;
-  displayHotComics: Comic[] = [];
-  private isSliding: boolean = false;
-
   ngOnInit(): void {
     this.seoService.setHomeSeo();
     this.loadData();
-    this.startSuggestAutoScroll();
-  }
-
-  ngOnDestroy(): void {
-    this.stopSpotlightAutoPlay();
-    this.stopSuggestAutoScroll();
   }
 
   loadData(): void {
     this.isLoading = true;
     this.isLoadingHot = true;
+    this.latestError = false;
+    this.hotError = false;
 
     // Load Hot Comics for Suggested Carousel (15 items)
-    this.comicService.getFeaturedComics('views', 15).subscribe({
+    this.comicService.getFeaturedComics('views', 15).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.hotComics = data;
-        // Duplicate items for seamless continuous infinite loop (TruyenGG style)
-        this.displayHotComics = data.length > 0 ? [...data, ...data, ...data] : [];
+        this.updateFilteredComics();
         this.isLoadingHot = false;
-        setTimeout(() => this.startSuggestAutoScroll(), 300);
       },
       error: () => {
+        this.hotError = true;
         this.isLoadingHot = false;
       }
     });
 
     // Load Latest Comics for Grid
-    this.comicService.getLatestComics(24).subscribe({
+    this.comicService.getLatestComics(24).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
         this.latestComics = data;
+        this.updateFilteredComics();
         this.isLoading = false;
       },
       error: () => {
+        this.latestError = true;
         this.isLoading = false;
       }
     });
   }
 
-  startSpotlightAutoPlay(): void {
-    this.spotlightTimer = setInterval(() => {
-      if (this.featuredComics.length > 0) {
-        this.activeSpotlightIndex = (this.activeSpotlightIndex + 1) % this.featuredComics.length;
-      }
-    }, 6000);
-  }
-
-  stopSpotlightAutoPlay(): void {
-    if (this.spotlightTimer) {
-      clearInterval(this.spotlightTimer);
-    }
-  }
-
-  get itemWidth(): number {
-    if (!this.suggestContainer?.nativeElement) return 174;
-    const firstCard = this.suggestContainer.nativeElement.querySelector('.suggest-card') as HTMLElement;
-    return firstCard ? (firstCard.offsetWidth + 14) : 174;
-  }
-
-  startSuggestAutoScroll(): void {
-    this.stopSuggestAutoScroll();
-    this.suggestTimer = setInterval(() => {
-      if (this.isSuggestHovered || !this.suggestContainer?.nativeElement || this.isSliding) return;
-      this.scrollSuggest('right');
-    }, 3500);
-  }
-
-  stopSuggestAutoScroll(): void {
-    if (this.suggestTimer) {
-      clearInterval(this.suggestTimer);
-      this.suggestTimer = undefined;
-    }
-  }
-
-  onSuggestMouseEnter(): void {
-    this.isSuggestHovered = true;
-  }
-
-  onSuggestMouseLeave(): void {
-    this.isSuggestHovered = false;
-  }
-
-  onSuggestScroll(): void {
-    this.checkInfiniteLoopReset();
-  }
-
-  private checkInfiniteLoopReset(): void {
-    if (!this.suggestContainer?.nativeElement) return;
-    const el = this.suggestContainer.nativeElement;
-    const oneSetWidth = el.scrollWidth / 3;
-    if (oneSetWidth <= 0) return;
-
-    if (el.scrollLeft >= oneSetWidth * 2) {
-      el.scrollLeft -= oneSetWidth;
-    }
-  }
-
-  selectSpotlight(index: number): void {
-    this.activeSpotlightIndex = index;
-    this.stopSpotlightAutoPlay();
-    this.startSpotlightAutoPlay();
-  }
-
-  get currentSpotlight(): Comic | undefined {
-    return this.featuredComics[this.activeSpotlightIndex];
-  }
-
   setFilter(key: string): void {
     this.selectedFilter = key;
+    this.updateFilteredComics();
   }
 
-  get filteredComics(): Comic[] {
-    if (this.selectedFilter === 'all') return this.latestComics;
-    if (this.selectedFilter === 'hot') return this.hotComics;
-    if (this.selectedFilter === 'new') return this.latestComics.slice(0, 12);
-    return this.latestComics.filter(c => 
-      c.categories?.some(cat => cat.slug.toLowerCase().includes(this.selectedFilter) || cat.name.toLowerCase().includes(this.selectedFilter))
-    );
+  get isFilterLoading(): boolean {
+    return this.selectedFilter === 'hot' ? this.isLoadingHot : this.isLoading;
+  }
+
+  get hasFilterError(): boolean {
+    return this.selectedFilter === 'hot' ? this.hotError : this.latestError;
+  }
+
+  private updateFilteredComics(): void {
+    if (this.selectedFilter === 'all') this.filteredComics = this.latestComics;
+    else if (this.selectedFilter === 'hot') this.filteredComics = this.hotComics;
+    else if (this.selectedFilter === 'new') this.filteredComics = this.latestComics.slice(0, 12);
+    else {
+      const aliases: Record<string, string[]> = {
+        isekai: ['isekai', 'chuyen-sinh', 'chuyển sinh'],
+        action: ['action', 'hanh-dong', 'hành động'],
+        romance: ['romance', 'ngon-tinh', 'ngôn tình']
+      };
+      const terms = aliases[this.selectedFilter] || [this.selectedFilter];
+      this.filteredComics = this.latestComics.filter(comic =>
+        comic.categories?.some(category => terms.some(term =>
+          category.slug.toLowerCase().includes(term) || category.name.toLowerCase().includes(term))));
+    }
+  }
+
+  private get scrollBehavior(): ScrollBehavior {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
   }
 
   scrollSuggest(direction: 'left' | 'right'): void {
-    if (!this.suggestContainer?.nativeElement || this.isSliding) return;
-    const el = this.suggestContainer.nativeElement;
-    const step = this.itemWidth * (el.clientWidth > 768 ? 2 : 1);
-    const oneSetWidth = el.scrollWidth / 3;
-
-    this.isSliding = true;
-
-    if (direction === 'left') {
-      if (el.scrollLeft <= 10 && oneSetWidth > 0) {
-        el.scrollLeft = oneSetWidth;
-      }
-      el.scrollBy({ left: -step, behavior: 'smooth' });
-    } else {
-      if (el.scrollLeft >= oneSetWidth * 2 && oneSetWidth > 0) {
-        el.scrollLeft -= oneSetWidth;
-      }
-      el.scrollBy({ left: step, behavior: 'smooth' });
-    }
-
-    setTimeout(() => {
-      this.isSliding = false;
-      this.checkInfiniteLoopReset();
-    }, 450);
-
-    this.startSuggestAutoScroll();
+    const el = this.suggestContainer?.nativeElement;
+    if (!el) return;
+    el.scrollBy({ left: el.clientWidth * 0.8 * (direction === 'left' ? -1 : 1), behavior: this.scrollBehavior });
   }
 
   scrollToTop(): void {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: this.scrollBehavior });
   }
 
   formatTimeAgo(dateStr?: string): string {
@@ -234,17 +155,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   onImgError(event: Event): void {
     const target = event.target as HTMLImageElement;
-    if (target) {
-      target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=300&q=80';
+    if (target && !target.src.endsWith('/assets/cover-placeholder.svg')) {
+      target.src = 'assets/cover-placeholder.svg';
     }
   }
 
   trackByComicId(index: number, comic: Comic): number {
     return comic.id;
-  }
-
-  trackByComicIndex(index: number, comic: Comic): number | string {
-    return `${comic.id}-${index}`;
   }
 
   trackByChapterId(index: number, ch: any): number {

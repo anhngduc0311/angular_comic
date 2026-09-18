@@ -237,14 +237,42 @@ else
             docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb -f /docker-entrypoint-initdb.d/02_SeedData.sql || true
             log_success "Đã nạp dữ liệu mẫu ban đầu thành công!"
         fi
-
-        # Khởi động lại API sau khi tạo database để kết nối ngay lập tức
-        log_info "Khởi động lại Backend API container để đồng bộ trạng thái Database..."
-        $DOCKER_COMPOSE_CMD restart api
-        log_success "Backend API đã kết nối thành công với Database mới!"
     else
-        log_success "Database TruyenKomiDb đã có sẵn đầy đủ bảng dữ liệu. Bỏ qua bước nạp lại SQL để bảo vệ dữ liệu."
+        log_success "Database TruyenKomiDb đã có sẵn dữ liệu."
     fi
+
+    # Tự động đồng bộ các cột & bảng bổ sung (tránh lỗi 500 nếu DB đã tạo từ trước)
+    log_info "Kiểm tra và đồng bộ cấu trúc cột mới vào Database (Schema Auto-Sync)..."
+    docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb >/dev/null 2>&1 << 'SQL_MIGRATE' || true
+ALTER TABLE "Comics" ADD COLUMN IF NOT EXISTS "RatingCount" INT NOT NULL DEFAULT 0;
+ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "Exp" INT NOT NULL DEFAULT 0;
+ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "LastAttendanceDate" TIMESTAMP NULL;
+ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "AttendanceStreak" INT NOT NULL DEFAULT 0;
+ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "AvatarFrame" VARCHAR(100) NULL DEFAULT 'frame-default';
+ALTER TABLE "Users" ADD COLUMN IF NOT EXISTS "ActiveBadge" VARCHAR(100) NULL;
+
+CREATE TABLE IF NOT EXISTS "ComicRatings" (
+    "Id" SERIAL PRIMARY KEY,
+    "UserId" INT NOT NULL,
+    "ComicId" INT NOT NULL,
+    "Score" INT NOT NULL,
+    "Review" TEXT NULL,
+    "CreatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "UpdatedAt" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "FK_ComicRatings_Users" FOREIGN KEY ("UserId") REFERENCES "Users"("Id") ON DELETE CASCADE,
+    CONSTRAINT "FK_ComicRatings_Comics" FOREIGN KEY ("ComicId") REFERENCES "Comics"("Id") ON DELETE CASCADE,
+    CONSTRAINT "UQ_User_Comic_Rating" UNIQUE ("UserId", "ComicId")
+);
+
+CREATE INDEX IF NOT EXISTS "IX_ComicRatings_UserId_ComicId" ON "ComicRatings"("UserId", "ComicId");
+CREATE INDEX IF NOT EXISTS "IX_Users_Exp" ON "Users"("Exp");
+SQL_MIGRATE
+    log_success "Đồng bộ schema Database thành công!"
+
+    # Khởi động lại API container để áp dụng kết nối và cache mới
+    log_info "Khởi động lại Backend API container để đồng bộ trạng thái..."
+    $DOCKER_COMPOSE_CMD restart api
+    log_success "Backend API đã kết nối và đồng bộ hoàn tất!"
 fi
 
 # ==============================================================================
