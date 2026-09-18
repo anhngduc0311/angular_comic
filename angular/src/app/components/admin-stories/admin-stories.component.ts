@@ -27,6 +27,7 @@ export class AdminStoriesComponent implements OnInit {
   selectedVisibility: string = 'All'; // 'All', 'Public', 'Hidden'
   selectedFeatured: 'All' | 'Featured' | 'Normal' = 'All';
   selectedCategory: string = 'All';
+  selectedChapterStatus: 'All' | 'NoChapters' | 'MissingChapter1' | 'HasChaptersMissingC1' | 'HasChapters' | 'HasChapter1' = 'All';
   sortBy: 'latest' | 'views' | 'rating' | 'title' | 'chapters' = 'latest';
 
   // Pagination States
@@ -81,10 +82,22 @@ export class AdminStoriesComponent implements OnInit {
     this.isLoading = true;
     this.comicService.getAdminComics().subscribe({
       next: (data) => {
-        this.comics = data.map(c => ({
-          ...c,
-          isPublic: c.isPublic !== undefined ? c.isPublic : true
-        }));
+        this.comics = data.map(c => {
+          const totalChapters = c.totalChapters ?? 0;
+          let hasChapterOne = c.hasChapterOne;
+          if (hasChapterOne === undefined) {
+            hasChapterOne = totalChapters > 0 && (
+              (c.firstChapterNumber !== undefined && c.firstChapterNumber <= 1.5) ||
+              (c.recentChapters?.some(ch => (ch.chapterNumber >= 0.8 && ch.chapterNumber < 2.0) || Math.floor(ch.chapterNumber) === 1 || ch.chapterNumber <= 1.5) ?? false)
+            );
+          }
+          return {
+            ...c,
+            isPublic: c.isPublic !== undefined ? c.isPublic : true,
+            totalChapters,
+            hasChapterOne
+          };
+        });
         this.applyFilters(!preservePage);
         this.isLoading = false;
       },
@@ -133,6 +146,19 @@ export class AdminStoriesComponent implements OnInit {
     if (this.selectedCategory !== 'All') {
       const catId = Number(this.selectedCategory);
       result = result.filter(c => c.categories.some(cat => cat.id === catId));
+    }
+
+    // Filter Chapter Status
+    if (this.selectedChapterStatus === 'NoChapters') {
+      result = result.filter(c => (c.totalChapters || 0) === 0);
+    } else if (this.selectedChapterStatus === 'MissingChapter1') {
+      result = result.filter(c => (c.totalChapters || 0) === 0 || !c.hasChapterOne);
+    } else if (this.selectedChapterStatus === 'HasChaptersMissingC1') {
+      result = result.filter(c => (c.totalChapters || 0) > 0 && !c.hasChapterOne);
+    } else if (this.selectedChapterStatus === 'HasChapters') {
+      result = result.filter(c => (c.totalChapters || 0) > 0);
+    } else if (this.selectedChapterStatus === 'HasChapter1') {
+      result = result.filter(c => !!c.hasChapterOne);
     }
 
     // Sort

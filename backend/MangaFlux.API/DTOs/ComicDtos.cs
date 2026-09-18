@@ -43,6 +43,8 @@ namespace TruyenKomi.API.DTOs
         public bool IsFeatured { get; set; }
         public bool IsPublic { get; set; } = true;
         public int TotalChapters { get; set; }
+        public bool HasChapterOne { get; set; }
+        public decimal? FirstChapterNumber { get; set; }
         public int CommentsCount { get; set; }
         public int LikesCount { get; set; }
         public DateTime CreatedAt { get; set; }

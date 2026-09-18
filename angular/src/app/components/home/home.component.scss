@@ -583,36 +583,6 @@
   100% { width: 100%; }
 }
 
-.reading-welcome {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 32px 0 20px;
-  .welcome-eyebrow {
-    color: var(--primary-orange);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1.6px;
-    margin-bottom: 10px;
-  }
-  h1 { font-size: clamp(23px, 3vw, 34px); letter-spacing: -0.8px; margin-bottom: 10px; }
-  p { font-size: 14px; color: var(--text-muted); }
-  .history-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 44px;
-    padding: 10px 16px;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background: var(--bg-surface);
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-  }
-}
-
 .home-feedback {
   padding: 28px 20px;
   margin-bottom: 20px;
@@ -641,7 +611,6 @@
 .section-header-modern .view-all-text { flex-shrink: 0; min-height: 44px; }
 
 @media (max-width: 576px) {
-  .reading-welcome { align-items: flex-start; flex-direction: column; gap: 14px; padding-top: 24px; }
   .section-header-modern .header-left .section-title { font-size: 17px; }
   .section-header-modern .header-left { gap: 8px; }
   .section-header-modern .view-all-text { font-size: 12px; }

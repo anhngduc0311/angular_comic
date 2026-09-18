@@ -57,10 +57,20 @@ export class HomeComponent implements OnInit {
     this.latestError = false;
     this.hotError = false;
 
+    const isValidHomeComic = (c: Comic): boolean => {
+      const total = c.totalChapters ?? 0;
+      if (total <= 0) return false;
+      if (c.hasChapterOne === true) return true;
+      if (c.firstChapterNumber !== undefined && c.firstChapterNumber <= 1.5) return true;
+      if (c.recentChapters && c.recentChapters.some(ch => (ch.chapterNumber >= 0.8 && ch.chapterNumber < 2.0) || Math.floor(ch.chapterNumber) === 1 || ch.chapterNumber <= 1.5)) return true;
+      if (c.hasChapterOne === false) return false;
+      return true;
+    };
+
     // Load Hot Comics for Suggested Carousel (15 items)
     this.comicService.getFeaturedComics('views', 15).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
-        this.hotComics = data;
+        this.hotComics = data.filter(isValidHomeComic);
         this.updateFilteredComics();
         this.isLoadingHot = false;
       },
@@ -73,7 +83,7 @@ export class HomeComponent implements OnInit {
     // Load Latest Comics for Grid
     this.comicService.getLatestComics(24).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (data) => {
-        this.latestComics = data;
+        this.latestComics = data.filter(isValidHomeComic);
         this.updateFilteredComics();
         this.isLoading = false;
       },

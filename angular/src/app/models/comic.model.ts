@@ -54,6 +54,8 @@ export interface Comic {
   isFeatured: boolean;
   isPublic?: boolean;
   totalChapters?: number;
+  hasChapterOne?: boolean;
+  firstChapterNumber?: number;
   commentsCount?: number;
   likesCount?: number;
   createdAt?: string;

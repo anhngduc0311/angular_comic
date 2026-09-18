@@ -79,7 +79,7 @@ namespace TruyenKomi.API.Services
             {
                 var query = _context.Comics
                     .AsNoTracking()
-                    .Where(c => c.IsPublic && c.Chapters.Any())
+                    .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                     .AsQueryable();
 
                 query = crit switch
@@ -114,7 +114,7 @@ namespace TruyenKomi.API.Services
                 {
                     result = await _context.Comics
                         .AsNoTracking()
-                        .Where(c => c.IsPublic)
+                        .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                         .OrderByDescending(c => c.IsFeatured)
                         .ThenByDescending(c => c.Views)
                         .ThenByDescending(c => c.UpdatedAt)
@@ -136,7 +136,7 @@ namespace TruyenKomi.API.Services
             {
                 var comics = await _context.Comics
                     .AsNoTracking()
-                    .Where(c => c.IsPublic && c.Chapters.Any())
+                    .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                     .OrderByDescending(c => c.UpdatedAt)
                     .ThenByDescending(c => c.Id)
                     .Take(count)
@@ -148,7 +148,7 @@ namespace TruyenKomi.API.Services
                 {
                     comics = await _context.Comics
                         .AsNoTracking()
-                        .Where(c => c.IsPublic)
+                        .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                         .OrderByDescending(c => c.UpdatedAt)
                         .ThenByDescending(c => c.Id)
                         .Take(count)
@@ -1639,6 +1639,17 @@ namespace TruyenKomi.API.Services
                     CreatedAt = ch.CreatedAt
                 }).ToList() ?? new List<ChapterDto>();
 
+            var chapters = c.Chapters;
+            var totalChapters = chapters?.Count ?? 0;
+            var hasChapterOne = chapters != null && chapters.Any(ch => 
+                (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || 
+                Math.Floor(ch.ChapterNumber) == 1 || 
+                Math.Abs(ch.ChapterNumber - 1.0) < 0.001 ||
+                (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5));
+            var firstChapterNumber = chapters != null && chapters.Any() 
+                ? (decimal?)chapters.Min(ch => ch.ChapterNumber) 
+                : null;
+
             return new ComicDto
             {
                 Id = c.Id,
@@ -1660,7 +1671,9 @@ namespace TruyenKomi.API.Services
                 RatingCount = c.RatingCount,
                 IsFeatured = c.IsFeatured,
                 IsPublic = c.IsPublic,
-                TotalChapters = c.Chapters?.Count ?? 0,
+                TotalChapters = totalChapters,
+                HasChapterOne = hasChapterOne,
+                FirstChapterNumber = firstChapterNumber,
                 CommentsCount = c.Comments?.Count ?? 0,
                 LikesCount = c.Bookmarks?.Count ?? 0,
                 CreatedAt = c.CreatedAt,
