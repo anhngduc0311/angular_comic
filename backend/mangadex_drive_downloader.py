@@ -555,6 +555,25 @@ class MangaDexClient:
             return [f"{cdn_base}/data/{ch_hash}/{fn}" for fn in files]
 
 
+def wait_for_api_ready(api_base_url: str, session: requests.Session = None, timeout_sec: int = 120) -> bool:
+    """Chờ Web API khởi động sẵn sàng trước khi đồng bộ truyện"""
+    check_url = f"{api_base_url.rstrip('/')}/comics/featured?count=1"
+    start_time = time.time()
+    http_client = session or requests
+    log_info(f"⏳ Đang kiểm tra kết nối Web API ({api_base_url})...")
+    while time.time() - start_time < timeout_sec:
+        try:
+            res = http_client.get(check_url, timeout=5)
+            if res.status_code == 200:
+                log_success("✅ Web API đã sẵn sàng kết nối và nhận dữ liệu!")
+                return True
+        except Exception:
+            pass
+        time.sleep(3)
+    log_warning("⚠️ Web API chưa phản hồi sau 120s, tiếp tục tiến trình...")
+    return False
+
+
 # =============================================================================
 # ZERO-STORAGE SYNCHRONIZER ENGINE
 # =============================================================================
@@ -579,6 +598,7 @@ class MangaDexSynchronizer:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 TruyenKomiCrawler/3.0",
             "X-Internal-Crawler": "truyenkomi_crawler_internal"
         })
+        wait_for_api_ready(self.api_base_url, session=self.api_session, timeout_sec=60)
 
     def sync_single_manga(self, manga_id_or_url: str) -> bool:
         manga_id = self.client.extract_manga_id(manga_id_or_url)
