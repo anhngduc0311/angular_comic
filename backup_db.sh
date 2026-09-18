@@ -2,7 +2,7 @@
 # ==============================================================================
 # 💾 TRUYENKOMI - TỰ ĐỘNG BACKUP DATABASE POSTGRESQL & CLOUDFLARE R2 STORAGE
 # ==============================================================================
-set -e
+set -eo pipefail
 
 # Đảm bảo đầy đủ PATH cho môi trường Cronjob
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"

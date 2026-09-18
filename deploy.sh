@@ -80,6 +80,7 @@ log_info "Thư mục làm việc: ${BOLD}${TARGET_DIR}${NC}"
 # ==============================================================================
 log_step "BƯỚC 1/8: Cập nhật hệ điều hành & cài đặt gói tiện ích"
 log_info "Đang cập nhật danh sách gói apt & cài đặt git, curl, ufw, htop, cron, ca-certificates..."
+export DEBIAN_FRONTEND=noninteractive
 $SUDO apt-get update -y
 $SUDO apt-get install -y git curl ufw htop ca-certificates gnupg lsb-release cron unzip rclone
 
@@ -87,13 +88,21 @@ $SUDO apt-get install -y git curl ufw htop ca-certificates gnupg lsb-release cro
 $SUDO systemctl enable cron 2>/dev/null || true
 $SUDO systemctl start cron 2>/dev/null || true
 
+# Đảm bảo mở các cổng cần thiết nếu UFW đang được kích hoạt
+if command -v ufw >/dev/null 2>&1 && $SUDO ufw status 2>/dev/null | grep -q "Status: active"; then
+    log_info "Phát hiện tường lửa UFW đang bật, tự động mở cổng 22 (SSH), 80 (HTTP), 443 (HTTPS)..."
+    $SUDO ufw allow 22/tcp >/dev/null 2>&1 || true
+    $SUDO ufw allow 80/tcp >/dev/null 2>&1 || true
+    $SUDO ufw allow 443/tcp >/dev/null 2>&1 || true
+fi
+
 # Kiểm tra lại Rclone
 if ! command -v rclone >/dev/null 2>&1; then
     log_info "Đang cài đặt bổ trợ Rclone..."
     curl -fsSL https://rclone.org/install.sh | $SUDO bash 2>/dev/null || true
 fi
 
-log_success "Đã cập nhật hệ điều hành và cài đặt Rclone thành công!"
+log_success "Đã cập nhật hệ điều hành và cài đặt các tiện ích thành công!"
 
 # ==============================================================================
 # BƯỚC 2: KIỂM TRA VÀ TẠO BỘ NHỚ ẢO SWAP (4GB)
@@ -184,14 +193,14 @@ fi
 # BƯỚC 5: BUILD VÀ KHỞI CHẠY TẤT CẢ CONTAINERS
 # ==============================================================================
 log_step "BƯỚC 5/8: Build và khởi chạy toàn bộ dịch vụ TruyenKomi bằng Docker Compose"
-log_info "Đang thực thi: $DOCKER_COMPOSE_CMD up -d --build (postgres, redis, meilisearch, api, frontend, nginx)..."
+log_info "Đang thực thi: $DOCKER_COMPOSE_CMD up -d --build (postgres, redis, meilisearch, api, frontend, nginx, crawler)..."
 
 $DOCKER_COMPOSE_CMD up -d --build
 
 log_success "Tất cả các dịch vụ container đã được build và khởi chạy trong nền!"
 
 # ==============================================================================
-# BƯỚC 6: TỰ ĐỘNG KIỂM TRA & KHỞI TẠO DATABASE SCHEMA
+# BƯỚC 6: TỰ ĐỘNG KIỂM TRA & KHỞI TẠO DATABASE SCHEMA & SEED DATA
 # ==============================================================================
 log_step "BƯỚC 6/8: Tự động kiểm tra & Khởi tạo Database PostgreSQL"
 
@@ -218,9 +227,15 @@ else
         log_info "Phát hiện Database mới (chưa có bảng): Đang tự động nạp cấu trúc Database sạch (01_CreateDatabase.sql)..."
         
         if [ -f "database/01_CreateDatabase.sql" ]; then
-            log_info "-> Đang thực thi /database/01_CreateDatabase.sql (Tạo các bảng & Index)..."
+            log_info "-> Đang thực thi database/01_CreateDatabase.sql (Tạo các bảng & Index)..."
             docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb -f /docker-entrypoint-initdb.d/01_CreateDatabase.sql
-            log_success "Đã tạo toàn bộ cấu trúc bảng Database TruyenKomiDb thành công (Sạch 100%, sẵn sàng nhận dữ liệu)!"
+            log_success "Đã tạo toàn bộ cấu trúc bảng Database TruyenKomiDb thành công!"
+        fi
+
+        if [ -f "database/02_SeedData.sql" ]; then
+            log_info "-> Đang thực thi database/02_SeedData.sql (Nạp thể loại, Admin mặc định, truyện mẫu)..."
+            docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb -f /docker-entrypoint-initdb.d/02_SeedData.sql || true
+            log_success "Đã nạp dữ liệu mẫu ban đầu thành công!"
         fi
 
         # Khởi động lại API sau khi tạo database để kết nối ngay lập tức
@@ -250,7 +265,7 @@ else
 # ==============================================================================
 # 💾 TRUYENKOMI - TỰ ĐỘNG BACKUP DATABASE POSTGRESQL & CLOUDFLARE R2 STORAGE
 # ==============================================================================
-set -e
+set -eo pipefail
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -396,8 +411,8 @@ $DOCKER_COMPOSE_CMD ps
 log_info "Đang dọn dẹp các Docker image dangling cũ để tiết kiệm dung lượng ổ cứng..."
 docker image prune -f || true
 
-# Lấy Public IP của Server
-PUBLIC_IP=$(curl -s --connect-timeout 3 https://api.ipify.org || curl -s --connect-timeout 3 https://ifconfig.me || echo "35.236.179.69")
+# Lấy Public IP của Server (fallback về IP mạng nội bộ của server nếu không có internet)
+PUBLIC_IP=$(curl -s --connect-timeout 3 https://api.ipify.org || curl -s --connect-timeout 3 https://ifconfig.me || curl -s --connect-timeout 3 https://icanhazip.com || hostname -I 2>/dev/null | awk '{print $1}' || echo "localhost")
 
 # ==============================================================================
 # KẾT QUẢ TRIỂN KHAI HOÀN TẤT
@@ -425,9 +440,11 @@ echo -e "\n${BOLD}🛠️ CÁC LỆNH HỮU ÍCH QUẢN TRỊ DOCKER:${NC}"
 echo -e "  • ${YELLOW}Xem log realtime toàn bộ:${NC}         cd $TARGET_DIR && $DOCKER_COMPOSE_CMD logs -f"
 echo -e "  • ${YELLOW}Xem log backend .NET API:${NC}         cd $TARGET_DIR && $DOCKER_COMPOSE_CMD logs -f api"
 echo -e "  • ${YELLOW}Xem log frontend Angular:${NC}         cd $TARGET_DIR && $DOCKER_COMPOSE_CMD logs -f frontend"
+echo -e "  • ${YELLOW}Xem log crawler MangaDex:${NC}         cd $TARGET_DIR && $DOCKER_COMPOSE_CMD logs -f crawler"
 echo -e "  • ${YELLOW}Khởi động lại toàn bộ:${NC}           cd $TARGET_DIR && $DOCKER_COMPOSE_CMD restart"
 echo -e "  • ${YELLOW}Dừng toàn bộ hệ thống:${NC}           cd $TARGET_DIR && $DOCKER_COMPOSE_CMD down"
 echo -e "  • ${YELLOW}Cập nhật lại source mới & re-build:${NC} git pull && ./deploy.sh"
 
 echo -e "\n${GREEN}================================================================${NC}\n"
+
 
