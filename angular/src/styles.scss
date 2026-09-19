@@ -306,11 +306,72 @@ button, input, select, textarea {
 }
 
 /* ============================================================================
-   GLOBAL SECTION HEADING
+   GLOBAL BREADCRUMB & SECTION HEADING
    ============================================================================ */
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  list-style: none;
+  padding: 14px 0 10px;
+  margin: 0 0 14px 0;
+  font-size: 13.5px;
+  line-height: 1.4;
+
+  li {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-muted);
+
+    &:not(:first-child)::before {
+      content: "›";
+      font-size: 15px;
+      color: var(--text-muted);
+      opacity: 0.7;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      text-decoration: none;
+      transition: color 0.15s ease;
+
+      i.fa-home {
+        color: var(--primary-orange);
+        font-size: 14px;
+      }
+
+      &:hover {
+        color: var(--primary-orange);
+      }
+    }
+
+    .active,
+    .current {
+      color: var(--text-main);
+      font-weight: 700;
+      max-width: 500px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      @media (max-width: 576px) {
+        max-width: 220px;
+      }
+    }
+  }
+}
+
 .section-heading {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 12px;
   margin-bottom: 20px;
   flex-wrap: wrap;
@@ -335,10 +396,19 @@ button, input, select, textarea {
     }
   }
 
-  .text-muted {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-muted);
+  .text-muted,
+  .badge-total-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    background: rgba(253, 84, 0, 0.1);
+    border: 1px solid rgba(253, 84, 0, 0.25);
+    color: var(--primary-orange);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
   }
 }
 

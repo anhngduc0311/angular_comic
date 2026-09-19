@@ -43,6 +43,41 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   private lastScrollY: number = 0;
   private scrollThreshold: number = 4;
 
+  // Mobile Settings Drawer State
+  showMobileSettingsDrawer: boolean = false;
+
+  // Reading Mode State (Vertical Scroll vs Page Flip)
+  readingMode: 'vertical' | 'flip' = 'vertical';
+  showModeMenu: boolean = false;
+  currentPageIndex: number = 0;
+  flipDirection: 'ltr' | 'rtl' = 'ltr'; // ltr: Left-to-Right (Webtoon), rtl: Right-to-Left (Manga)
+  flipFitMode: 'contain' | 'width' | 'height' = 'contain';
+  showFitMenu: boolean = false;
+  flipAnimClass: string = '';
+
+  fitModes: { label: string; shortLabel: string; mode: 'contain' | 'width' | 'height'; icon: string }[] = [
+    { label: 'Vừa màn hình', shortLabel: 'Vừa', mode: 'contain', icon: 'fa-compress' },
+    { label: 'Tràn chiều rộng', shortLabel: 'Rộng', mode: 'width', icon: 'fa-arrows-h' },
+    { label: 'Tràn chiều cao', shortLabel: 'Cao', mode: 'height', icon: 'fa-arrows-v' }
+  ];
+
+  // Auto-Flip (Tự động lật trang) State
+  isAutoFlipping: boolean = false;
+  autoFlipSeconds: number = 5;
+  showAutoFlipMenu: boolean = false;
+  private autoFlipTimer: any = null;
+  autoFlipSpeeds = [
+    { label: '3 giây / trang', seconds: 3 },
+    { label: '5 giây / trang', seconds: 5 },
+    { label: '8 giây / trang', seconds: 8 },
+    { label: '10 giây / trang', seconds: 10 }
+  ];
+
+  // Touch Swipe Tracking
+  private touchStartX: number = 0;
+  private touchStartY: number = 0;
+  private touchStartTime: number = 0;
+
   // Preloading & Reading Position states
   private preloadedChapterId: number | null = null;
   private preloadedImages: HTMLImageElement[] = [];
@@ -126,10 +161,11 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
+    this.loadSavedReadingMode();
+    this.loadSavedFlipSettings();
     this.loadSavedDataSaver();
     this.loadSavedZoom();
     this.loadSavedAutoScrollSpeed();
-    this.loadSavedPinState();
     this.checkHintVisibility();
 
     document.addEventListener('fullscreenchange', this.onFullscreenChangeListener);
@@ -140,6 +176,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
       const id = +params['id'];
 
       this.stopAutoScroll();
+      this.stopAutoFlip();
 
       if (slug && chapterNumber) {
         this.fetchChapterBySlugAndNumber(slug, +chapterNumber);
@@ -149,15 +186,39 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     });
   }
 
+  private flipHeaderAutoHideTimer: any = null;
+
   ngOnDestroy(): void {
     this.stopAutoScroll();
+    this.stopAutoFlip();
+    this.clearFlipHeaderAutoHide();
     document.removeEventListener('fullscreenchange', this.onFullscreenChangeListener);
   }
 
 
-  loadSavedPinState(): void {
-    const savedPin = localStorage.getItem('truyenkomi_reader_pinned');
-    this.isPinned = savedPin === 'true';
+  loadSavedReadingMode(): void {
+    const savedMode = localStorage.getItem('truyenkomi_reading_mode');
+    if (savedMode === 'flip' || savedMode === 'vertical') {
+      this.readingMode = savedMode;
+    }
+  }
+
+  loadSavedFlipSettings(): void {
+    const savedDir = localStorage.getItem('truyenkomi_flip_dir');
+    if (savedDir === 'rtl' || savedDir === 'ltr') {
+      this.flipDirection = savedDir;
+    }
+    const savedFit = localStorage.getItem('truyenkomi_flip_fit');
+    if (savedFit === 'contain' || savedFit === 'width' || savedFit === 'height') {
+      this.flipFitMode = savedFit;
+    }
+    const savedSec = localStorage.getItem('truyenkomi_autoflip_sec');
+    if (savedSec) {
+      const s = parseInt(savedSec, 10);
+      if (!isNaN(s) && [3, 5, 8, 10].includes(s)) {
+        this.autoFlipSeconds = s;
+      }
+    }
   }
 
   togglePin(): void {
@@ -165,7 +226,6 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     if (this.isPinned) {
       this.isHeaderHidden = false;
     }
-    localStorage.setItem('truyenkomi_reader_pinned', this.isPinned.toString());
   }
 
   toggleFullscreen(): void {
@@ -180,11 +240,33 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   toggleHeader(): void {
     this.isHeaderHidden = !this.isHeaderHidden;
+    if (!this.isHeaderHidden && this.readingMode === 'flip') {
+      this.scheduleFlipHeaderAutoHide(3500);
+    } else {
+      this.clearFlipHeaderAutoHide();
+    }
+  }
+
+  scheduleFlipHeaderAutoHide(delayMs: number = 3000): void {
+    if (this.readingMode !== 'flip') return;
+    this.clearFlipHeaderAutoHide();
+    this.flipHeaderAutoHideTimer = setTimeout(() => {
+      if (!this.showMobileSettingsDrawer && !this.showModeMenu && !this.showFitMenu && !this.showAutoFlipMenu && !this.showReportModal) {
+        this.isHeaderHidden = true;
+      }
+    }, delayMs);
+  }
+
+  clearFlipHeaderAutoHide(): void {
+    if (this.flipHeaderAutoHideTimer) {
+      clearTimeout(this.flipHeaderAutoHideTimer);
+      this.flipHeaderAutoHideTimer = null;
+    }
   }
 
   onReaderClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
-    if (target.closest('button, select, input, a, textarea, .report-modal-dialog, .floating-reader-tools, .reader-header, .restore-toast, .zen-hint-pill, .reader-bottom-nav, .zoom-header-group, .zoom-levels-menu, .autoscroll-header-group, .as-speed-menu')) {
+    if (target.closest('button, select, input, a, textarea, .report-modal-dialog, .floating-reader-tools, .reader-header, .restore-toast, .zen-hint-pill, .reader-bottom-nav, .zoom-header-group, .zoom-levels-menu, .autoscroll-header-group, .as-speed-menu, .mode-dropdown-wrap, .mode-menu, .fit-dropdown-wrap, .fit-levels-menu, .autoflip-dropdown-wrap, .reader-flip-bottom-bar, .flip-click-zone')) {
       return;
     }
     this.toggleHeader();
@@ -206,6 +288,361 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     }
     this.showHint = false;
     localStorage.setItem('truyenkomi_seen_zen_hint', 'true');
+  }
+
+  // ==================== READING MODE (VERTICAL VS FLIP) ====================
+  toggleModeMenu(): void {
+    this.showModeMenu = !this.showModeMenu;
+  }
+
+  setReadingMode(mode: 'vertical' | 'flip'): void {
+    if (this.readingMode === mode) {
+      this.showModeMenu = false;
+      return;
+    }
+
+    if (mode === 'flip') {
+      // Sync current visible page from vertical scroll into flip currentPageIndex
+      let currentIdx = 0;
+      const windowH = window.innerHeight;
+      if (this.chapter?.pages) {
+        for (let i = 0; i < this.chapter.pages.length; i++) {
+          const el = document.getElementById('page-' + (i + 1));
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= windowH * 0.6 && rect.bottom >= 0) {
+              currentIdx = i;
+            }
+          }
+        }
+      }
+      this.currentPageIndex = currentIdx;
+      this.stopAutoScroll();
+      this.readingMode = 'flip';
+      this.preloadFlipBuffer(currentIdx);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      this.saveCurrentPage();
+      this.scheduleFlipHeaderAutoHide(2500);
+    } else {
+      // Switching from Flip to Vertical
+      this.clearFlipHeaderAutoHide();
+      this.isHeaderHidden = false;
+      this.stopAutoFlip();
+      this.readingMode = 'vertical';
+      setTimeout(() => {
+        const el = document.getElementById('page-' + (this.currentPageIndex + 1));
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 80);
+    }
+
+    localStorage.setItem('truyenkomi_reading_mode', mode);
+    this.showModeMenu = false;
+  }
+
+  // ==================== FLIP MODE NAVIGATION ====================
+  nextPage(): void {
+    if (!this.chapter?.pages || this.chapter.pages.length === 0) return;
+    if (this.readingMode === 'flip') {
+      this.isHeaderHidden = true;
+      this.clearFlipHeaderAutoHide();
+    }
+    if (this.currentPageIndex < this.chapter.pages.length - 1) {
+      this.flipAnimClass = 'slide-next';
+      this.currentPageIndex++;
+      this.saveCurrentPage();
+      this.preloadFlipBuffer(this.currentPageIndex);
+      setTimeout(() => { this.flipAnimClass = ''; }, 260);
+    } else {
+      if (this.isAutoFlipping) {
+        this.stopAutoFlip();
+      }
+    }
+  }
+
+  prevPage(): void {
+    if (!this.chapter?.pages || this.chapter.pages.length === 0) return;
+    if (this.readingMode === 'flip') {
+      this.isHeaderHidden = true;
+      this.clearFlipHeaderAutoHide();
+    }
+    if (this.currentPageIndex > 0) {
+      this.flipAnimClass = 'slide-prev';
+      this.currentPageIndex--;
+      this.saveCurrentPage();
+      this.preloadFlipBuffer(this.currentPageIndex);
+      setTimeout(() => { this.flipAnimClass = ''; }, 260);
+    }
+  }
+
+  goToPage(index: number): void {
+    if (!this.chapter?.pages || this.chapter.pages.length === 0) return;
+    if (this.readingMode === 'flip') {
+      this.isHeaderHidden = true;
+      this.clearFlipHeaderAutoHide();
+    }
+    const target = Math.max(0, Math.min(index, this.chapter.pages.length - 1));
+    if (target !== this.currentPageIndex) {
+      this.flipAnimClass = target > this.currentPageIndex ? 'slide-next' : 'slide-prev';
+      this.currentPageIndex = target;
+      this.saveCurrentPage();
+      this.preloadFlipBuffer(target);
+      setTimeout(() => { this.flipAnimClass = ''; }, 260);
+    }
+  }
+
+  onPageSliderChange(event: any): void {
+    const val = parseInt(event.target.value, 10);
+    if (!isNaN(val)) {
+      this.goToPage(val);
+    }
+  }
+
+  saveCurrentPage(): void {
+    if (this.chapter) {
+      localStorage.setItem(`truyenkomi_page_${this.chapter.id}`, this.currentPageIndex.toString());
+    }
+  }
+
+  // ==================== MOBILE SETTINGS DRAWER ====================
+  toggleMobileSettingsDrawer(): void {
+    this.showMobileSettingsDrawer = !this.showMobileSettingsDrawer;
+  }
+
+  openMobileSettingsDrawer(): void {
+    this.showMobileSettingsDrawer = true;
+  }
+
+  closeMobileSettingsDrawer(): void {
+    this.showMobileSettingsDrawer = false;
+  }
+
+  setFlipDirection(dir: 'ltr' | 'rtl'): void {
+    this.flipDirection = dir;
+    localStorage.setItem('truyenkomi_flip_dir', dir);
+  }
+
+  toggleFlipDirection(): void {
+    this.flipDirection = this.flipDirection === 'ltr' ? 'rtl' : 'ltr';
+    localStorage.setItem('truyenkomi_flip_dir', this.flipDirection);
+  }
+
+  toggleFitMenu(): void {
+    this.showFitMenu = !this.showFitMenu;
+  }
+
+  selectFitMode(mode: 'contain' | 'width' | 'height'): void {
+    this.flipFitMode = mode;
+    this.showFitMenu = false;
+    localStorage.setItem('truyenkomi_flip_fit', mode);
+  }
+
+  getFitLabel(): string {
+    const found = this.fitModes.find(f => f.mode === this.flipFitMode);
+    return found ? found.label : 'Vừa màn hình';
+  }
+
+  getFitShortLabel(): string {
+    const found = this.fitModes.find(f => f.mode === this.flipFitMode);
+    return found ? found.shortLabel : 'Vừa';
+  }
+
+  getFitIcon(): string {
+    const found = this.fitModes.find(f => f.mode === this.flipFitMode);
+    return found ? found.icon : 'fa-compress';
+  }
+
+  // ==================== AUTO-FLIP ====================
+  toggleAutoFlip(): void {
+    if (this.isAutoFlipping) {
+      this.stopAutoFlip();
+    } else {
+      this.startAutoFlip();
+    }
+  }
+
+  startAutoFlip(): void {
+    if (this.isAutoFlipping) return;
+    this.isAutoFlipping = true;
+    this.stopAutoScroll();
+    this.runAutoFlipTimer();
+  }
+
+  stopAutoFlip(): void {
+    this.isAutoFlipping = false;
+    if (this.autoFlipTimer) {
+      clearInterval(this.autoFlipTimer);
+      this.autoFlipTimer = null;
+    }
+  }
+
+  private runAutoFlipTimer(): void {
+    if (this.autoFlipTimer) clearInterval(this.autoFlipTimer);
+    this.autoFlipTimer = setInterval(() => {
+      if (!this.isAutoFlipping) {
+        this.stopAutoFlip();
+        return;
+      }
+      if (this.chapter && this.currentPageIndex < this.chapter.pages.length - 1) {
+        this.nextPage();
+      } else {
+        this.stopAutoFlip();
+      }
+    }, this.autoFlipSeconds * 1000);
+  }
+
+  toggleAutoFlipMenu(): void {
+    this.showAutoFlipMenu = !this.showAutoFlipMenu;
+  }
+
+  selectAutoFlipSpeed(seconds: number): void {
+    this.autoFlipSeconds = seconds;
+    localStorage.setItem('truyenkomi_autoflip_sec', seconds.toString());
+    this.showAutoFlipMenu = false;
+    if (this.isAutoFlipping) {
+      this.runAutoFlipTimer();
+    }
+  }
+
+  preloadFlipBuffer(idx: number): void {
+    if (!this.chapter || !this.chapter.pages) return;
+    const targets = [idx, idx + 1, idx + 2, idx + 3, idx - 1];
+    targets.forEach(t => {
+      if (t >= 0 && t < this.chapter!.pages.length && !this.preloadedPageIndices.has(t)) {
+        this.preloadedPageIndices.add(t);
+        const page = this.chapter!.pages[t];
+        if (page && page.imageUrl) {
+          const img = new Image();
+          img.referrerPolicy = 'no-referrer';
+          if ('fetchPriority' in img) {
+            (img as any).fetchPriority = t === idx ? 'high' : 'auto';
+          }
+          img.src = this.getOptimizedPageUrl(page.imageUrl);
+        }
+      }
+    });
+
+    if (idx >= this.chapter.pages.length - 2 && this.nextChapterId) {
+      this.preloadNextChapter();
+    }
+  }
+
+  // ==================== FLIP CLICK ZONES & TOUCH ====================
+  onFlipLeftClick(event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+    if (this.readingMode === 'flip') {
+      this.isHeaderHidden = true;
+      this.clearFlipHeaderAutoHide();
+    }
+    if (this.flipDirection === 'ltr') {
+      if (this.currentPageIndex === 0 && this.prevChapterId) {
+        this.navigateToChapter(this.prevChapterId);
+      } else {
+        this.prevPage();
+      }
+    } else {
+      if (this.currentPageIndex === (this.chapter?.pages?.length || 1) - 1 && this.nextChapterId) {
+        this.navigateToChapter(this.nextChapterId);
+      } else {
+        this.nextPage();
+      }
+    }
+  }
+
+  onFlipRightClick(event?: MouseEvent): void {
+    if (event) event.stopPropagation();
+    if (this.readingMode === 'flip') {
+      this.isHeaderHidden = true;
+      this.clearFlipHeaderAutoHide();
+    }
+    if (this.flipDirection === 'ltr') {
+      if (this.currentPageIndex === (this.chapter?.pages?.length || 1) - 1 && this.nextChapterId) {
+        this.navigateToChapter(this.nextChapterId);
+      } else {
+        this.nextPage();
+      }
+    } else {
+      if (this.currentPageIndex === 0 && this.prevChapterId) {
+        this.navigateToChapter(this.prevChapterId);
+      } else {
+        this.prevPage();
+      }
+    }
+  }
+
+  @HostListener('window:wheel', ['$event'])
+  onWindowWheel(event: WheelEvent): void {
+    if (this.readingMode === 'flip') {
+      const target = event.target as HTMLElement;
+      if (target?.closest('.mobile-settings-sheet, .mode-menu, .zoom-levels-menu, .fit-levels-menu, .as-speed-menu, .report-modal-dialog')) {
+        return;
+      }
+
+      if (event.deltaY < -3) {
+        // Cuộn chuột LÊN (Scroll UP): Hiện thanh Header ngay lập tức!
+        this.isHeaderHidden = false;
+        this.scheduleFlipHeaderAutoHide(3500);
+      } else if (event.deltaY > 3) {
+        // Cuộn chuột XUỐNG (Scroll DOWN): Ẩn thanh Header đi!
+        this.isHeaderHidden = true;
+        this.clearFlipHeaderAutoHide();
+        if (this.showMobileSettingsDrawer) {
+          this.closeMobileSettingsDrawer();
+        }
+      }
+    }
+  }
+
+  onFlipTouchStart(event: TouchEvent): void {
+    if (event.touches.length === 1) {
+      this.touchStartX = event.touches[0].clientX;
+      this.touchStartY = event.touches[0].clientY;
+      this.touchStartTime = Date.now();
+    }
+  }
+
+  onFlipTouchEnd(event: TouchEvent): void {
+    if (event.changedTouches.length === 1) {
+      const deltaX = event.changedTouches[0].clientX - this.touchStartX;
+      const deltaY = event.changedTouches[0].clientY - this.touchStartY;
+      const duration = Date.now() - this.touchStartTime;
+
+      // 1. Vuốt ngang: Chuyển trang (Horizontal Swipe)
+      if (Math.abs(deltaX) > 35 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2 && duration < 600) {
+        if (this.readingMode === 'flip') {
+          this.isHeaderHidden = true;
+          this.clearFlipHeaderAutoHide();
+        }
+        if (deltaX < 0) {
+          // Vuốt sang trái
+          if (this.flipDirection === 'ltr') {
+            this.nextPage();
+          } else {
+            this.prevPage();
+          }
+        } else {
+          // Vuốt sang phải
+          if (this.flipDirection === 'ltr') {
+            this.prevPage();
+          } else {
+            this.nextPage();
+          }
+        }
+      } 
+      // 2. Vuốt dọc ở chế độ lật trang (Vertical Swipe in Flip Mode):
+      else if (Math.abs(deltaY) > 25 && Math.abs(deltaY) > Math.abs(deltaX) * 1.2 && duration < 600) {
+        if (deltaY > 0) {
+          // Vuốt từ trên xuống (Cuộn lên): Hiện thanh Header!
+          this.isHeaderHidden = false;
+          this.scheduleFlipHeaderAutoHide(3500);
+        } else {
+          // Vuốt từ dưới lên (Cuộn xuống): Ẩn thanh Header!
+          this.isHeaderHidden = true;
+          this.clearFlipHeaderAutoHide();
+        }
+      }
+    }
   }
 
   loadSavedAutoScrollSpeed(): void {
@@ -232,7 +669,6 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     this.scrollSubpixelAccumulator = 0;
     this.lastFrameTime = performance.now();
 
-    // Disable CSS smooth-scroll so rapid programmatic frames don't stutter/freeze in iOS Safari
     if (typeof document !== 'undefined') {
       document.documentElement.classList.add('is-autoscrolling');
     }
@@ -243,7 +679,6 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
       const delta = Math.min((currentTime - this.lastFrameTime) / 1000, 0.1);
       this.lastFrameTime = currentTime;
 
-      // Only advance scroll if user isn't actively dragging screen with finger
       if (!this.isUserTouching) {
         const speedInPxPerSec = this.speedPixelsPerSecond[this.autoScrollSpeed] || (50 * this.autoScrollSpeed);
         this.scrollSubpixelAccumulator += speedInPxPerSec * delta;
@@ -258,16 +693,13 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
             document.body ? document.body.scrollHeight : 0
           ) - window.innerHeight;
 
-          // Stop if reached bottom of page
           if (currentY >= maxScroll - 15) {
             this.stopAutoScroll();
             return;
           }
 
-          // Primary method: native scroll with behavior 'auto' (avoids WebKit smooth-scroll cancel bug)
           window.scrollBy({ top: intPixels, left: 0, behavior: 'auto' });
 
-          // Fallback verification for mobile Safari / iOS WebKit:
           const newY = window.pageYOffset || document.documentElement.scrollTop || (document.body ? document.body.scrollTop : 0) || 0;
           if (newY === currentY && intPixels > 0 && currentY < maxScroll - 15) {
             document.documentElement.scrollTop = currentY + intPixels;
@@ -408,25 +840,43 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     if (!target.closest('.as-speed-dropdown-wrap')) {
       this.showSpeedMenu = false;
     }
+    if (!target.closest('.mode-dropdown-wrap')) {
+      this.showModeMenu = false;
+    }
+    if (!target.closest('.fit-dropdown-wrap')) {
+      this.showFitMenu = false;
+    }
+    if (!target.closest('.autoflip-dropdown-wrap')) {
+      this.showAutoFlipMenu = false;
+    }
   }
 
   @HostListener('window:scroll', [])
   onWindowScroll(): void {
-    const currentScrollY = window.scrollY || document.documentElement.scrollTop || 0;
+    if (this.readingMode === 'flip') return;
+
+    const currentScrollY = window.pageYOffset || window.scrollY || document.documentElement.scrollTop || (document.body ? document.body.scrollTop : 0) || 0;
     this.showScrollTop = currentScrollY > 400;
 
-    // Smart Auto-hide logic: reveal header instantly when scrolling UP
-    if (!this.isPinned) {
-      if (currentScrollY <= 60) {
-        // At the top: always show header
-        this.isHeaderHidden = false;
-      } else if (currentScrollY > this.lastScrollY + this.scrollThreshold) {
-        // Scrolling down: smoothly hide header
+    const scrollDiff = currentScrollY - this.lastScrollY;
+
+    // Smart Auto-hide logic:
+    // 1. At or near very top of page (<= 50px): always show header
+    if (currentScrollY <= 50) {
+      this.isHeaderHidden = false;
+    } 
+    // 2. Scrolling DOWN (downward movement > 4px): hide header immediately
+    else if (scrollDiff > 4) {
+      if (!this.isHeaderHidden) {
         this.isHeaderHidden = true;
-      } else if (currentScrollY < this.lastScrollY - this.scrollThreshold) {
-        // Scrolling up: reveal header immediately
-        this.isHeaderHidden = false;
+        if (this.showMobileSettingsDrawer) {
+          this.closeMobileSettingsDrawer();
+        }
       }
+    } 
+    // 3. Scrolling UP (any upward movement < -2px): reveal header immediately!
+    else if (scrollDiff < -2) {
+      this.isHeaderHidden = false;
     }
 
     this.lastScrollY = Math.max(0, currentScrollY);
@@ -458,31 +908,116 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (event.key === 'ArrowLeft' && this.prevChapterId) {
-      this.navigateToChapter(this.prevChapterId);
-    } else if (event.key === 'ArrowRight' && this.nextChapterId) {
-      this.navigateToChapter(this.nextChapterId);
-    } else if (event.key === '+' || event.key === '=') {
-      this.zoomIn();
-    } else if (event.key === '-' || event.key === '_') {
-      this.zoomOut();
-    } else if (event.key === '0') {
-      this.resetZoom();
-    } else if (event.key === ' ' || event.key === 's' || event.key === 'S') {
+    // Toggle reading mode with 'm' or 'M'
+    if (event.key === 'm' || event.key === 'M') {
       event.preventDefault();
-      this.toggleAutoScroll();
-    } else if (event.key === 'f' || event.key === 'F') {
-      event.preventDefault();
-      this.toggleFullscreen();
-    } else if (event.key === 'h' || event.key === 'H' || event.key === 'z' || event.key === 'Z') {
-      event.preventDefault();
-      this.toggleHeader();
-    } else if (event.key === 'p' || event.key === 'P') {
-      event.preventDefault();
-      this.togglePin();
-    } else if (event.key === 'Escape') {
-      if (this.showReportModal) {
-        this.closeReportModal();
+      this.setReadingMode(this.readingMode === 'vertical' ? 'flip' : 'vertical');
+      return;
+    }
+
+    if (this.readingMode === 'flip') {
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        if (this.flipDirection === 'ltr') {
+          if (this.currentPageIndex === (this.chapter?.pages?.length || 1) - 1 && this.nextChapterId) {
+            this.navigateToChapter(this.nextChapterId);
+          } else {
+            this.nextPage();
+          }
+        } else {
+          if (this.currentPageIndex === 0 && this.prevChapterId) {
+            this.navigateToChapter(this.prevChapterId);
+          } else {
+            this.prevPage();
+          }
+        }
+      } else if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        if (this.flipDirection === 'ltr') {
+          if (this.currentPageIndex === 0 && this.prevChapterId) {
+            this.navigateToChapter(this.prevChapterId);
+          } else {
+            this.prevPage();
+          }
+        } else {
+          if (this.currentPageIndex === (this.chapter?.pages?.length || 1) - 1 && this.nextChapterId) {
+            this.navigateToChapter(this.nextChapterId);
+          } else {
+            this.nextPage();
+          }
+        }
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        this.isHeaderHidden = false;
+        this.scheduleFlipHeaderAutoHide(3500);
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        this.isHeaderHidden = true;
+        this.clearFlipHeaderAutoHide();
+      } else if (event.key === ' ' || event.key === 'PageDown') {
+        event.preventDefault();
+        this.nextPage();
+      } else if (event.key === 'PageUp') {
+        event.preventDefault();
+        this.prevPage();
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        this.goToPage(0);
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        if (this.chapter?.pages) this.goToPage(this.chapter.pages.length - 1);
+      } else if (event.key === 'd' || event.key === 'D') {
+        event.preventDefault();
+        this.toggleFlipDirection();
+      } else if (event.key === 'a' || event.key === 'A') {
+        event.preventDefault();
+        this.toggleAutoFlip();
+      } else if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault();
+        this.toggleFullscreen();
+      } else if (event.key === 'h' || event.key === 'H' || event.key === 'z' || event.key === 'Z') {
+        event.preventDefault();
+        this.toggleHeader();
+      } else if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault();
+        this.togglePin();
+      } else if (event.key === 'Escape') {
+        if (this.showMobileSettingsDrawer) {
+          this.closeMobileSettingsDrawer();
+        } else if (this.showReportModal) {
+          this.closeReportModal();
+        }
+      }
+    } else {
+      // Vertical mode key navigation
+      if (event.key === 'ArrowLeft' && this.prevChapterId) {
+        this.navigateToChapter(this.prevChapterId);
+      } else if (event.key === 'ArrowRight' && this.nextChapterId) {
+        this.navigateToChapter(this.nextChapterId);
+      } else if (event.key === '+' || event.key === '=') {
+        this.zoomIn();
+      } else if (event.key === '-' || event.key === '_') {
+        this.zoomOut();
+      } else if (event.key === '0') {
+        this.resetZoom();
+      } else if (event.key === ' ' || event.key === 's' || event.key === 'S') {
+        event.preventDefault();
+        this.toggleAutoScroll();
+      } else if (event.key === 'f' || event.key === 'F') {
+        event.preventDefault();
+        this.toggleFullscreen();
+      } else if (event.key === 'h' || event.key === 'H' || event.key === 'z' || event.key === 'Z') {
+        event.preventDefault();
+        this.toggleHeader();
+      } else if (event.key === 'p' || event.key === 'P') {
+        event.preventDefault();
+        this.togglePin();
+      } else if (event.key === 'Escape') {
+        if (this.showMobileSettingsDrawer) {
+          this.closeMobileSettingsDrawer();
+        } else if (this.showReportModal) {
+          this.closeReportModal();
+        }
       }
     }
   }
@@ -561,6 +1096,7 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   navigateToChapter(chId: number | null): void {
     if (!chId || !this.chapter) return;
+    this.closeMobileSettingsDrawer();
     const ch = this.chapter.allChapters.find(c => c.id === chId);
     if (ch && this.chapter.comicSlug) {
       this.router.navigate(['/read', this.chapter.comicSlug, `chuong-${ch.chapterNumber}`]);
@@ -579,6 +1115,25 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
   }
 
   restoreReadingPosition(chapterId: number): void {
+    const savedPage = localStorage.getItem(`truyenkomi_page_${chapterId}`);
+    if (savedPage && this.chapter?.pages && this.chapter.pages.length > 0) {
+      const p = parseInt(savedPage, 10);
+      if (!isNaN(p) && p >= 0 && p < this.chapter.pages.length) {
+        this.currentPageIndex = p;
+      } else {
+        this.currentPageIndex = 0;
+      }
+    } else {
+      this.currentPageIndex = 0;
+    }
+
+    if (this.readingMode === 'flip') {
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      this.preloadFlipBuffer(this.currentPageIndex);
+      this.scheduleFlipHeaderAutoHide(2500);
+      return;
+    }
+
     const savedScroll = localStorage.getItem(`truyenkomi_scroll_${chapterId}`);
     if (savedScroll && +savedScroll > 150) {
       setTimeout(() => {

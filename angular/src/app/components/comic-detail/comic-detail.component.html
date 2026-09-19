@@ -283,13 +283,53 @@
 
     <!-- RIGHT COLUMN (30%): SIDEBAR RECOMMENDATIONS -->
     <div class="body-right">
-      <div class="sidebar-sticky-widget glass-card">
+      <div class="sidebar-sticky-widget glass-card recommendations-widget">
         <div class="widget-header">
-          <i class="fa fa-fire text-orange"></i>
-          <h4>Gợi Ý Cho Bạn</h4>
+          <div class="header-title-box">
+            <i class="fa fa-sparkles icon-orange"></i>
+            <h4>Gợi Ý Cho Bạn</h4>
+          </div>
+          <a [routerLink]="['/comics']" [queryParams]="comic.categories && comic.categories.length > 0 ? { category: comic.categories[0].slug } : {}" class="btn-more-recom" title="Khám phá thêm truyện">
+            <span>Xem thêm</span> <i class="fa fa-angle-right"></i>
+          </a>
         </div>
-        <p class="sidebar-note">Đọc thêm những bộ truyện cùng thể loại cực hấp dẫn tại TruyenKomi.</p>
-        <a [routerLink]="['/comics']" class="btn-browse-all">Khám Phá Toàn Bộ <i class="fa fa-arrow-right"></i></a>
+
+        <div class="recommendations-grid" *ngIf="!isLoadingRecommendations; else recomSkeleton">
+          <a 
+            *ngFor="let rec of recommendations; trackBy: trackByComicId" 
+            [routerLink]="['/comic', rec.slug]" 
+            class="recom-card"
+            [title]="rec.title"
+          >
+            <div class="recom-cover-wrapper">
+              <img 
+                [src]="rec.coverImage" 
+                [alt]="rec.title" 
+                referrerpolicy="no-referrer" 
+                loading="lazy" 
+                (error)="onImgError($event)" 
+                class="recom-img" 
+              />
+              <div class="recom-gradient-overlay"></div>
+              <div class="recom-meta-overlay">
+                <h5 class="recom-title">{{ rec.title }}</h5>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <ng-template #recomSkeleton>
+          <div class="recommendations-grid">
+            <div class="recom-card skeleton-card" *ngFor="let _ of [1, 2, 3, 4, 5, 6]">
+              <div class="skeleton recom-skeleton-box"></div>
+            </div>
+          </div>
+        </ng-template>
+
+        <div class="recom-empty" *ngIf="!isLoadingRecommendations && recommendations.length === 0">
+          <i class="fa fa-book-open"></i>
+          <p>Đang cập nhật truyện đề xuất...</p>
+        </div>
       </div>
     </div>
   </div>

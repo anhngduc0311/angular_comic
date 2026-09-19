@@ -32,7 +32,7 @@ export class AppComponent implements OnInit {
   }
 
   private checkReaderRoute(url: string): void {
-    this.isReaderRoute = /chuong-|\/read\//.test(url);
+    this.isReaderRoute = /chuong-|\/read(\/|$)/.test(url) || url.startsWith('/read') || url.includes('/chuong-');
   }
 }
 

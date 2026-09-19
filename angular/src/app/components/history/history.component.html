@@ -13,9 +13,11 @@
     <div class="main_content">
       <div class="section-heading">
         <h1 class="text_list_update">
-          <i class="fa fa-history"></i> LỊCH SỬ ĐỌC TRUYỆN
+          <i class="fa fa-history"></i> Lịch Sử Đọc Truyện
         </h1>
-        <span class="text-muted" style="font-size: 13px;">({{ historyItems.length }} truyện)</span>
+        <span class="badge-total-count" *ngIf="!isLoading">
+          <i class="fa fa-layer-group"></i> {{ historyItems.length }} truyện
+        </span>
       </div>
 
       <div class="history-list-box" *ngIf="!isLoading && historyItems.length > 0">

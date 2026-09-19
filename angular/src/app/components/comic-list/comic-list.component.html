@@ -12,11 +12,18 @@
 
     <div class="main_content">
       <!-- Section Heading & Filter -->
-      <div class="section-heading">
-        <h1 class="text_list_update">
-          <i class="fa fa-book-open"></i> {{ getPageHeading() }}
-        </h1>
-        <span class="text-muted" style="font-size: 13px;" *ngIf="!isLoading">({{ totalCount }} truyện)</span>
+      <div class="comic-list-header">
+        <div class="header-title-box">
+          <div class="title-icon">
+            <i class="fa fa-book-open"></i>
+          </div>
+          <div class="title-meta">
+            <h1 class="page-title">{{ getPageHeading() }}</h1>
+            <span class="badge-total-count" *ngIf="!isLoading">
+              <i class="fa fa-layer-group"></i> {{ totalCount | number }} truyện
+            </span>
+          </div>
+        </div>
       </div>
 
       <!-- Filter Controls Bar -->

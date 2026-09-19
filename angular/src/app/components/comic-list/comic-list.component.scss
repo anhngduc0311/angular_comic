@@ -5,16 +5,80 @@
 .comic-list-page {
   padding: 16px 0 40px;
 
+  .comic-list-header {
+    margin-bottom: 18px;
+
+    .header-title-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      .title-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(253, 84, 0, 0.12);
+        border: 1px solid rgba(253, 84, 0, 0.3);
+        color: var(--primary-orange);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 17px;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(253, 84, 0, 0.15);
+      }
+
+      .title-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+
+        .page-title {
+          font-size: 22px;
+          font-weight: 800;
+          color: var(--text-main);
+          margin: 0;
+          letter-spacing: -0.3px;
+          line-height: 1.25;
+
+          @media (max-width: 576px) {
+            font-size: 18px;
+          }
+        }
+
+        .badge-total-count {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 12px;
+          border-radius: var(--radius-pill);
+          background: rgba(253, 84, 0, 0.12);
+          border: 1px solid rgba(253, 84, 0, 0.28);
+          color: var(--primary-orange);
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.2px;
+
+          i {
+            font-size: 11px;
+          }
+        }
+      }
+    }
+  }
+
   .truyengg-filter-box {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    padding: 14px 18px;
-    border-radius: 8px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    padding: 12px 18px;
+    border-radius: 12px;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow-sm);
     flex-wrap: wrap;
 
     .filter-item {
@@ -22,44 +86,53 @@
       align-items: center;
       gap: 8px;
 
-      @media (max-width: 576px) {
+      @media (max-width: 768px) {
+        flex: 1 1 calc(50% - 10px);
+        min-width: 140px;
+      }
+
+      @media (max-width: 480px) {
         flex: 1 1 100%;
         justify-content: space-between;
       }
 
       label {
-        font-size: 13.5px;
+        font-size: 13px;
         font-weight: 700;
-        color: var(--text-main);
+        color: var(--text-secondary);
         display: flex;
         align-items: center;
-        gap: 5px;
+        gap: 6px;
         white-space: nowrap;
 
         i {
           color: var(--primary-orange);
+          font-size: 13px;
         }
       }
 
       .filter-select {
         font-family: var(--font-family);
         font-size: 13px;
-        padding: 8px 12px;
+        font-weight: 600;
+        padding: 7px 12px;
         border: 1px solid var(--border-subtle);
-        border-radius: 6px;
-        background-color: var(--bg-page);
+        border-radius: 8px;
+        background-color: var(--bg-input);
         color: var(--text-main);
         outline: none;
         cursor: pointer;
-        min-width: 140px;
+        min-width: 135px;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
-        @media (max-width: 576px) {
+        @media (max-width: 768px) {
           flex: 1;
           min-width: 0;
         }
 
         &:focus {
           border-color: var(--primary-orange);
+          box-shadow: 0 0 0 3px var(--primary-orange-light);
         }
       }
     }

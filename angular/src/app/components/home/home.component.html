@@ -19,7 +19,7 @@
             <span class="stack-badge">+1.2K</span>
           </div>
           <div class="card-social-links">
-            <a href="https://www.facebook.com/profile.php?id=61594125156375" target="_blank" rel="noopener noreferrer"
+            <a href="https://www.facebook.com/profile.php?id=61594279240952" target="_blank" rel="noopener noreferrer"
               class="social-round-btn fb-btn" aria-label="Facebook">
               <i class="fa fa-facebook"></i>
             </a>
@@ -105,13 +105,16 @@
         </button>
 
         <!-- Viewport & Track -->
-        <div class="suggest-slider-viewport" #suggestContainer tabindex="0" role="region" aria-label="Truyện hot, vuốt hoặc dùng phím mũi tên để xem thêm">
+        <div class="suggest-slider-viewport" #suggestContainer tabindex="0" role="region"
+          aria-label="Truyện hot, vuốt hoặc dùng phím mũi tên để xem thêm">
           <div class="suggest-slider-track">
             <!-- A single list keeps touch and keyboard navigation predictable. -->
-            <div class="comic-card-v3 suggest-card" *ngFor="let comic of hotComics; let i = index; trackBy: trackByComicId">
+            <div class="comic-card-v3 suggest-card"
+              *ngFor="let comic of hotComics; let i = index; trackBy: trackByComicId">
               <div class="book_avatar">
                 <a [routerLink]="['/comic', comic.slug]">
-                  <img [src]="comic.coverImage" [alt]="comic.title" referrerpolicy="no-referrer" loading="lazy" decoding="async" width="300" height="420" (error)="onImgError($event)" />
+                  <img [src]="comic.coverImage" [alt]="comic.title" referrerpolicy="no-referrer" loading="lazy"
+                    decoding="async" width="300" height="420" (error)="onImgError($event)" />
                 </a>
                 <div class="top-notice-left" *ngIf="comic.updatedAt">
                   <span class="time-badge">{{ formatTimeAgo(comic.updatedAt) }}</span>
@@ -132,17 +135,22 @@
                   </h3>
                 </div>
                 <div class="last_chapter">
-                  <a *ngIf="comic.latestChapter" [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]">
+                  <a *ngIf="comic.latestChapter"
+                    [routerLink]="['/comic', comic.slug, 'chapter', comic.latestChapter.id]">
                     Chương {{ comic.latestChapter.chapterNumber }}
                   </a>
                   <a *ngIf="!comic.latestChapter && comic.recentChapters && comic.recentChapters.length > 0"
                     [routerLink]="['/comic', comic.slug, 'chapter', comic.recentChapters[0].id]">
                     Chương {{ comic.recentChapters[0].chapterNumber }}
                   </a>
-                  <span *ngIf="!comic.latestChapter && (!comic.recentChapters || comic.recentChapters.length === 0) && comic.totalChapters && comic.totalChapters > 0" class="ch-updating">
+                  <span
+                    *ngIf="!comic.latestChapter && (!comic.recentChapters || comic.recentChapters.length === 0) && comic.totalChapters && comic.totalChapters > 0"
+                    class="ch-updating">
                     Chương {{ comic.totalChapters }}
                   </span>
-                  <span *ngIf="!comic.latestChapter && (!comic.recentChapters || comic.recentChapters.length === 0) && (!comic.totalChapters || comic.totalChapters === 0)" class="ch-updating">
+                  <span
+                    *ngIf="!comic.latestChapter && (!comic.recentChapters || comic.recentChapters.length === 0) && (!comic.totalChapters || comic.totalChapters === 0)"
+                    class="ch-updating">
                     <i class="fa fa-clock-o"></i> Đang cập nhật
                   </span>
                 </div>
@@ -182,7 +190,8 @@
         <p>Chưa tải được danh sách truyện. Bạn thử lại nhé.</p>
         <button type="button" (click)="loadData()" [disabled]="isLoading || isLoadingHot">Thử lại</button>
       </div>
-      <div class="home-feedback" *ngIf="!isFilterLoading && !hasFilterError && filteredComics.length === 0" role="status">
+      <div class="home-feedback" *ngIf="!isFilterLoading && !hasFilterError && filteredComics.length === 0"
+        role="status">
         <p>Chưa có truyện phù hợp trong danh sách cập nhật này.</p>
         <a routerLink="/comics">Khám phá tất cả truyện <i class="fa fa-angle-right" aria-hidden="true"></i></a>
       </div>
@@ -191,7 +200,8 @@
         <div class="comic-card-v3" *ngFor="let comic of filteredComics; let i = index; trackBy: trackByComicId">
           <div class="book_avatar">
             <a [routerLink]="['/comic', comic.slug]">
-              <img [src]="comic.coverImage" [alt]="comic.title" referrerpolicy="no-referrer" loading="lazy" decoding="async" width="300" height="420" (error)="onImgError($event)" />
+              <img [src]="comic.coverImage" [alt]="comic.title" referrerpolicy="no-referrer" loading="lazy"
+                decoding="async" width="300" height="420" (error)="onImgError($event)" />
             </a>
             <div class="top-notice-right" *ngIf="comic.isFeatured || comic.views > 10000 || i % 2 === 0">
               <span class="type-label hot">HOT!</span>
@@ -214,7 +224,8 @@
 
             <div class="chapters-preview"
               *ngIf="comic.recentChapters && comic.recentChapters.length > 0; else singleLatestGrid">
-              <div class="chapter-row-clean" *ngFor="let ch of comic.recentChapters | slice:0:3; trackBy: trackByChapterId">
+              <div class="chapter-row-clean"
+                *ngFor="let ch of comic.recentChapters | slice:0:3; trackBy: trackByChapterId">
                 <a [routerLink]="['/comic', comic.slug, 'chapter', ch.id]" class="ch-name">Chương {{ ch.chapterNumber
                   }}</a>
                 <span class="ch-time">{{ formatTimeAgo(ch.createdAt || comic.updatedAt) }}</span>

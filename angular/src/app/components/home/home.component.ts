@@ -44,7 +44,7 @@ export class HomeComponent implements OnInit {
   constructor(
     private comicService: ComicService,
     private seoService: SeoService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.seoService.setHomeSeo();

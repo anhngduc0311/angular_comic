@@ -161,15 +161,15 @@ export class ComicListComponent implements OnInit {
         (c.value === 'Trung Quốc' && (this.selectedCountry.toLowerCase() === 'china' || this.selectedCountry.toLowerCase() === 'manhua'))
       );
       if (match) {
-        return `TRUYỆN TRANH ${match.label.toUpperCase()}`;
+        return `Truyện Tranh ${match.label}`;
       }
-      return `TRUYỆN TRANH ${this.selectedCountry.toUpperCase()}`;
+      return `Truyện Tranh ${this.selectedCountry}`;
     }
     if (this.selectedCategory) {
       const cat = this.categories.find(c => c.slug === this.selectedCategory);
-      if (cat) return `TRUYỆN TRANH - THỂ LOẠI ${cat.name.toUpperCase()}`;
+      if (cat) return `Truyện Thể Loại: ${cat.name}`;
     }
-    return 'DANH SÁCH TRUYỆN TRANH';
+    return 'Danh Sách Truyện Tranh';
   }
 
   formatTimeAgo(dateStr?: string): string {

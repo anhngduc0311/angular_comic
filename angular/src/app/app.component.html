@@ -1,8 +1,8 @@
 <a class="skip-link" href="#main-content">Bỏ qua điều hướng</a>
-<div class="app-layout">
-  <app-navbar></app-navbar>
-  <main class="app-main" id="main-content" tabindex="-1">
+<div class="app-layout" [class.reader-layout]="isReaderRoute">
+  <app-navbar *ngIf="!isReaderRoute"></app-navbar>
+  <main class="app-main" [class.no-padding]="isReaderRoute" id="main-content" tabindex="-1">
     <router-outlet></router-outlet>
   </main>
-  <app-footer></app-footer>
+  <app-footer *ngIf="!isReaderRoute"></app-footer>
 </div>

@@ -13,9 +13,11 @@
     <div class="main_content">
       <div class="section-heading">
         <h1 class="text_list_update">
-          <i class="fa fa-bookmark"></i> TRUYỆN ĐANG THEO DÕI
+          <i class="fa fa-bookmark"></i> Truyện Đang Theo Dõi
         </h1>
-        <span class="text-muted" style="font-size: 13px;">({{ bookmarks.length }} truyện)</span>
+        <span class="badge-total-count" *ngIf="!isLoading">
+          <i class="fa fa-layer-group"></i> {{ bookmarks.length }} truyện
+        </span>
       </div>
 
       <div class="list_grid_out" *ngIf="!isLoading && bookmarks.length > 0">

@@ -6,7 +6,7 @@ import { ComicService } from '../../services/comic.service';
 import { UserService } from '../../services/user.service';
 import { AuthService } from '../../services/auth.service';
 import { SeoService } from '../../services/seo.service';
-import { ComicDetail, Chapter, ComicRatingSummary, ComicReview } from '../../models/comic.model';
+import { Comic, ComicDetail, Chapter, ComicRatingSummary, ComicReview } from '../../models/comic.model';
 
 @Component({
   selector: 'app-comic-detail',
@@ -18,6 +18,8 @@ import { ComicDetail, Chapter, ComicRatingSummary, ComicReview } from '../../mod
 export class ComicDetailComponent implements OnInit {
   Math = Math;
   comic: ComicDetail | null = null;
+  recommendations: Comic[] = [];
+  isLoadingRecommendations: boolean = false;
   isBookmarked: boolean = false;
   isLiked: boolean = false;
   likesCount: number = 524;
@@ -81,6 +83,7 @@ export class ComicDetailComponent implements OnInit {
         this.loadComments(true);
         this.loadRatingSummary(detail.id);
         this.loadReviews(detail.id, 1);
+        this.loadRecommendations(detail);
         // Tải đón đầu Chapter 1 và ảnh ngay trong nền
         this.prefetchFirstChapter();
       },
@@ -331,5 +334,51 @@ export class ComicDetailComponent implements OnInit {
   getRatingPercent(count: number): number {
     if (!this.ratingSummary || this.ratingSummary.totalRatings === 0) return 0;
     return Math.round((count / this.ratingSummary.totalRatings) * 100);
+  }
+
+  // ==================== RECOMMENDATIONS ====================
+  loadRecommendations(detail: ComicDetail): void {
+    this.isLoadingRecommendations = true;
+    this.recommendations = [];
+    const categorySlug = (detail.categories && detail.categories.length > 0) ? detail.categories[0].slug : undefined;
+
+    if (categorySlug) {
+      this.comicService.searchComics(undefined, categorySlug, undefined, 'views', undefined, 1, 9).subscribe({
+        next: (res) => {
+          const items = (res.items || []).filter(c => c.id !== detail.id);
+          if (items.length >= 4) {
+            this.recommendations = items.slice(0, 8);
+            this.isLoadingRecommendations = false;
+          } else {
+            this.fallbackRecommendations(detail.id, items);
+          }
+        },
+        error: () => {
+          this.fallbackRecommendations(detail.id, []);
+        }
+      });
+    } else {
+      this.fallbackRecommendations(detail.id, []);
+    }
+  }
+
+  private fallbackRecommendations(currentComicId: number, existingItems: Comic[]): void {
+    this.comicService.getFeaturedComics('views', 10).subscribe({
+      next: (featured) => {
+        const combined = [...existingItems, ...(featured || [])]
+          .filter((c, idx, self) => c.id !== currentComicId && self.findIndex(s => s.id === c.id) === idx)
+          .slice(0, 8);
+        this.recommendations = combined;
+        this.isLoadingRecommendations = false;
+      },
+      error: () => {
+        this.recommendations = existingItems;
+        this.isLoadingRecommendations = false;
+      }
+    });
+  }
+
+  trackByComicId(index: number, comic: Comic): number {
+    return comic.id;
   }
 }

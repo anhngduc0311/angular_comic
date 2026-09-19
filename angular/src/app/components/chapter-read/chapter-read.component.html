@@ -1,4 +1,4 @@
-<div class="reader-container" *ngIf="chapter && !isLoading; else readerSkeleton" (click)="onReaderClick($event)">
+<div class="reader-container" [class.is-flip-mode]="readingMode === 'flip'" *ngIf="chapter && !isLoading; else readerSkeleton" (click)="onReaderClick($event)">
   <!-- Floating EXP Notification Toast -->
   <div class="exp-floating-toast" *ngIf="expGainedToast">
     <i class="fa fa-bolt"></i> <span>+10 EXP Tu Vi Đọc Truyện!</span>
@@ -52,111 +52,246 @@
 
       <!-- Right: Reader Tools -->
       <div class="reader-tools">
-        <!-- Zoom Controls in Header -->
-        <div class="zoom-header-group" (click)="$event.stopPropagation()">
-          <button 
-            class="tool-btn btn-zoom-action" 
-            (click)="zoomOut()" 
-            [disabled]="isMinZoom" 
-            title="Thu nhỏ (Phím -)"
-            aria-label="Thu nhỏ"
-          >
-            <i class="fa fa-search-minus"></i>
-          </button>
-          
-          <div class="zoom-dropdown-wrap">
-            <button class="tool-btn btn-zoom-label" (click)="toggleZoomMenu()" title="Độ phóng to: {{ getZoomLabel() }}">
-              <span>{{ getZoomLabel() }}</span>
-              <i class="fa fa-caret-down"></i>
-            </button>
-
-            <!-- Dropdown Menu -->
-            <div class="zoom-levels-menu header-menu glass-panel" *ngIf="showZoomMenu">
-              <div class="zoom-menu-header">
-                <i class="fa fa-search"></i> Thu Phóng Trang
-              </div>
-              <button 
-                *ngFor="let lvl of zoomLevels" 
-                class="zoom-level-btn" 
-                [class.active]="zoomWidth === lvl.width"
-                (click)="selectZoomWidth(lvl.width)"
-              >
-                <span>{{ lvl.label }}</span>
-                <i class="fa fa-check" *ngIf="zoomWidth === lvl.width"></i>
-              </button>
-            </div>
-          </div>
-
-          <button 
-            class="tool-btn btn-zoom-action" 
-            (click)="zoomIn()" 
-            [disabled]="isMaxZoom" 
-            title="Phóng to (Phím +)"
-            aria-label="Phóng to"
-          >
-            <i class="fa fa-search-plus"></i>
-          </button>
+        <!-- Always visible Flip Mode Page Badge -->
+        <div class="flip-header-page-badge" *ngIf="readingMode === 'flip' && chapter.pages && chapter.pages.length > 0">
+          <span class="badge-cur">{{ currentPageIndex + 1 }}</span>
+          <span class="badge-div">/</span>
+          <span class="badge-total">{{ chapter.pages.length }}</span>
         </div>
 
-        <!-- Auto Scroll Header Group (Play/Pause + Speed) -->
-        <div class="autoscroll-header-group" [class.is-active]="isAutoScrolling" (click)="$event.stopPropagation()">
-          <button 
-            class="tool-btn btn-as-action" 
-            [class.active]="isAutoScrolling" 
-            (click)="toggleAutoScroll()" 
-            [title]="isAutoScrolling ? 'Tạm dừng tự đọc (Phím Space / S)' : 'Bắt đầu tự đọc truyện (Phím Space / S)'"
-            aria-label="Tự động cuộn"
-          >
-            <i class="fa fa-play" *ngIf="!isAutoScrolling"></i>
-            <i class="fa fa-pause text-orange" *ngIf="isAutoScrolling"></i>
-          </button>
-
-          <div class="as-speed-dropdown-wrap">
+        <!-- ================= DESKTOP ONLY TOOLBAR ================= -->
+        <div class="desktop-tools-bar">
+          <!-- 1. Reading Mode Switcher Dropdown (Cuộn dọc vs Lật trang) -->
+          <div class="mode-dropdown-wrap" (click)="$event.stopPropagation()">
             <button 
-              class="tool-btn btn-as-speed" 
-              (click)="toggleSpeedMenu()" 
-              [title]="'Tốc độ cuộn: ' + autoScrollSpeed + 'x. Bấm để chọn tốc độ'"
-              aria-label="Chọn tốc độ đọc"
+              class="header-pill-btn btn-mode-toggle" 
+              (click)="toggleModeMenu()" 
+              [title]="'Chế độ đọc: ' + (readingMode === 'vertical' ? 'Cuộn dọc' : 'Lật trang') + ' (Phím M)'"
             >
-              <span>{{ autoScrollSpeed }}x</span>
-              <i class="fa fa-caret-down"></i>
+              <i class="fa" [ngClass]="readingMode === 'vertical' ? 'fa-align-justify' : 'fa-book-open'"></i>
+              <span class="pill-text pill-text-desktop">{{ readingMode === 'vertical' ? 'Cuộn dọc' : 'Lật trang' }}</span>
+              <i class="fa fa-caret-down pill-caret"></i>
             </button>
 
-            <!-- Speed Dropdown Menu -->
-            <div class="as-speed-menu header-menu glass-panel" *ngIf="showSpeedMenu">
-              <div class="speed-menu-header">
-                <i class="fa fa-tachometer"></i> Tốc Độ Đọc
+            <div class="mode-menu header-menu glass-panel" *ngIf="showModeMenu">
+              <div class="menu-title-header">
+                <i class="fa fa-sliders"></i> Chế Độ Đọc (Phím M)
               </div>
               <button 
-                *ngFor="let s of autoScrollSpeeds" 
-                class="speed-option-btn" 
-                [class.active]="autoScrollSpeed === s.speed"
-                (click)="selectSpeed(s.speed)"
+                class="menu-item-btn" 
+                [class.active]="readingMode === 'vertical'"
+                (click)="setReadingMode('vertical')"
               >
-                <span>{{ s.label }}</span>
-                <i class="fa fa-check" *ngIf="autoScrollSpeed === s.speed"></i>
+                <i class="fa fa-align-justify"></i>
+                <div class="menu-item-text">
+                  <span class="main-label">Cuộn dọc liên tục</span>
+                  <span class="sub-label">Trượt đọc từ trên xuống dưới (Webtoon)</span>
+                </div>
+                <i class="fa fa-check text-orange check-icon" *ngIf="readingMode === 'vertical'"></i>
+              </button>
+              <button 
+                class="menu-item-btn" 
+                [class.active]="readingMode === 'flip'"
+                (click)="setReadingMode('flip')"
+              >
+                <i class="fa fa-book-open"></i>
+                <div class="menu-item-text">
+                  <span class="main-label">Lật từng trang</span>
+                  <span class="sub-label">Lật manga từng trang sang ngang</span>
+                </div>
+                <i class="fa fa-check text-orange check-icon" *ngIf="readingMode === 'flip'"></i>
               </button>
             </div>
           </div>
+
+          <!-- 2. Controls in Vertical Mode: Zoom & Auto-Scroll -->
+          <ng-container *ngIf="readingMode === 'vertical'">
+            <!-- Zoom Controls in Header -->
+            <div class="zoom-header-group" (click)="$event.stopPropagation()">
+              <button 
+                class="btn-zoom-action" 
+                (click)="zoomOut()" 
+                [disabled]="isMinZoom" 
+                title="Thu nhỏ (Phím -)"
+                aria-label="Thu nhỏ"
+              >
+                <i class="fa fa-search-minus"></i>
+              </button>
+              
+              <div class="zoom-dropdown-wrap">
+                <button class="btn-zoom-label" (click)="toggleZoomMenu()" title="Độ phóng to: {{ getZoomLabel() }}">
+                  <span>{{ getZoomLabel() }}</span>
+                  <i class="fa fa-caret-down"></i>
+                </button>
+
+                <!-- Dropdown Menu -->
+                <div class="zoom-levels-menu header-menu glass-panel" *ngIf="showZoomMenu">
+                  <div class="zoom-menu-header">
+                    <i class="fa fa-search"></i> Thu Phóng Trang
+                  </div>
+                  <button 
+                    *ngFor="let lvl of zoomLevels" 
+                    class="zoom-level-btn" 
+                    [class.active]="zoomWidth === lvl.width"
+                    (click)="selectZoomWidth(lvl.width)"
+                  >
+                    <span>{{ lvl.label }}</span>
+                    <i class="fa fa-check" *ngIf="zoomWidth === lvl.width"></i>
+                  </button>
+                </div>
+              </div>
+
+              <button 
+                class="btn-zoom-action" 
+                (click)="zoomIn()" 
+                [disabled]="isMaxZoom" 
+                title="Phóng to (Phím +)"
+                aria-label="Phóng to"
+              >
+                <i class="fa fa-search-plus"></i>
+              </button>
+            </div>
+
+            <!-- Auto Scroll Header Group (Play/Pause + Speed) -->
+            <div class="autoscroll-header-group" [class.is-active]="isAutoScrolling" (click)="$event.stopPropagation()">
+              <button 
+                class="btn-as-action" 
+                [class.active]="isAutoScrolling" 
+                (click)="toggleAutoScroll()" 
+                [title]="isAutoScrolling ? 'Tạm dừng tự đọc (Phím Space / S)' : 'Bắt đầu tự đọc truyện (Phím Space / S)'"
+                aria-label="Tự động cuộn"
+              >
+                <i class="fa fa-play" *ngIf="!isAutoScrolling"></i>
+                <i class="fa fa-pause text-orange" *ngIf="isAutoScrolling"></i>
+              </button>
+
+              <div class="as-speed-dropdown-wrap">
+                <button 
+                  class="btn-as-speed" 
+                  (click)="toggleSpeedMenu()" 
+                  [title]="'Tốc độ cuộn: ' + autoScrollSpeed + 'x. Bấm để chọn tốc độ'"
+                  aria-label="Chọn tốc độ đọc"
+                >
+                  <span>{{ autoScrollSpeed }}x</span>
+                  <i class="fa fa-caret-down"></i>
+                </button>
+
+                <!-- Speed Dropdown Menu -->
+                <div class="as-speed-menu header-menu glass-panel" *ngIf="showSpeedMenu">
+                  <div class="speed-menu-header">
+                    <i class="fa fa-tachometer"></i> Tốc Độ Đọc
+                  </div>
+                  <button 
+                    *ngFor="let s of autoScrollSpeeds" 
+                    class="speed-option-btn" 
+                    [class.active]="autoScrollSpeed === s.speed"
+                    (click)="selectSpeed(s.speed)"
+                  >
+                    <span>{{ s.label }}</span>
+                    <i class="fa fa-check" *ngIf="autoScrollSpeed === s.speed"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- 3. Controls in Flip Mode: Fit Mode, Direction & Auto-Flip -->
+          <ng-container *ngIf="readingMode === 'flip'">
+            <!-- Fit Mode in Header -->
+            <div class="fit-dropdown-wrap" (click)="$event.stopPropagation()">
+              <button class="header-pill-btn btn-fit-label" (click)="toggleFitMenu()" [title]="'Căn khung: ' + getFitLabel()">
+                <i class="fa" [ngClass]="getFitIcon()"></i>
+                <span class="pill-text">{{ getFitShortLabel() }}</span>
+                <i class="fa fa-caret-down pill-caret"></i>
+              </button>
+
+              <!-- Fit Dropdown Menu -->
+              <div class="fit-levels-menu header-menu glass-panel" *ngIf="showFitMenu">
+                <div class="zoom-menu-header">
+                  <i class="fa fa-arrows-alt"></i> Căn Khung Ảnh
+                </div>
+                <button 
+                  *ngFor="let f of fitModes" 
+                  class="zoom-level-btn" 
+                  [class.active]="flipFitMode === f.mode"
+                  (click)="selectFitMode(f.mode)"
+                >
+                  <i class="fa {{ f.icon }}"></i>
+                  <span>{{ f.label }}</span>
+                  <i class="fa fa-check text-orange" *ngIf="flipFitMode === f.mode"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Flip Direction in Header -->
+            <button 
+              class="header-pill-btn btn-dir-toggle-header" 
+              (click)="toggleFlipDirection()" 
+              [title]="'Hướng lật: ' + (flipDirection === 'ltr' ? 'Trái sang Phải (Webtoon/Manhwa)' : 'Phải sang Trái (Manga Nhật)') + ' (Phím D)'"
+            >
+              <i class="fa fa-exchange"></i>
+              <span class="dir-badge">{{ flipDirection === 'ltr' ? 'LTR' : 'RTL' }}</span>
+            </button>
+
+            <!-- Auto-Flip Header Group -->
+            <div class="autoflip-header-group" [class.is-active]="isAutoFlipping" (click)="$event.stopPropagation()">
+              <button 
+                class="btn-as-action" 
+                [class.active]="isAutoFlipping" 
+                (click)="toggleAutoFlip()" 
+                [title]="isAutoFlipping ? 'Dừng tự lật trang (Phím A)' : 'Tự động lật trang (' + autoFlipSeconds + 's) (Phím A)'"
+                aria-label="Tự động lật trang"
+              >
+                <i class="fa fa-play" *ngIf="!isAutoFlipping"></i>
+                <i class="fa fa-pause text-orange" *ngIf="isAutoFlipping"></i>
+              </button>
+
+              <div class="autoflip-dropdown-wrap">
+                <button 
+                  class="btn-as-speed" 
+                  (click)="toggleAutoFlipMenu()" 
+                  [title]="'Tự lật mỗi ' + autoFlipSeconds + ' giây. Bấm để đổi thời gian'"
+                >
+                  <span>{{ autoFlipSeconds }}s</span>
+                  <i class="fa fa-caret-down"></i>
+                </button>
+
+                <div class="as-speed-menu header-menu glass-panel" *ngIf="showAutoFlipMenu">
+                  <div class="speed-menu-header">
+                    <i class="fa fa-clock-o"></i> Hẹn Giờ Lật Trang
+                  </div>
+                  <button 
+                    *ngFor="let s of autoFlipSpeeds" 
+                    class="speed-option-btn" 
+                    [class.active]="autoFlipSeconds === s.seconds"
+                    (click)="selectAutoFlipSpeed(s.seconds)"
+                  >
+                    <span>{{ s.label }}</span>
+                    <i class="fa fa-check" *ngIf="autoFlipSeconds === s.seconds"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+          <!-- Fullscreen Toggle (Desktop) -->
+          <button 
+            class="tool-btn btn-fullscreen" 
+            (click)="toggleFullscreen()" 
+            title="Toàn màn hình (Phím F)"
+          >
+            <i class="fa" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
+          </button>
+
+          <!-- Report Error (Desktop) -->
+          <button 
+            class="tool-btn btn-report" 
+            (click)="openReportModal()" 
+            title="Báo lỗi chương truyện"
+          >
+            <i class="fa fa-flag-o"></i>
+          </button>
         </div>
-
-        <!-- Fullscreen Toggle -->
-        <button 
-          class="tool-btn btn-fullscreen" 
-          (click)="toggleFullscreen()" 
-          title="Toàn màn hình (Phím F)"
-        >
-          <i class="fa" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
-        </button>
-
-        <!-- Report Error -->
-        <button 
-          class="tool-btn btn-report" 
-          (click)="openReportModal()" 
-          title="Báo lỗi chương truyện"
-        >
-          <i class="fa fa-flag-o"></i>
-        </button>
 
         <!-- CDN Retry Indicator button if any page failed -->
         <button 
@@ -167,12 +302,265 @@
         >
           <i class="fa fa-refresh text-orange fa-spin"></i>
         </button>
+
+        <!-- ================= MOBILE HAMBURGER BUTTON ================= -->
+        <button 
+          class="btn-mobile-hamburger" 
+          (click)="toggleMobileSettingsDrawer(); $event.stopPropagation()"
+          [class.is-active]="showMobileSettingsDrawer"
+          title="Cài đặt đọc truyện (Menu)"
+          aria-label="Cài đặt đọc truyện"
+        >
+          <i class="fa" [ngClass]="showMobileSettingsDrawer ? 'fa-times' : 'fa-bars'"></i>
+          <span class="hamburger-indicator" *ngIf="isAutoScrolling || isAutoFlipping"></span>
+        </button>
       </div>
     </div>
   </header>
 
-  <!-- ==================== 2. IMAGE STREAM VIEWPORT ==================== -->
-  <main class="reader-main-stream" [ngStyle]="getMainStreamStyle()">
+  <!-- ==================== MOBILE SETTINGS BOTTOM SHEET / DRAWER ==================== -->
+  <div 
+    class="mobile-settings-backdrop" 
+    *ngIf="showMobileSettingsDrawer" 
+    (click)="closeMobileSettingsDrawer()"
+  >
+    <div class="mobile-settings-sheet glass-panel" (click)="$event.stopPropagation()">
+      <!-- Drag Handle -->
+      <div class="sheet-drag-handle" (click)="closeMobileSettingsDrawer()"></div>
+      
+      <!-- Sheet Header -->
+      <div class="sheet-header">
+        <div class="sheet-title">
+          <i class="fa fa-sliders text-orange"></i>
+          <span>Cài Đặt Đọc Truyện</span>
+        </div>
+        <button class="sheet-close-btn" (click)="closeMobileSettingsDrawer()" aria-label="Đóng cài đặt">
+          <i class="fa fa-times"></i>
+        </button>
+      </div>
+
+      <!-- Sheet Scrollable Body -->
+      <div class="sheet-body">
+        <!-- 1. Reading Mode Selection -->
+        <div class="sheet-section">
+          <label class="sheet-section-title">
+            <i class="fa fa-book"></i> Chế độ đọc
+          </label>
+          <div class="mode-cards-grid">
+            <button 
+              type="button"
+              class="mode-card-btn" 
+              [class.active]="readingMode === 'vertical'"
+              (click)="setReadingMode('vertical')"
+            >
+              <div class="mode-card-icon">
+                <i class="fa fa-align-justify"></i>
+              </div>
+              <div class="mode-info">
+                <span class="mode-name">Cuộn dọc liên tục</span>
+                <span class="mode-desc">Webtoon / Manhwa</span>
+              </div>
+              <i class="fa fa-check-circle check-icon" *ngIf="readingMode === 'vertical'"></i>
+            </button>
+
+            <button 
+              type="button"
+              class="mode-card-btn" 
+              [class.active]="readingMode === 'flip'"
+              (click)="setReadingMode('flip')"
+            >
+              <div class="mode-card-icon">
+                <i class="fa fa-book-open"></i>
+              </div>
+              <div class="mode-info">
+                <span class="mode-name">Lật từng trang</span>
+                <span class="mode-desc">Manga Nhật Bản</span>
+              </div>
+              <i class="fa fa-check-circle check-icon" *ngIf="readingMode === 'flip'"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- 2A. Flip Mode Controls -->
+        <div class="sheet-section" *ngIf="readingMode === 'flip'">
+          <!-- Flip Direction -->
+          <label class="sheet-section-title">
+            <i class="fa fa-exchange"></i> Hướng lật trang
+          </label>
+          <div class="chip-options-grid cols-2">
+            <button 
+              type="button"
+              class="chip-option-btn" 
+              [class.active]="flipDirection === 'ltr'"
+              (click)="setFlipDirection('ltr')"
+            >
+              <i class="fa fa-arrow-right text-orange"></i>
+              <span>Trái sang Phải (LTR)</span>
+            </button>
+            <button 
+              type="button"
+              class="chip-option-btn" 
+              [class.active]="flipDirection === 'rtl'"
+              (click)="setFlipDirection('rtl')"
+            >
+              <i class="fa fa-arrow-left text-orange"></i>
+              <span>Phải sang Trái (RTL)</span>
+            </button>
+          </div>
+
+          <!-- Fit Mode -->
+          <label class="sheet-section-title mt-3">
+            <i class="fa fa-arrows-alt"></i> Căn khung hình ảnh
+          </label>
+          <div class="chip-options-grid cols-3">
+            <button 
+              *ngFor="let f of fitModes" 
+              type="button"
+              class="chip-option-btn" 
+              [class.active]="flipFitMode === f.mode"
+              (click)="selectFitMode(f.mode)"
+            >
+              <i class="fa {{ f.icon }}"></i>
+              <span>{{ f.shortLabel }}</span>
+            </button>
+          </div>
+
+          <!-- Auto-Flip Timer -->
+          <div class="toggle-row-box mt-3">
+            <div class="toggle-row-info">
+              <span class="row-label"><i class="fa fa-clock-o text-orange"></i> Tự động lật trang</span>
+              <span class="row-sub">Tự động chuyển trang sau {{ autoFlipSeconds }}s</span>
+            </div>
+            <button 
+              type="button"
+              class="btn-toggle-switch" 
+              [class.active]="isAutoFlipping"
+              (click)="toggleAutoFlip()"
+            >
+              <span class="switch-ball"></span>
+            </button>
+          </div>
+          
+          <div class="speed-chips-row mt-2">
+            <button 
+              *ngFor="let s of autoFlipSpeeds" 
+              type="button"
+              class="speed-chip-btn" 
+              [class.active]="autoFlipSeconds === s.seconds"
+              (click)="selectAutoFlipSpeed(s.seconds)"
+            >
+              {{ s.label }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 2B. Vertical Mode Controls -->
+        <div class="sheet-section" *ngIf="readingMode === 'vertical'">
+          <!-- Auto-Scroll -->
+          <div class="toggle-row-box">
+            <div class="toggle-row-info">
+              <span class="row-label"><i class="fa fa-play text-orange"></i> Tự động cuộn trang</span>
+              <span class="row-sub">Tự động lướt đọc không cần chạm tay</span>
+            </div>
+            <button 
+              type="button"
+              class="btn-toggle-switch" 
+              [class.active]="isAutoScrolling"
+              (click)="toggleAutoScroll()"
+            >
+              <span class="switch-ball"></span>
+            </button>
+          </div>
+
+          <div class="speed-chips-row mt-2">
+            <button 
+              *ngFor="let s of autoScrollSpeeds" 
+              type="button"
+              class="speed-chip-btn" 
+              [class.active]="autoScrollSpeed === s.speed"
+              (click)="selectSpeed(s.speed)"
+            >
+              {{ s.label }}
+            </button>
+          </div>
+
+          <!-- Zoom Width -->
+          <label class="sheet-section-title mt-3">
+            <i class="fa fa-search"></i> Độ phóng to trang
+          </label>
+          <div class="chip-options-grid cols-4">
+            <button 
+              *ngFor="let lvl of zoomLevels" 
+              type="button"
+              class="chip-option-btn" 
+              [class.active]="zoomWidth === lvl.width"
+              (click)="selectZoomWidth(lvl.width)"
+            >
+              <span>{{ lvl.label }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Utilities & Advanced -->
+        <div class="sheet-section">
+          <label class="sheet-section-title">
+            <i class="fa fa-cogs"></i> Tiện ích & Nâng cao
+          </label>
+          
+          <!-- Data Saver -->
+          <div class="toggle-row-box">
+            <div class="toggle-row-info">
+              <span class="row-label"><i class="fa fa-bolt text-amber"></i> Tiết kiệm dữ liệu (WebP)</span>
+              <span class="row-sub">Tải ảnh định dạng nén nhẹ, siêu nhanh</span>
+            </div>
+            <button 
+              type="button"
+              class="btn-toggle-switch" 
+              [class.active]="useDataSaver"
+              (click)="toggleDataSaver()"
+            >
+              <span class="switch-ball"></span>
+            </button>
+          </div>
+
+          <!-- Actions Grid -->
+          <div class="sheet-actions-grid mt-3">
+            <button 
+              type="button"
+              class="sheet-action-btn" 
+              (click)="toggleFullscreen(); closeMobileSettingsDrawer()"
+            >
+              <i class="fa" [ngClass]="isFullscreen ? 'fa-compress' : 'fa-expand'"></i>
+              <span>{{ isFullscreen ? 'Thoát toàn màn hình' : 'Toàn màn hình' }}</span>
+            </button>
+
+            <button 
+              type="button"
+              class="sheet-action-btn btn-report-sheet" 
+              (click)="openReportModal(); closeMobileSettingsDrawer()"
+            >
+              <i class="fa fa-flag-o"></i>
+              <span>Báo lỗi chương</span>
+            </button>
+          </div>
+
+          <!-- CDN Retry in Drawer -->
+          <button 
+            type="button"
+            class="btn-sheet-reload-cdn mt-3" 
+            *ngIf="totalFailedCount > 0"
+            (click)="retryAllFailedPages()"
+          >
+            <i class="fa fa-refresh text-orange fa-spin"></i>
+            <span>Tải lại {{ totalFailedCount }} trang bị lỗi CDN</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2A. VERTICAL STREAM VIEWPORT ==================== -->
+  <main class="reader-main-stream" *ngIf="readingMode === 'vertical'" [ngStyle]="getMainStreamStyle()">
     <div class="reading-images-list" *ngIf="chapter.pages && chapter.pages.length > 0; else noPages">
       <!-- Global Failed Images Alert Banner -->
       <div class="cdn-error-banner glass-panel" *ngIf="totalFailedCount > 0">
@@ -259,19 +647,143 @@
         />
       </div>
     </div>
-
-    <ng-template #noPages>
-      <div class="no-pages-alert glass-card">
-        <i class="fa fa-file-image-o"></i>
-        <h3>Chương này đang được cập nhật hình ảnh</h3>
-        <p>Vui lòng quay lại sau ít phút hoặc báo lỗi cho ban quản trị TruyenKomi!</p>
-        <button (click)="openReportModal()" class="btn-report-alert">Báo Lỗi Chương Này</button>
-      </div>
-    </ng-template>
   </main>
 
-  <!-- ==================== 3. END OF CHAPTER NAVIGATION & ACTIONS ==================== -->
-  <section class="chapter-end-nav-section" *ngIf="chapter">
+  <!-- ==================== 2B. FLIP MODE VIEWPORT ==================== -->
+  <div 
+    class="reader-flip-viewport" 
+    *ngIf="readingMode === 'flip'"
+    [class.fit-contain]="flipFitMode === 'contain'"
+    [class.fit-width]="flipFitMode === 'width'"
+    [class.fit-height]="flipFitMode === 'height'"
+    (touchstart)="onFlipTouchStart($event)"
+    (touchend)="onFlipTouchEnd($event)"
+  >
+    <!-- Left Interactive Zone (Navigates backward in LTR, forward in RTL) -->
+    <div class="flip-click-zone zone-left" (click)="onFlipLeftClick($event)">
+      <button 
+        class="btn-flip-arrow btn-flip-prev" 
+        [disabled]="flipDirection === 'ltr' ? currentPageIndex === 0 && !prevChapterId : currentPageIndex === (chapter.pages.length || 1) - 1 && !nextChapterId"
+        (click)="onFlipLeftClick($event)"
+        [title]="flipDirection === 'ltr' ? 'Trang trước (Phím ←)' : 'Trang tiếp (Phím →)'"
+      >
+        <i class="fa fa-chevron-left"></i>
+      </button>
+    </div>
+
+    <!-- Center Interactive Zone (Toggle Zen Mode / Bars) -->
+    <div class="flip-click-zone zone-center" (click)="toggleHeader()" title="Bấm để ẩn/hiện thanh công cụ"></div>
+
+    <!-- Right Interactive Zone (Navigates forward in LTR, backward in RTL) -->
+    <div class="flip-click-zone zone-right" (click)="onFlipRightClick($event)">
+      <button 
+        class="btn-flip-arrow btn-flip-next" 
+        [disabled]="flipDirection === 'ltr' ? currentPageIndex === (chapter.pages.length || 1) - 1 && !nextChapterId : currentPageIndex === 0 && !prevChapterId"
+        (click)="onFlipRightClick($event)"
+        [title]="flipDirection === 'ltr' ? 'Trang tiếp (Phím → hoặc Space)' : 'Trang trước (Phím ←)'"
+      >
+        <i class="fa fa-chevron-right"></i>
+      </button>
+    </div>
+
+    <!-- Flip Stage Container (Single Page View with smooth slide transition) -->
+    <div class="flip-stage" [ngClass]="flipAnimClass" *ngIf="chapter.pages && chapter.pages.length > 0; else noPages">
+      <!-- 1. LOADING SKELETON PLACEHOLDER -->
+      <div 
+        class="manga-page-placeholder flip-placeholder" 
+        *ngIf="!pageStates[currentPageIndex]?.loaded && !pageStates[currentPageIndex]?.error"
+      >
+        <div class="placeholder-shimmer"></div>
+        <div class="placeholder-content">
+          <div class="manga-loader-box">
+            <div class="loader-spinner-ring" [class.is-retrying]="pageStates[currentPageIndex]?.retrying"></div>
+            <i class="fa fa-book loader-icon"></i>
+          </div>
+          <div class="loader-page-badge">
+            <span class="badge-cur">Trang {{ currentPageIndex + 1 }}</span>
+            <span class="badge-total">/ {{ chapter.pages.length }}</span>
+          </div>
+          <div class="loader-status">
+            <span class="loader-pulse-dot" *ngIf="!pageStates[currentPageIndex]?.retrying"></span>
+            <i class="fa fa-refresh fa-spin text-amber" *ngIf="pageStates[currentPageIndex]?.retrying"></i>
+            <span>Đang tải trang {{ currentPageIndex + 1 }}...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. ERROR FALLBACK CARD IF CDN FAILS -->
+      <div 
+        class="manga-page-error-card glass-panel flip-error-card" 
+        *ngIf="pageStates[currentPageIndex]?.error"
+      >
+        <div class="error-card-inner">
+          <div class="error-icon-box">
+            <i class="fa fa-picture-o"></i>
+            <span class="error-warn-badge">!</span>
+          </div>
+          <h4>Không thể tải Trang {{ currentPageIndex + 1 }}</h4>
+          <p>Đường truyền gián đoạn hoặc trang truyện đang được đồng bộ.</p>
+          <div class="error-actions">
+            <button class="btn-retry-page" (click)="retrySinglePage(currentPageIndex)">
+              <i class="fa fa-refresh" [class.fa-spin]="pageStates[currentPageIndex]?.retrying"></i>
+              <span>Tải Lại Trang Này</span>
+            </button>
+            <button class="btn-report-page" (click)="reportPageIssue(currentPageIndex)">
+              <i class="fa fa-flag-o"></i>
+              <span>Báo Lỗi Trang</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. ACTUAL SINGLE MANGA IMAGE -->
+      <div class="flip-img-wrap" *ngIf="chapter.pages[currentPageIndex]">
+        <img 
+          [src]="pageStates[currentPageIndex]?.url || chapter.pages[currentPageIndex].imageUrl" 
+          [alt]="chapter.comicTitle + ' - Chap ' + chapter.chapterNumber + ' - Trang ' + (currentPageIndex + 1)"
+          referrerpolicy="no-referrer"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
+          (load)="onImgLoad(currentPageIndex)"
+          (error)="onImgError(currentPageIndex, $event)"
+          class="flip-page-img"
+          [class.is-visible]="pageStates[currentPageIndex]?.loaded"
+        />
+      </div>
+
+      <!-- Boundary Prompt at the end of chapter -->
+      <div class="flip-end-prompt glass-panel" *ngIf="currentPageIndex === chapter.pages.length - 1 && nextChapterId" (click)="$event.stopPropagation()">
+        <div class="end-prompt-inner">
+          <div class="prompt-text">
+            <i class="fa fa-check-circle text-orange"></i>
+            <span>Bạn đã đọc đến trang cuối của Chapter {{ chapter.chapterNumber }}!</span>
+          </div>
+          <button 
+            type="button"
+            class="btn-prompt-next-chap glow-effect" 
+            (click)="navigateToChapter(nextChapterId); $event.stopPropagation()"
+            title="Đọc Chapter Tiếp Theo"
+          >
+            <span>Đọc Chapter Tiếp Theo</span>
+            <i class="fa fa-arrow-right"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noPages>
+    <div class="no-pages-alert glass-card">
+      <i class="fa fa-file-image-o"></i>
+      <h3>Chương này đang được cập nhật hình ảnh</h3>
+      <p>Vui lòng quay lại sau ít phút hoặc báo lỗi cho ban quản trị TruyenKomi!</p>
+      <button (click)="openReportModal()" class="btn-report-alert">Báo Lỗi Chương Này</button>
+    </div>
+  </ng-template>
+
+  <!-- ==================== 3. END OF CHAPTER NAVIGATION & ACTIONS (VERTICAL MODE) ==================== -->
+  <section class="chapter-end-nav-section" *ngIf="chapter && readingMode === 'vertical'">
     <div class="div_middle">
       <div class="chapter-end-card glass-panel">
         <div class="end-card-header">

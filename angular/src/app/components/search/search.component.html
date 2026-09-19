@@ -61,9 +61,11 @@
       <!-- Section Heading -->
       <div class="section-heading" style="margin-top: 20px;">
         <h2 class="text_list_update">
-          <i class="fa fa-search"></i> KẾT QUẢ TÌM KIẾM
+          <i class="fa fa-search"></i> Kết Quả Tìm Kiếm
         </h2>
-        <span class="text-muted" style="font-size: 13px;">({{ totalCount }} truyện)</span>
+        <span class="badge-total-count" *ngIf="!isLoading">
+          <i class="fa fa-layer-group"></i> {{ totalCount }} truyện
+        </span>
       </div>
 
       <!-- Loading State -->
