@@ -59,12 +59,17 @@ services:
       - JWT_EXPIRY_DAYS=${JWT_EXPIRY_DAYS:-7}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-510177815251-88f3mqoiatfct4jj0bhnuhmol985ae0s.apps.googleusercontent.com}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-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}
-      - R2_ENDPOINT=${R2_ENDPOINT:-storage.googleapis.com}
-      - R2_ACCESS_KEY=${R2_ACCESS_KEY:-GOOGQHRXVRS7YCR24JBLB33S}
-      - R2_SECRET_KEY=${R2_SECRET_KEY:-3Iamo8whmuUeT2B+CMtRnfW6qdIsmwXVec47tF52}
-      - R2_BUCKET_NAME=${R2_BUCKET_NAME:-truyenkomi}
-      - R2_SECURE=${R2_SECURE:-true}
-      - R2_CDN_BASE_URL=${R2_CDN_BASE_URL:-https://img.truyenkomi.site}
+      - CF_R2_ENDPOINT=${CF_R2_ENDPOINT:-7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com}
+      - CF_R2_ACCESS_KEY=${CF_R2_ACCESS_KEY:-b55550a4f61f223173b5c5b742867416}
+      - CF_R2_SECRET_KEY=${CF_R2_SECRET_KEY:-2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3}
+      - CF_R2_BUCKET=${CF_R2_BUCKET:-comics}
+      - CF_R2_CDN_URL=${CF_R2_CDN_URL:-https://img.hypermmo.site}
+      - R2_ENDPOINT=${CF_R2_ENDPOINT:-7d2e9a7fa70afba6027908941eb6bd19.r2.cloudflarestorage.com}
+      - R2_ACCESS_KEY=${CF_R2_ACCESS_KEY:-b55550a4f61f223173b5c5b742867416}
+      - R2_SECRET_KEY=${CF_R2_SECRET_KEY:-2afe8eb25f16ff0c74bb0521ba87c04e6313d63bb6c731224e5a70de3f21a3a3}
+      - R2_BUCKET_NAME=${CF_R2_BUCKET:-comics}
+      - R2_SECURE=true
+      - R2_CDN_BASE_URL=${CF_R2_CDN_URL:-https://img.hypermmo.site}
     depends_on:
       - postgres
       - redis
