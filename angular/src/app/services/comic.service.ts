@@ -162,16 +162,27 @@ export class ComicService {
   }
 
   // File Upload to MinIO Storage
-  uploadImage(file: File, folder = 'covers'): Observable<{ url: string }> {
+  uploadImage(file: File, folder = 'covers', comicSlug?: string): Observable<{ url: string }> {
     const formData = new FormData();
     formData.append('file', file);
-    return this.api.post<{ url: string }>(`upload/image?folder=${folder}`, formData);
+    let query = `upload/image?folder=${encodeURIComponent(folder)}`;
+    if (comicSlug) {
+      query += `&comicSlug=${encodeURIComponent(comicSlug)}`;
+    }
+    return this.api.post<{ url: string }>(query, formData);
   }
 
-  uploadImages(files: FileList | File[], folder = 'chapters'): Observable<{ urls: string[] }> {
+  uploadImages(files: FileList | File[], folder = 'chapters', comicSlug?: string, chapterNumber?: number | string): Observable<{ urls: string[] }> {
     const formData = new FormData();
     Array.from(files).forEach(file => formData.append('files', file));
-    return this.api.post<{ urls: string[] }>(`upload/images?folder=${folder}`, formData);
+    let query = `upload/images?folder=${encodeURIComponent(folder)}`;
+    if (comicSlug) {
+      query += `&comicSlug=${encodeURIComponent(comicSlug)}`;
+    }
+    if (chapterNumber !== undefined && chapterNumber !== null && chapterNumber !== '') {
+      query += `&chapterNumber=${encodeURIComponent(String(chapterNumber))}`;
+    }
+    return this.api.post<{ urls: string[] }>(query, formData);
   }
 
   // Admin Actions

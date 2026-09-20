@@ -251,8 +251,8 @@ export class ComicDetailComponent implements OnInit {
 
   onImgError(event: Event): void {
     const target = event.target as HTMLImageElement;
-    if (target) {
-      target.src = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=200&q=80';
+    if (target && target.src !== 'assets/cover-placeholder.svg') {
+      target.src = 'assets/cover-placeholder.svg';
     }
   }
 

@@ -183,7 +183,8 @@ export class AdminStoryFormComponent implements OnInit {
     this.isUploadingCover = true;
     this.coverUploadProgress = `Đang tải ${file.name} lên Cloudflare R2...`;
 
-    this.comicService.uploadImage(file, 'covers').subscribe({
+    const comicIdentifier = this.form.slug?.trim() || this.form.title?.trim();
+    this.comicService.uploadImage(file, 'covers', comicIdentifier).subscribe({
       next: (res) => {
         this.isUploadingCover = false;
         if (res && res.url) {
@@ -209,7 +210,8 @@ export class AdminStoryFormComponent implements OnInit {
     this.isUploadingBanner = true;
     this.bannerUploadProgress = `Đang tải ${file.name} lên Cloudflare R2...`;
 
-    this.comicService.uploadImage(file, 'banners').subscribe({
+    const comicIdentifier = this.form.slug?.trim() || this.form.title?.trim();
+    this.comicService.uploadImage(file, 'banners', comicIdentifier).subscribe({
       next: (res) => {
         this.isUploadingBanner = false;
         if (res && res.url) {

@@ -203,7 +203,8 @@ export class AdminChaptersComponent implements OnInit {
     this.isUploading = true;
     this.uploadProgressText = `Đang tải lên ${files.length} ảnh lên máy chủ lưu trữ...`;
 
-    this.comicService.uploadImages(files, 'chapters').subscribe({
+    const comicSlug = this.comic?.slug || this.comic?.title;
+    this.comicService.uploadImages(files, 'chapters', comicSlug, this.chapterForm.chapterNumber).subscribe({
       next: (res) => {
         this.isUploading = false;
         if (res && res.urls && res.urls.length > 0) {
@@ -298,9 +299,8 @@ export class AdminChaptersComponent implements OnInit {
         extractedFiles.push(imageFile);
       }
 
-      // 5. Upload các trang ảnh lên Cloud Storage
-      this.unzipProgressText = `Đang tải ${extractedFiles.length} trang ảnh lên máy chủ lưu trữ...`;
-      this.comicService.uploadImages(extractedFiles, 'chapters').subscribe({
+      const comicSlug = this.comic?.slug || this.comic?.title;
+      this.comicService.uploadImages(extractedFiles, 'chapters', comicSlug, this.chapterForm.chapterNumber).subscribe({
         next: (res) => {
           this.isUnzipping = false;
           if (res && res.urls && res.urls.length > 0) {

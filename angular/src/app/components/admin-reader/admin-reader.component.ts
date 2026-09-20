@@ -325,7 +325,8 @@ export class AdminReaderComponent implements OnInit, OnDestroy {
     this.isUploadingCover = true;
     this.coverUploadProgressText = `Đang tải ${file.name} lên Cloudflare R2 bucket...`;
 
-    this.comicService.uploadImage(file, 'covers').subscribe({
+    const comicSlug = this.selectedComic?.slug || this.selectedComic?.title;
+    this.comicService.uploadImage(file, 'covers', comicSlug).subscribe({
       next: (res) => {
         this.isUploadingCover = false;
         if (res && res.url) {
@@ -381,7 +382,8 @@ export class AdminReaderComponent implements OnInit, OnDestroy {
     this.isUploadingPages = true;
     this.pageUploadProgressText = `Đang tải ${files.length} trang ảnh lên Cloudflare R2 bucket...`;
 
-    this.comicService.uploadImages(files, 'chapters').subscribe({
+    const comicSlug = this.selectedComic?.slug || this.selectedComic?.title;
+    this.comicService.uploadImages(files, 'chapters', comicSlug, this.currentChapter?.chapterNumber).subscribe({
       next: (res) => {
         this.isUploadingPages = false;
         if (res && res.urls && res.urls.length > 0) {
@@ -445,7 +447,8 @@ export class AdminReaderComponent implements OnInit, OnDestroy {
       this.pageUploadProgressText = `Đã giải nén ${imageFiles.length} ảnh. Đang tải lên Cloudflare R2...`;
 
       const filesToUpload = imageFiles.map(item => item.file);
-      this.comicService.uploadImages(filesToUpload, 'chapters').subscribe({
+      const comicSlug = this.selectedComic?.slug || this.selectedComic?.title;
+      this.comicService.uploadImages(filesToUpload, 'chapters', comicSlug, this.currentChapter?.chapterNumber).subscribe({
         next: (res) => {
           this.isUploadingPages = false;
           if (res && res.urls && res.urls.length > 0) {

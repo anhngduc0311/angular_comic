@@ -12,8 +12,8 @@ namespace TruyenKomi.API.Services
 {
     public interface IStorageService
     {
-        Task<string> UploadFileAsync(IFormFile file, string? folder = "general");
-        Task<List<string>> UploadFilesAsync(List<IFormFile> files, string? folder = "chapters");
+        Task<string> UploadFileAsync(IFormFile file, string? folder = "general", string? customFileName = null);
+        Task<List<string>> UploadFilesAsync(List<IFormFile> files, string? folder = "chapters", string? filePrefix = null);
         Task<(Stream Stream, string ContentType)> GetFileStreamAsync(string fileName);
     }
 
@@ -83,10 +83,10 @@ namespace TruyenKomi.API.Services
                 secEndpoint = secEndpoint.Replace("https://", "").Replace("http://", "").Trim().TrimEnd('/');
                 var secAccessKey = Environment.GetEnvironmentVariable("B2_ACCESS_KEY") ?? config["Minio:Secondary:AccessKey"] ?? "";
                 var secSecretKey = Environment.GetEnvironmentVariable("B2_SECRET_KEY") ?? config["Minio:Secondary:SecretKey"] ?? "";
-                _secondaryBucket = Environment.GetEnvironmentVariable("B2_BUCKET_NAME") ?? config["Minio:Secondary:BucketName"] ?? "truyenkomi-b2";
-                _secondaryCdnUrl = Environment.GetEnvironmentVariable("B2_CDN_BASE_URL") ?? config["Minio:Secondary:CdnBaseUrl"] ?? ("https://f005.backblazeb2.com/file/" + _secondaryBucket);
+                _secondaryBucket = Environment.GetEnvironmentVariable("B2_BUCKET_NAME") ?? config["Minio:Secondary:BucketName"] ?? "comics-backup";
+                _secondaryCdnUrl = Environment.GetEnvironmentVariable("B2_CDN_BASE_URL") ?? config["Minio:Secondary:CdnBaseUrl"] ?? "";
                 var secSecureStr = Environment.GetEnvironmentVariable("B2_SECURE") ?? config["Minio:Secondary:Secure"];
-                var secSecure = !bool.TryParse(secSecureStr, out var ss) || ss;
+                var secSecure = (bool.TryParse(secSecureStr, out var ss) && ss) || secEndpoint.Contains(".backblazeb2.com");
 
                 _secondaryClient = new MinioClient()
                     .WithEndpoint(secEndpoint)
@@ -148,14 +148,21 @@ namespace TruyenKomi.API.Services
             }
         }
 
-        public async Task<string> UploadFileAsync(IFormFile file, string? folder = "general")
+        public async Task<string> UploadFileAsync(IFormFile file, string? folder = "general", string? customFileName = null)
         {
             if (file == null || file.Length == 0)
                 throw new ArgumentException("File upload không hợp lệ.");
 
             var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
             if (string.IsNullOrEmpty(ext)) ext = ".jpg";
-            var fileName = $"{folder}/{Guid.NewGuid():N}{ext}";
+
+            var shortGuid = Guid.NewGuid().ToString("N")[..8];
+            var baseName = !string.IsNullOrEmpty(customFileName) 
+                ? $"{customFileName}_{shortGuid}" 
+                : Guid.NewGuid().ToString("N");
+
+            var cleanFolder = (folder ?? "general").Trim().Trim('/');
+            var fileName = string.IsNullOrEmpty(cleanFolder) ? $"{baseName}{ext}" : $"{cleanFolder}/{baseName}{ext}";
 
             try
             {
@@ -217,14 +224,16 @@ namespace TruyenKomi.API.Services
             }
         }
 
-        public async Task<List<string>> UploadFilesAsync(List<IFormFile> files, string? folder = "chapters")
+        public async Task<List<string>> UploadFilesAsync(List<IFormFile> files, string? folder = "chapters", string? filePrefix = null)
         {
             var urls = new List<string>();
-            foreach (var file in files)
+            for (int i = 0; i < files.Count; i++)
             {
+                var file = files[i];
                 if (file.Length > 0)
                 {
-                    var url = await UploadFileAsync(file, folder);
+                    var prefix = !string.IsNullOrEmpty(filePrefix) ? $"{filePrefix}_{i + 1:D3}" : null;
+                    var url = await UploadFileAsync(file, folder, prefix);
                     urls.Add(url);
                 }
             }

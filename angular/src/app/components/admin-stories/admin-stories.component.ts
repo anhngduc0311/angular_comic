@@ -424,7 +424,8 @@ export class AdminStoriesComponent implements OnInit {
     this.isUploadingCover = true;
     this.coverUploadProgress = `Đang tải ${file.name} lên Cloudflare R2 bucket...`;
 
-    this.comicService.uploadImage(file, 'covers').subscribe({
+    const comicSlug = this.selectedComicForCover?.slug || this.selectedComicForCover?.title;
+    this.comicService.uploadImage(file, 'covers', comicSlug).subscribe({
       next: (res) => {
         this.isUploadingCover = false;
         if (res && res.url) {
