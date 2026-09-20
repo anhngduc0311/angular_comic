@@ -21,6 +21,7 @@ export class ComicListComponent implements OnInit {
   selectedStatus: string = 'All';
   selectedSort: string = 'latest';
   selectedCountry: string = 'All';
+  selectedYear?: number;
   currentPage: number = 1;
   pageSize: number = 24;
   totalCount: number = 0;
@@ -54,6 +55,7 @@ export class ComicListComponent implements OnInit {
       this.selectedStatus = params['status'] || 'All';
       this.selectedSort = params['sort'] || params['sortBy'] || 'latest';
       this.selectedCountry = params['country'] || 'All';
+      this.selectedYear = params['year'] ? parseInt(params['year'], 10) : undefined;
       this.currentPage = params['page'] ? Math.max(1, parseInt(params['page'], 10) || 1) : 1;
       this.updateSeo();
       this.fetchComics();
@@ -75,7 +77,8 @@ export class ComicListComponent implements OnInit {
       this.selectedSort, 
       this.selectedCountry,
       this.currentPage,
-      this.pageSize
+      this.pageSize,
+      this.selectedYear
     ).subscribe({
       next: (data) => {
         this.comics = data.items || [];
@@ -100,8 +103,18 @@ export class ComicListComponent implements OnInit {
         status: this.selectedStatus === 'All' ? null : this.selectedStatus,
         sort: this.selectedSort,
         country: this.selectedCountry === 'All' ? null : this.selectedCountry,
+        year: this.selectedYear || null,
         page: null
       },
+      queryParamsHandling: 'merge'
+    });
+  }
+
+  clearYearFilter(): void {
+    this.selectedYear = undefined;
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { year: null, page: null },
       queryParamsHandling: 'merge'
     });
   }
@@ -153,6 +166,9 @@ export class ComicListComponent implements OnInit {
   }
 
   getPageHeading(): string {
+    if (this.selectedYear) {
+      return `Truyện Tranh Phát Hành Năm ${this.selectedYear}`;
+    }
     if (this.selectedCountry && this.selectedCountry !== 'All') {
       const match = this.countries.find(c => 
         c.value.toLowerCase() === this.selectedCountry.toLowerCase() || 

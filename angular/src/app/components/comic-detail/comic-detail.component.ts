@@ -336,33 +336,72 @@ export class ComicDetailComponent implements OnInit {
     return Math.round((count / this.ratingSummary.totalRatings) * 100);
   }
 
-  // ==================== RECOMMENDATIONS ====================
+  get comicYear(): number | null {
+    if (!this.comic) return null;
+    if (this.comic.releaseYear && this.comic.releaseYear > 0) return this.comic.releaseYear;
+    if (this.comic.createdAt) {
+      const year = new Date(this.comic.createdAt).getFullYear();
+      if (!isNaN(year) && year > 1900) return year;
+    }
+    return null;
+  }
+
+  // ==================== RECOMMENDATIONS (BY YEAR) ====================
   loadRecommendations(detail: ComicDetail): void {
     this.isLoadingRecommendations = true;
     this.recommendations = [];
+
+    this.comicService.getRecommendations(detail.id, 8).subscribe({
+      next: (items) => {
+        const filtered = (items || []).filter(c => c.id !== detail.id);
+        if (filtered.length > 0) {
+          this.recommendations = filtered.slice(0, 8);
+          this.isLoadingRecommendations = false;
+        } else {
+          this.fallbackRecommendations(detail);
+        }
+      },
+      error: () => {
+        this.fallbackRecommendations(detail);
+      }
+    });
+  }
+
+  private fallbackRecommendations(detail: ComicDetail): void {
+    const year = detail.releaseYear || (detail.createdAt ? new Date(detail.createdAt).getFullYear() : undefined);
     const categorySlug = (detail.categories && detail.categories.length > 0) ? detail.categories[0].slug : undefined;
 
-    if (categorySlug) {
-      this.comicService.searchComics(undefined, categorySlug, undefined, 'views', undefined, 1, 9).subscribe({
+    if (year && year > 1900) {
+      this.comicService.searchComics(undefined, undefined, undefined, 'views', undefined, 1, 9, year).subscribe({
         next: (res) => {
           const items = (res.items || []).filter(c => c.id !== detail.id);
           if (items.length >= 4) {
             this.recommendations = items.slice(0, 8);
             this.isLoadingRecommendations = false;
           } else {
-            this.fallbackRecommendations(detail.id, items);
+            this.secondaryFallback(detail.id, items);
           }
         },
         error: () => {
-          this.fallbackRecommendations(detail.id, []);
+          this.secondaryFallback(detail.id, []);
+        }
+      });
+    } else if (categorySlug) {
+      this.comicService.searchComics(undefined, categorySlug, undefined, 'views', undefined, 1, 9).subscribe({
+        next: (res) => {
+          const items = (res.items || []).filter(c => c.id !== detail.id);
+          this.secondaryFallback(detail.id, items);
+        },
+        error: () => {
+          this.secondaryFallback(detail.id, []);
         }
       });
     } else {
-      this.fallbackRecommendations(detail.id, []);
+      this.secondaryFallback(detail.id, []);
     }
   }
 
-  private fallbackRecommendations(currentComicId: number, existingItems: Comic[]): void {
+  private secondaryFallback(currentComicId: number, existingItems: Comic[]): void {
     this.comicService.getFeaturedComics('views', 10).subscribe({
       next: (featured) => {
         const combined = [...existingItems, ...(featured || [])]

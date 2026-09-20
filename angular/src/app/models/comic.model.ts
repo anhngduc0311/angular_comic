@@ -137,6 +137,7 @@ export interface SearchFilter {
   status?: string;
   country?: string;
   minChapters?: number;
+  year?: number;
   sortBy?: string;
   page?: number;
   pageSize?: number;

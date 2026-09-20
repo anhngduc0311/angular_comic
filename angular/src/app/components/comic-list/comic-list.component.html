@@ -19,9 +19,14 @@
           </div>
           <div class="title-meta">
             <h1 class="page-title">{{ getPageHeading() }}</h1>
-            <span class="badge-total-count" *ngIf="!isLoading">
-              <i class="fa fa-layer-group"></i> {{ totalCount | number }} truyện
-            </span>
+            <div class="meta-pills-row">
+              <span class="badge-total-count" *ngIf="!isLoading">
+                <i class="fa fa-layer-group"></i> {{ totalCount | number }} truyện
+              </span>
+              <span class="active-year-chip" *ngIf="selectedYear" (click)="clearYearFilter()" title="Bấm để xóa bộ lọc năm">
+                <i class="fa fa-calendar-o"></i> Năm {{ selectedYear }} <i class="fa fa-times"></i>
+              </span>
+            </div>
           </div>
         </div>
       </div>

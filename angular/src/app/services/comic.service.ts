@@ -28,13 +28,14 @@ export class ComicService {
     return this.api.get<SearchAutocompleteItem[]>(`comics/autocomplete?q=${encodeURIComponent(query.trim())}&limit=${limit}`);
   }
 
-  searchComics(query?: string, category?: string, status?: string, sortBy?: string, country?: string, page: number = 1, pageSize: number = 24): Observable<PagedResult<Comic>> {
+  searchComics(query?: string, category?: string, status?: string, sortBy?: string, country?: string, page: number = 1, pageSize: number = 24, year?: number): Observable<PagedResult<Comic>> {
     let params = [];
     if (query) params.push(`q=${encodeURIComponent(query)}`);
     if (category) params.push(`category=${encodeURIComponent(category)}`);
     if (status) params.push(`status=${encodeURIComponent(status)}`);
     if (sortBy) params.push(`sortBy=${encodeURIComponent(sortBy)}`);
     if (country && country !== 'All') params.push(`country=${encodeURIComponent(country)}`);
+    if (year) params.push(`year=${year}`);
     if (page) params.push(`page=${page}`);
     if (pageSize) params.push(`pageSize=${pageSize}`);
     
@@ -60,6 +61,9 @@ export class ComicService {
     if (filter.minChapters && filter.minChapters > 0) {
       params.push(`minChapters=${filter.minChapters}`);
     }
+    if (filter.year && filter.year > 0) {
+      params.push(`year=${filter.year}`);
+    }
     if (filter.sortBy) {
       params.push(`sortBy=${encodeURIComponent(filter.sortBy)}`);
     }
@@ -72,6 +76,10 @@ export class ComicService {
 
     const queryString = params.length ? `?${params.join('&')}` : '';
     return this.api.get<PagedResult<Comic>>(`comics/advanced-search${queryString}`);
+  }
+
+  getRecommendations(comicId: number, count: number = 8): Observable<Comic[]> {
+    return this.api.get<Comic[]>(`comics/${comicId}/recommendations?count=${count}`);
   }
 
   getComicBySlug(slug: string): Observable<ComicDetail> {

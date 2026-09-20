@@ -253,6 +253,13 @@ namespace TruyenKomi.API.Services
                 query = query.Where(c => c.Chapters.Count(ch => ch.IsPublic) >= filter.MinChapters.Value);
             }
 
+            // 3.5 Year Filter
+            if (filter.Year.HasValue && filter.Year.Value > 0)
+            {
+                int y = filter.Year.Value;
+                query = query.Where(c => (c.ReleaseYear == y) || (c.ReleaseYear == null && c.CreatedAt.Year == y));
+            }
+
             // 4. Include Categories
             if (filter.IncludeCategories != null && filter.IncludeCategories.Any())
             {
@@ -409,7 +416,7 @@ namespace TruyenKomi.API.Services
                 OtherNames = comic.OtherNames,
                 Artist = comic.Artist,
                 Country = ComicService.ResolveComicCountry(comic),
-                ReleaseYear = comic.ReleaseYear,
+                ReleaseYear = comic.ReleaseYear ?? (comic.CreatedAt != default ? comic.CreatedAt.Year : (int?)null),
                 Status = comic.Status,
                 Views = comic.Views,
                 Rating = comic.Rating,

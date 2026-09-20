@@ -50,10 +50,11 @@ namespace TruyenKomi.API.Controllers
             [FromQuery] string? status, 
             [FromQuery] string? sortBy, 
             [FromQuery] string? country,
+            [FromQuery] int? year = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 24)
         {
-            var comics = await _comicService.SearchComicsAsync(q, category, status, sortBy, country, page, pageSize);
+            var comics = await _comicService.SearchComicsAsync(q, category, status, sortBy, country, year, page, pageSize);
             return Ok(comics);
         }
 
@@ -72,6 +73,7 @@ namespace TruyenKomi.API.Controllers
             [FromQuery] string? status,
             [FromQuery] string? country,
             [FromQuery] int? minChapters,
+            [FromQuery] int? year,
             [FromQuery] string? sortBy,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 24)
@@ -88,6 +90,7 @@ namespace TruyenKomi.API.Controllers
                 Status = status,
                 Country = country,
                 MinChapters = minChapters,
+                Year = year,
                 SortBy = sortBy ?? "latest",
                 Page = page,
                 PageSize = pageSize
@@ -95,6 +98,22 @@ namespace TruyenKomi.API.Controllers
 
             var results = await _searchEngineService.AdvancedSearchAsync(filter);
             return Ok(results);
+        }
+
+        [HttpGet("{id:int}/recommendations")]
+        public async Task<IActionResult> GetRecommendations(int id, [FromQuery] int count = 8)
+        {
+            var comics = await _comicService.GetRecommendedComicsByYearAsync(id, count: count);
+            return Ok(comics);
+        }
+
+        [HttpGet("{slug}/recommendations")]
+        public async Task<IActionResult> GetRecommendationsBySlug(string slug, [FromQuery] int count = 8)
+        {
+            var comic = await _comicService.GetComicBySlugAsync(slug);
+            if (comic == null) return NotFound(new { message = "Không tìm thấy truyện." });
+            var comics = await _comicService.GetRecommendedComicsByYearAsync(comic.Id, comic.ReleaseYear, count);
+            return Ok(comics);
         }
 
         [HttpGet("{slug}")]

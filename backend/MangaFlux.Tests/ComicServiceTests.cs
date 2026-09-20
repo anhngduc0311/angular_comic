@@ -90,6 +90,7 @@ namespace TruyenKomi.Tests
             for (int i = 1; i <= 30; i++)
             {
                 db.Comics.Add(new Comic { Id = i, Title = $"Comic {i:D2}", Slug = $"comic-{i}", IsPublic = true });
+                db.Chapters.Add(new Chapter { Id = 1000 + i, ComicId = i, ChapterNumber = 1.0, Title = "Chapter 1" });
             }
             await db.SaveChangesAsync();
 
@@ -191,6 +192,46 @@ namespace TruyenKomi.Tests
             Assert.NotNull(results);
             Assert.Single(results);
             Assert.Equal("romance-love", results[0].Slug);
+        }
+
+        [Fact]
+        public async Task GetRecommendedComicsByYearAsync_ShouldReturnComicsWithSameYear()
+        {
+            // Arrange
+            var db = GetInMemoryDbContext();
+            var comicCurrent = new Comic { Id = 1, Title = "Current Manga", Slug = "current-manga", ReleaseYear = 2024, Views = 100, IsPublic = true };
+            var comicSameYear = new Comic { Id = 2, Title = "Same Year Manga", Slug = "same-year-manga", ReleaseYear = 2024, Views = 500, IsPublic = true };
+            var comicDiffYear = new Comic { Id = 3, Title = "Diff Year Manga", Slug = "diff-year-manga", ReleaseYear = 2018, Views = 900, IsPublic = true };
+            var comicCreatedYear = new Comic { Id = 4, Title = "Created Year Manga", Slug = "created-year-manga", ReleaseYear = null, CreatedAt = new DateTime(2024, 5, 1, 0, 0, 0, DateTimeKind.Utc), Views = 300, IsPublic = true };
+
+            db.Comics.AddRange(comicCurrent, comicSameYear, comicDiffYear, comicCreatedYear);
+
+            db.Chapters.Add(new Chapter { Id = 1, ComicId = 1, ChapterNumber = 1, Title = "Ch 1" });
+            db.Chapters.Add(new Chapter { Id = 2, ComicId = 2, ChapterNumber = 1, Title = "Ch 1" });
+            db.Chapters.Add(new Chapter { Id = 3, ComicId = 3, ChapterNumber = 1, Title = "Ch 1" });
+            db.Chapters.Add(new Chapter { Id = 4, ComicId = 4, ChapterNumber = 1, Title = "Ch 1" });
+
+            await db.SaveChangesAsync();
+
+            var mockNotificationService = new Mock<INotificationService>();
+            var mockCache = new Mock<ICacheService>();
+            mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<List<ComicDto>>>>(), It.IsAny<TimeSpan?>()))
+                .Returns<string, Func<Task<List<ComicDto>>>, TimeSpan?>((k, cb, ttl) => cb());
+            var mockGamification = new Mock<IGamificationService>();
+            var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object, mockGamification.Object);
+
+            // Act
+            var results = await comicService.GetRecommendedComicsByYearAsync(comicCurrent.Id, null, 2);
+
+            // Assert
+            Assert.NotNull(results);
+            Assert.Equal(2, results.Count);
+            // Must exclude current comic
+            Assert.DoesNotContain(results, r => r.Id == 1);
+            // Must be comics from 2024 (comic 2 and comic 4)
+            Assert.Equal(2, results[0].Id); // Higher views (500) first
+            Assert.Equal(4, results[1].Id); // 300 views second
+            Assert.Equal(2024, results[1].ReleaseYear); // ReleaseYear fallback from CreatedAt
         }
     }
 }

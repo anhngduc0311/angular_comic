@@ -142,6 +142,10 @@
             </div>
 
             <!-- Row 4 -->
+            <div class="spec-cell" *ngIf="comicYear">
+              <span class="spec-label">Năm phát hành</span>
+              <span class="spec-value text-amber font-weight-bold">{{ comicYear }}</span>
+            </div>
             <div class="spec-cell">
               <span class="spec-label">Ngày tạo</span>
               <span class="spec-value">{{ (comic.createdAt || comic.updatedAt) | date:'dd/MM/yyyy' }}</span>
@@ -289,7 +293,7 @@
             <i class="fa fa-sparkles icon-orange"></i>
             <h4>Gợi Ý Cho Bạn</h4>
           </div>
-          <a [routerLink]="['/comics']" [queryParams]="comic.categories && comic.categories.length > 0 ? { category: comic.categories[0].slug } : {}" class="btn-more-recom" title="Khám phá thêm truyện">
+          <a [routerLink]="['/comics']" [queryParams]="comicYear ? { year: comicYear } : (comic.categories && comic.categories.length > 0 ? { category: comic.categories[0].slug } : {})" class="btn-more-recom" [title]="comicYear ? 'Khám phá thêm truyện phát hành năm ' + comicYear : 'Khám phá thêm truyện'">
             <span>Xem thêm</span> <i class="fa fa-angle-right"></i>
           </a>
         </div>
@@ -313,6 +317,10 @@
               <div class="recom-gradient-overlay"></div>
               <div class="recom-meta-overlay">
                 <h5 class="recom-title">{{ rec.title }}</h5>
+                <div class="recom-sub-meta">
+                  <span class="recom-stat" *ngIf="rec.views"><i class="fa fa-eye"></i> {{ formatViews(rec.views) }}</span>
+                  <span class="recom-stat text-amber" *ngIf="rec.rating"><i class="fa fa-star"></i> {{ rec.rating }}</span>
+                </div>
               </div>
             </div>
           </a>

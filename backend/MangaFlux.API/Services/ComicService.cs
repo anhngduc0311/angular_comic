@@ -14,7 +14,8 @@ namespace TruyenKomi.API.Services
     {
         Task<List<ComicDto>> GetFeaturedComicsAsync(string? criteria = null, int count = 10);
         Task<List<ComicDto>> GetLatestComicsAsync(int count = 12);
-        Task<PagedSearchResultDto<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null, int page = 1, int pageSize = 24);
+        Task<List<ComicDto>> GetRecommendedComicsByYearAsync(int comicId, int? targetYear = null, int count = 8);
+        Task<PagedSearchResultDto<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null, int? year = null, int page = 1, int pageSize = 24);
         Task<ComicDetailDto?> GetComicBySlugAsync(string slug);
         Task<ComicDetailDto?> GetComicByIdAsync(int id);
         Task<ChapterDetailDto?> GetChapterByIdAsync(int chapterId);
@@ -161,7 +162,98 @@ namespace TruyenKomi.API.Services
             }, TimeSpan.FromMinutes(15))) ?? new List<ComicDto>();
         }
 
-        public async Task<PagedSearchResultDto<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null, int page = 1, int pageSize = 24)
+        public async Task<List<ComicDto>> GetRecommendedComicsByYearAsync(int comicId, int? targetYear = null, int count = 8)
+        {
+            count = count < 1 ? 8 : (count > 24 ? 24 : count);
+
+            // 1. Determine target release year
+            int resolvedYear;
+            if (targetYear.HasValue && targetYear.Value > 0)
+            {
+                resolvedYear = targetYear.Value;
+            }
+            else
+            {
+                var currentComic = await _context.Comics
+                    .AsNoTracking()
+                    .Select(c => new { c.Id, c.ReleaseYear, c.CreatedAt })
+                    .FirstOrDefaultAsync(c => c.Id == comicId);
+
+                if (currentComic != null)
+                {
+                    resolvedYear = currentComic.ReleaseYear ?? (currentComic.CreatedAt != default ? currentComic.CreatedAt.Year : DateTime.UtcNow.Year);
+                }
+                else
+                {
+                    resolvedYear = DateTime.UtcNow.Year;
+                }
+            }
+
+            string cacheKey = $"recom_comics_year_{comicId}_{resolvedYear}_{count}";
+            var cached = await _cache.GetOrSetAsync(cacheKey, async () =>
+            {
+                var baseQuery = _context.Comics
+                    .AsNoTracking()
+                    .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)));
+
+                // Primary: Exact matching release year (excluding current comic)
+                var exactMatches = await baseQuery
+                    .Where(c => c.Id != comicId && ((c.ReleaseYear == resolvedYear) || (c.ReleaseYear == null && c.CreatedAt.Year == resolvedYear)))
+                    .OrderByDescending(c => c.Views)
+                    .ThenByDescending(c => c.Rating)
+                    .ThenByDescending(c => c.Id)
+                    .Take(count)
+                    .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                    .Include(c => c.Chapters)
+                    .ToListAsync();
+
+                var results = exactMatches.Select(c => MapToComicDto(c)).ToList();
+
+                // If not enough items, expand to adjacent years (resolvedYear - 1, resolvedYear + 1)
+                if (results.Count < count)
+                {
+                    int needed = count - results.Count;
+                    var existingIds = results.Select(r => r.Id).Concat(new[] { comicId }).ToList();
+
+                    var adjacentMatches = await baseQuery
+                        .Where(c => !existingIds.Contains(c.Id) &&
+                            (((c.ReleaseYear >= resolvedYear - 1 && c.ReleaseYear <= resolvedYear + 1)) ||
+                             (c.ReleaseYear == null && c.CreatedAt.Year >= resolvedYear - 1 && c.CreatedAt.Year <= resolvedYear + 1)))
+                        .OrderByDescending(c => c.Views)
+                        .ThenByDescending(c => c.Rating)
+                        .Take(needed)
+                        .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                        .Include(c => c.Chapters)
+                        .ToListAsync();
+
+                    results.AddRange(adjacentMatches.Select(c => MapToComicDto(c)));
+                }
+
+                // If still not enough, fallback to top viewed featured comics
+                if (results.Count < count)
+                {
+                    int needed = count - results.Count;
+                    var existingIds = results.Select(r => r.Id).Concat(new[] { comicId }).ToList();
+
+                    var fallback = await baseQuery
+                        .Where(c => !existingIds.Contains(c.Id))
+                        .OrderByDescending(c => c.Views)
+                        .ThenByDescending(c => c.Rating)
+                        .Take(needed)
+                        .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                        .Include(c => c.Chapters)
+                        .ToListAsync();
+
+                    results.AddRange(fallback.Select(c => MapToComicDto(c)));
+                }
+
+                return results;
+            }, TimeSpan.FromMinutes(15));
+
+            return cached ?? new List<ComicDto>();
+        }
+
+        public async Task<PagedSearchResultDto<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null, int? year = null, int page = 1, int pageSize = 24)
         {
             var comicsQuery = _context.Comics
                 .AsNoTracking()
@@ -223,6 +315,12 @@ namespace TruyenKomi.API.Services
                 {
                     comicsQuery = comicsQuery.Where(c => c.Country != null && c.Country.ToLower() == normCountry);
                 }
+            }
+
+            if (year.HasValue && year.Value > 0)
+            {
+                int y = year.Value;
+                comicsQuery = comicsQuery.Where(c => (c.ReleaseYear == y) || (c.ReleaseYear == null && c.CreatedAt.Year == y));
             }
 
             int totalCount = await comicsQuery.CountAsync();
@@ -347,7 +445,7 @@ namespace TruyenKomi.API.Services
                 Country = ResolveComicCountry(comic),
                 TranslatorGroup = comic.TranslatorGroup ?? "Đang cập nhật",
                 AgeLimit = string.IsNullOrWhiteSpace(comic.AgeLimit) ? "13+" : comic.AgeLimit,
-                ReleaseYear = comic.ReleaseYear,
+                ReleaseYear = comic.ReleaseYear ?? (comic.CreatedAt != default ? comic.CreatedAt.Year : (int?)null),
                 Status = comic.Status,
                 Views = comic.Views,
                 Rating = comic.Rating,
@@ -1664,7 +1762,7 @@ namespace TruyenKomi.API.Services
                 Country = ResolveComicCountry(c),
                 TranslatorGroup = c.TranslatorGroup ?? "Đang cập nhật",
                 AgeLimit = string.IsNullOrWhiteSpace(c.AgeLimit) ? "13+" : c.AgeLimit,
-                ReleaseYear = c.ReleaseYear,
+                ReleaseYear = c.ReleaseYear ?? (c.CreatedAt != default ? c.CreatedAt.Year : (int?)null),
                 Status = c.Status,
                 Views = c.Views,
                 Rating = c.Rating,

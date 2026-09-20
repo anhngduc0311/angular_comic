@@ -48,21 +48,54 @@
           }
         }
 
-        .badge-total-count {
+        .meta-pills-row {
           display: inline-flex;
           align-items: center;
-          gap: 6px;
-          padding: 4px 12px;
-          border-radius: var(--radius-pill);
-          background: rgba(253, 84, 0, 0.12);
-          border: 1px solid rgba(253, 84, 0, 0.28);
-          color: var(--primary-orange);
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.2px;
+          gap: 8px;
+          flex-wrap: wrap;
 
-          i {
-            font-size: 11px;
+          .badge-total-count {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+            background: rgba(253, 84, 0, 0.12);
+            border: 1px solid rgba(253, 84, 0, 0.28);
+            color: var(--primary-orange);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.2px;
+
+            i {
+              font-size: 11px;
+            }
+          }
+
+          .active-year-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+            background: rgba(245, 158, 11, 0.16);
+            border: 1px solid rgba(245, 158, 11, 0.4);
+            color: #f59e0b;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: var(--transition-fast);
+
+            &:hover {
+              background: rgba(239, 68, 68, 0.18);
+              border-color: rgba(239, 68, 68, 0.45);
+              color: #ef4444;
+              transform: translateY(-1px);
+            }
+
+            i {
+              font-size: 11px;
+            }
           }
         }
       }
