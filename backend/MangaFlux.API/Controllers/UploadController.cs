@@ -42,5 +42,28 @@ namespace TruyenKomi.API.Controllers
             var urls = await _storageService.UploadFilesAsync(files, folder);
             return Ok(new { urls });
         }
+
+        [HttpGet("file/{folder}/{fileName}")]
+        [HttpHead("file/{folder}/{fileName}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetFile(string folder, string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(folder) || string.IsNullOrWhiteSpace(fileName))
+            {
+                return BadRequest(new { message = "Tham số file không hợp lệ." });
+            }
+
+            var key = $"{folder}/{fileName}";
+            try
+            {
+                var (stream, contentType) = await _storageService.GetFileStreamAsync(key);
+                Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                return File(stream, contentType);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = $"Không tìm thấy file '{key}': {ex.Message}" });
+            }
+        }
     }
 }

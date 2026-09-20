@@ -9,7 +9,7 @@
 
     <div class="header-main" *ngIf="comic">
       <div class="comic-brief">
-        <img [src]="comic.coverImage || 'assets/images/default-cover.jpg'" [alt]="comic.title" class="comic-thumb" />
+        <img [src]="comic.coverImage || 'assets/cover-placeholder.svg'" [alt]="comic.title" (error)="$any($event.target).src = 'assets/cover-placeholder.svg'" class="comic-thumb" />
         <div class="comic-details">
           <h2><i class="fa-solid fa-layer-group text-gradient"></i> Quản Lý Chapter — {{ comic.title }}</h2>
           <div class="comic-meta-tags">
@@ -22,6 +22,9 @@
         </div>
       </div>
       <div class="header-actions">
+        <a [routerLink]="['/admin/reader', comic.id]" class="btn btn-secondary btn-admin-reader" title="Mở bộ truyện này trong Khu Đọc Truyện Admin">
+          <i class="fa-solid fa-book-open-reader text-warning"></i> Khu Đọc Truyện Admin
+        </a>
         <button (click)="openAddModal()" class="btn btn-primary btn-add-chap">
           <i class="fa-solid fa-plus"></i> Thêm Chapter Mới
         </button>
@@ -143,6 +146,9 @@
           </td>
           <td style="text-align: right;">
             <div class="actions-group">
+              <a [routerLink]="['/admin/reader', comicId, chap.id]" class="btn btn-icon btn-read" title="Đọc trong Khu Đọc Truyện Admin (quản lý & upload ảnh Cloudflare R2)">
+                <i class="fa-solid fa-book-open-reader text-warning"></i>
+              </a>
               <a [routerLink]="['/read', chap.id]" target="_blank" class="btn btn-icon btn-view" title="Đọc thử chapter">
                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
               </a>
@@ -278,7 +284,7 @@
             <div *ngFor="let imgUrl of chapterForm.imageUrls; let i = index" class="page-card">
               <div class="page-num">Trang {{ i + 1 }}</div>
               <div class="thumb-wrap">
-                <img [src]="imgUrl" alt="Page {{ i + 1 }}" (error)="chapterForm.imageUrls[i] = 'assets/images/default-cover.jpg'" />
+                <img [src]="imgUrl" alt="Page {{ i + 1 }}" (error)="$any($event.target).src = 'assets/cover-placeholder.svg'" />
               </div>
               <div class="page-actions">
                 <button type="button" (click)="moveImageUp(i)" [disabled]="i === 0" class="btn-page-move" title="Di chuyển lên">

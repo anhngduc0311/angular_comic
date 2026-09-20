@@ -30,6 +30,9 @@
     <a routerLink="/admin/stories" class="tab-link active">
       <i class="fa-solid fa-book-open"></i> Quản Lý Truyện ({{ filteredComics.length }})
     </a>
+    <a routerLink="/admin/reader" class="tab-link" title="Khu Đọc Truyện & Upload Ảnh Cloudflare R2">
+      <i class="fa-solid fa-book-open-reader text-warning"></i> Khu Đọc Truyện Admin
+    </a>
     <a routerLink="/admin/genres" class="tab-link">
       <i class="fa-solid fa-tags"></i> Quản Lý Thể Loại
     </a>
@@ -185,7 +188,7 @@
           <td>#{{ comic.id }}</td>
           <td>
             <div class="cover-thumb-wrap" (click)="openCoverManager(comic)" title="Bấm để đổi ảnh bìa">
-              <img [src]="comic.coverImage || 'assets/images/default-cover.jpg'" [alt]="comic.title" class="table-cover" />
+              <img [src]="comic.coverImage || 'assets/cover-placeholder.svg'" [alt]="comic.title" (error)="$any($event.target).src = 'assets/cover-placeholder.svg'" class="table-cover" />
               <div class="cover-hover-icon">
                 <i class="fa-solid fa-camera"></i>
               </div>
@@ -243,6 +246,9 @@
           </td>
           <td style="text-align: right;">
             <div class="actions-group">
+              <a [routerLink]="['/admin/reader', comic.id]" class="btn btn-icon btn-read" title="Đọc thử truyện (Khu Admin Reader)">
+                <i class="fa-solid fa-book-open-reader text-warning"></i>
+              </a>
               <a [routerLink]="['/admin/stories', comic.id, 'chapters']" class="btn btn-icon btn-chapters" title="Quản lý Chapter">
                 <i class="fa-solid fa-list-ol"></i>
               </a>
@@ -420,15 +426,29 @@
       <div class="cover-preview-section">
         <label class="section-label">Xem Trước Ảnh Bìa Live:</label>
         <div class="preview-box">
-          <img [src]="coverUrlInput || 'assets/images/default-cover.jpg'" alt="Cover Preview" (error)="coverUrlInput = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80'" />
+          <img [src]="coverUrlInput || 'assets/cover-placeholder.svg'" alt="Cover Preview" (error)="$any($event.target).src = 'assets/cover-placeholder.svg'" />
           <div class="preview-badge">Preview</div>
         </div>
       </div>
 
-      <!-- URL Input & Preset Selector -->
+      <!-- URL Input & Cloudflare R2 Upload & Preset Selector -->
       <div class="cover-input-section">
+        <!-- Cloudflare R2 Upload Section -->
+        <div class="form-group cf-upload-group" style="margin-bottom: 1rem; padding: 0.85rem; background: rgba(243, 128, 32, 0.08); border: 1px dashed rgba(243, 128, 32, 0.4); border-radius: 8px; text-align: center;">
+          <label style="display: block; font-weight: 600; color: #fed7aa; margin-bottom: 0.4rem;">
+            <i class="fa-solid fa-cloud-arrow-up text-primary"></i> Tải Ảnh Từ Máy Tính Lên Cloudflare R2 Bucket:
+          </label>
+          <label class="btn btn-cloudflare btn-sm" style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 1rem; background: linear-gradient(135deg, #f38020, #faad3f); color: #fff; border-radius: 6px; font-weight: 600;">
+            <i class="fa-solid fa-upload"></i> Chọn File Ảnh Bìa Mới
+            <input type="file" accept="image/*" (change)="onCoverFileSelected($event)" hidden />
+          </label>
+          <div *ngIf="isUploadingCover" style="margin-top: 0.5rem; color: #fed7aa; font-size: 0.85rem;">
+            <i class="fa-solid fa-spinner fa-spin"></i> {{ coverUploadProgress }}
+          </div>
+        </div>
+
         <div class="form-group">
-          <label>URL Đường Dẫn Ảnh Bìa (Custom URL):</label>
+          <label>Hoặc URL Đường Dẫn Ảnh Bìa (Custom URL):</label>
           <input type="text" [(ngModel)]="coverUrlInput" placeholder="Nhập đường dẫn URL ảnh (https://...)" />
         </div>
 

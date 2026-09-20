@@ -59,6 +59,8 @@ export class AdminStoriesComponent implements OnInit {
   showCoverModal: boolean = false;
   selectedComicForCover: Comic | null = null;
   coverUrlInput: string = '';
+  isUploadingCover: boolean = false;
+  coverUploadProgress: string = '';
 
   // Sample Preset Covers Gallery for 1-click selection
   presetCovers: string[] = [
@@ -412,6 +414,32 @@ export class AdminStoriesComponent implements OnInit {
 
   selectPresetCover(url: string): void {
     this.coverUrlInput = url;
+  }
+
+  onCoverFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    this.isUploadingCover = true;
+    this.coverUploadProgress = `Đang tải ${file.name} lên Cloudflare R2 bucket...`;
+
+    this.comicService.uploadImage(file, 'covers').subscribe({
+      next: (res) => {
+        this.isUploadingCover = false;
+        if (res && res.url) {
+          this.coverUrlInput = res.url;
+          this.showMessage('Đã tải ảnh bìa lên Cloudflare R2! Bấm "Lưu Ảnh Bìa Mới" để hoàn tất.');
+        }
+      },
+      error: (err) => {
+        this.isUploadingCover = false;
+        console.error('Lỗi upload cover lên Cloudflare R2:', err);
+        this.showMessage('Tải ảnh bìa lên Cloudflare R2 thất bại.', true);
+      }
+    });
+
+    input.value = '';
   }
 
   saveCoverImage(): void {

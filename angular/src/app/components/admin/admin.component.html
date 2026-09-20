@@ -17,6 +17,9 @@
     <a routerLink="/admin/stories" class="tab-link-btn" title="Trang chuyên Quản lý truyện">
       <i class="fa-solid fa-book-bookmark text-primary"></i> Quản Lý Truyện
     </a>
+    <a routerLink="/admin/reader" class="tab-link-btn" title="Khu đọc truyện & Upload ảnh Cloudflare R2">
+      <i class="fa-solid fa-book-open-reader text-warning"></i> Khu Đọc Truyện Admin
+    </a>
     <a routerLink="/admin/genres" class="tab-link-btn" title="Trang chuyên Quản lý thể loại">
       <i class="fa-solid fa-tags text-primary"></i> Quản Lý Thể Loại
     </a>
@@ -218,7 +221,7 @@
           <div class="recent-chapters-list">
             <div *ngFor="let ch of stats.recentChapters" class="recent-chapter-item">
               <div class="chapter-comic-thumb">
-                <img [src]="ch.comicCoverImage || 'assets/images/default-cover.jpg'" [alt]="ch.comicTitle" />
+                <img [src]="ch.comicCoverImage || 'assets/cover-placeholder.svg'" [alt]="ch.comicTitle" (error)="$any($event.target).src = 'assets/cover-placeholder.svg'" />
               </div>
 
               <div class="chapter-info">

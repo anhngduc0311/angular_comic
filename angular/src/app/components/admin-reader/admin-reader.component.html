@@ -1,0 +1,391 @@
+<div class="admin-reader-wrapper" [class.zen-mode]="isZenMode">
+  <!-- =====================================================================
+       1. TOP ADMIN CONTROL BAR (HEADER)
+       ===================================================================== -->
+  <header class="reader-header" *ngIf="!isZenMode">
+    <div class="header-left">
+      <a routerLink="/admin/stories" class="btn-icon" title="Quay lại Quản lý truyện">
+        <i class="fa-solid fa-arrow-left"></i>
+      </a>
+
+      <!-- Comic Selector Trigger -->
+      <button class="selector-btn comic-picker-btn" (click)="showComicSelectorModal = true" title="Chọn bộ truyện khác">
+        <i class="fa-solid fa-book-bookmark text-primary"></i>
+        <span class="btn-text">{{ selectedComic ? selectedComic.title : 'Chọn bộ truyện...' }}</span>
+        <i class="fa-solid fa-chevron-down caret-icon"></i>
+      </button>
+
+      <!-- Chapter Selector Dropdown -->
+      <div class="chapter-dropdown-wrap" *ngIf="chapters && chapters.length > 0">
+        <select [ngModel]="currentChapterId" (ngModelChange)="loadChapter($event)" class="chapter-select" title="Chọn Chapter để đọc">
+          <option *ngFor="let chap of chapters" [value]="chap.id">
+            Ch. {{ chap.chapterNumber }} - {{ chap.title }} ({{ chap.pages ? chap.pages.length : 0 }} trang) {{ chap.isPublic === false ? '[ẨN]' : '[CÔNG KHAI]' }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Quick Chapter Navigation Arrows -->
+      <div class="nav-arrows" *ngIf="currentChapter">
+        <button class="btn-icon btn-sm" [disabled]="!prevChapterId" (click)="prevChapterId && navigateToChapter(prevChapterId)" title="Chapter trước (Phím mũi tên Trái)">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <button class="btn-icon btn-sm" [disabled]="!nextChapterId" (click)="nextChapterId && navigateToChapter(nextChapterId)" title="Chapter kế (Phím mũi tên Phải)">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center: Status and Page Count -->
+    <div class="header-center" *ngIf="currentChapter">
+      <div class="chapter-info-badge">
+        <span class="badge-status" [class.badge-public]="currentChapter.isPublic !== false" [class.badge-hidden]="currentChapter.isPublic === false">
+          <i class="fa-solid" [class.fa-eye]="currentChapter.isPublic !== false" [class.fa-eye-slash]="currentChapter.isPublic === false"></i>
+          {{ currentChapter.isPublic !== false ? 'Công khai' : 'Đang ẩn' }}
+        </span>
+        <span class="page-count-badge">
+          <i class="fa-solid fa-file-image"></i> {{ chapterPages.length }} trang
+        </span>
+      </div>
+    </div>
+
+    <!-- Right: Admin Uploads & Reading Tools -->
+    <div class="header-right">
+      <!-- Quick Upload Chapter Pages to Cloudflare R2 -->
+      <button class="btn btn-cloudflare" (click)="showPageManagerDrawer = true" title="Quản lý & Upload trang truyện lên Cloudflare R2">
+        <i class="fa-solid fa-cloud-arrow-up"></i>
+        <span>Upload Ảnh Chapter</span>
+      </button>
+
+      <!-- Quick Upload Cover to Cloudflare R2 -->
+      <button class="btn btn-secondary btn-sm" (click)="openCoverModal()" title="Đổi ảnh bìa truyện lên Cloudflare R2">
+        <i class="fa-solid fa-image"></i>
+        <span>Đổi Ảnh Bìa</span>
+      </button>
+
+      <!-- Toggle Chapter Visibility -->
+      <button class="btn btn-secondary btn-sm" 
+              (click)="toggleChapterVisibility()" 
+              [disabled]="isTogglingVisibility || !currentChapter"
+              [title]="currentChapter?.isPublic !== false ? 'Click để Ẩn Chapter này' : 'Click để Công Khai Chapter này'">
+        <i class="fa-solid" [class.fa-eye-slash]="currentChapter?.isPublic !== false" [class.fa-eye]="currentChapter?.isPublic === false"></i>
+        <span>{{ currentChapter?.isPublic !== false ? 'Ẩn Chap' : 'Hiện Chap' }}</span>
+      </button>
+
+      <!-- Reading Mode Toggle (Vertical vs Flip) -->
+      <div class="mode-toggle-group">
+        <button class="mode-btn" [class.active]="readingMode === 'vertical'" (click)="setReadingMode('vertical')" title="Chế độ cuộn dọc (Webtoon)">
+          <i class="fa-solid fa-arrows-up-down"></i>
+        </button>
+        <button class="mode-btn" [class.active]="readingMode === 'flip'" (click)="setReadingMode('flip')" title="Chế độ lật từng trang (Manga)">
+          <i class="fa-solid fa-book-open"></i>
+        </button>
+      </div>
+
+      <!-- Zoom Options Dropdown -->
+      <div class="zoom-dropdown-wrap">
+        <select [ngModel]="zoomWidth" (ngModelChange)="setZoom($event)" class="zoom-select" title="Độ rộng hiển thị ảnh">
+          <option *ngFor="let opt of zoomOptions" [value]="opt.width">{{ opt.label }}</option>
+        </select>
+      </div>
+
+      <!-- Fullscreen Toggle -->
+      <button class="btn-icon" (click)="toggleFullscreen()" title="Toàn màn hình (Phím F)">
+        <i class="fa-solid" [class.fa-expand]="!isFullscreen" [class.fa-compress]="isFullscreen"></i>
+      </button>
+
+      <!-- Zen Mode Toggle -->
+      <button class="btn-icon" (click)="toggleZenMode()" title="Chế độ Zen đọc truyện (Phím Z)">
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- Zen Mode Floating Exit Button -->
+  <button *ngIf="isZenMode" class="btn-exit-zen" (click)="toggleZenMode()" title="Thoát chế độ Zen (Phím Z)">
+    <i class="fa-solid fa-bars"></i>
+    <span>Mở Bảng Điều Khiển</span>
+  </button>
+
+  <!-- Floating Toast Notification -->
+  <div class="toast-alert" [class.error]="isError" *ngIf="message">
+    <i class="fa-solid" [class.fa-circle-check]="!isError" [class.fa-circle-exclamation]="isError"></i>
+    <span>{{ message }}</span>
+    <button class="toast-close" (click)="message = ''"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <!-- =====================================================================
+       2. MAIN READER CANVAS
+       ===================================================================== -->
+  <main class="reader-canvas">
+    <!-- Loading State -->
+    <div class="reader-loading" *ngIf="isLoadingChapter">
+      <i class="fa-solid fa-spinner fa-spin fa-2x text-primary"></i>
+      <p>Đang tải nội dung chapter từ Cloudflare R2 Storage...</p>
+    </div>
+
+    <!-- Empty State: No Comic or No Chapters -->
+    <div class="reader-empty" *ngIf="!isLoadingChapter && (!currentChapter || chapterPages.length === 0)">
+      <div class="empty-card bg-glass">
+        <i class="fa-solid fa-images empty-icon text-primary"></i>
+        <h3>{{ currentChapter ? 'Chapter này chưa có trang ảnh nào' : 'Chưa có chapter nào được chọn' }}</h3>
+        <p>Bạn có thể tải ảnh chapter trực tiếp từ máy tính lên Cloudflare R2 bucket.</p>
+        <div class="empty-actions">
+          <button *ngIf="currentChapter" class="btn btn-cloudflare" (click)="showPageManagerDrawer = true">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Tải Trang Ảnh Lên Cloudflare R2
+          </button>
+          <button class="btn btn-secondary" (click)="showComicSelectorModal = true">
+            <i class="fa-solid fa-book-open"></i> Chọn Bộ Truyện Khác
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODE 1: VERTICAL SCROLL (WEBTOON) -->
+    <div class="webtoon-view" 
+         *ngIf="!isLoadingChapter && currentChapter && chapterPages.length > 0 && readingMode === 'vertical'"
+         [style.max-width]="zoomWidth > 0 ? (zoomWidth + 'px') : '100%'">
+      
+      <div class="page-container" *ngFor="let pageUrl of chapterPages; let i = index" [attr.id]="'page-' + i">
+        <div class="page-number-tag">Trang {{ i + 1 }} / {{ chapterPages.length }}</div>
+        <img [src]="pageUrl" 
+             [alt]="'Trang ' + (i + 1)" 
+             loading="lazy" 
+             class="page-image"
+             (error)="$any($event.target).src = 'assets/images/placeholder-error.jpg'" />
+      </div>
+
+      <!-- Chapter Bottom Navigation Footer -->
+      <footer class="chapter-footer-nav bg-glass">
+        <div class="footer-info">
+          <h4>{{ selectedComic?.title }}</h4>
+          <p>{{ currentChapter.title }} (Ch. {{ currentChapter.chapterNumber }})</p>
+        </div>
+
+        <div class="footer-nav-buttons">
+          <button class="btn btn-secondary" [disabled]="!prevChapterId" (click)="prevChapterId && navigateToChapter(prevChapterId)">
+            <i class="fa-solid fa-chevron-left"></i> Chapter Trước
+          </button>
+
+          <button class="btn btn-primary" (click)="showPageManagerDrawer = true">
+            <i class="fa-solid fa-pen-to-square"></i> Quản Lý Trang Chapter Này
+          </button>
+
+          <button class="btn btn-secondary" [disabled]="!nextChapterId" (click)="nextChapterId && navigateToChapter(nextChapterId)">
+            Chapter Tiếp Theo <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </footer>
+    </div>
+
+    <!-- MODE 2: FLIP PAGE (MANGA) -->
+    <div class="flip-view" 
+         *ngIf="!isLoadingChapter && currentChapter && chapterPages.length > 0 && readingMode === 'flip'"
+         [style.max-width]="zoomWidth > 0 ? (zoomWidth + 'px') : '100%'">
+
+      <div class="flip-navigation-bar">
+        <button class="btn-flip-nav" [disabled]="currentPageIndex === 0 && !prevChapterId" (click)="prevPage()">
+          <i class="fa-solid fa-chevron-left"></i> Trang trước
+        </button>
+
+        <span class="flip-counter">
+          Trang <strong>{{ currentPageIndex + 1 }}</strong> / {{ chapterPages.length }}
+        </span>
+
+        <button class="btn-flip-nav" [disabled]="currentPageIndex === chapterPages.length - 1 && !nextChapterId" (click)="nextPage()">
+          Trang sau <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
+
+      <div class="flip-image-wrapper">
+        <img [src]="chapterPages[currentPageIndex]" 
+             [alt]="'Trang ' + (currentPageIndex + 1)" 
+             class="flip-image"
+             (click)="nextPage()"
+             (error)="$any($event.target).src = 'assets/images/placeholder-error.jpg'" />
+      </div>
+    </div>
+  </main>
+
+  <!-- =====================================================================
+       3. DRAWER: CHAPTER PAGES MANAGEMENT & CLOUDFLARE R2 UPLOAD
+       ===================================================================== -->
+  <div class="drawer-overlay" *ngIf="showPageManagerDrawer" (click)="showPageManagerDrawer = false">
+    <div class="drawer-content bg-glass" (click)="$event.stopPropagation()">
+      <div class="drawer-header">
+        <div class="header-titles">
+          <h3><i class="fa-solid fa-cloud-arrow-up text-primary"></i> Quản Lý & Upload Ảnh Chapter</h3>
+          <p>{{ selectedComic?.title }} — {{ currentChapter?.title }} (Ch. {{ currentChapter?.chapterNumber }})</p>
+        </div>
+        <button class="btn-icon" (click)="showPageManagerDrawer = false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="drawer-body">
+        <!-- Cloudflare R2 Upload Dropzone -->
+        <div class="upload-dropzone-box">
+          <div class="dropzone-area">
+            <i class="fa-solid fa-cloud-arrow-up cloud-icon text-primary"></i>
+            <h4>Kéo & Thả hoặc Chọn Ảnh Tải Lên Cloudflare R2 Bucket</h4>
+            <p>Hỗ trợ tải lên nhiều file ảnh (.webp, .jpg, .png, .avif) hoặc trọn gói 1 file nén <strong>.ZIP</strong></p>
+
+            <div class="dropzone-buttons">
+              <label class="btn btn-cloudflare">
+                <i class="fa-solid fa-images"></i> Chọn Nhiều File Ảnh
+                <input type="file" multiple accept="image/*" (change)="onPageFilesSelected($event)" hidden />
+              </label>
+
+              <label class="btn btn-secondary">
+                <i class="fa-solid fa-file-zipper"></i> Tải File ZIP Chapter
+                <input type="file" accept=".zip,application/zip" (change)="onZipFileSelected($event)" hidden />
+              </label>
+            </div>
+          </div>
+
+          <!-- Progress States -->
+          <div class="upload-progress-alert" *ngIf="isUploadingPages || isUnzipping">
+            <i class="fa-solid fa-spinner fa-spin text-primary"></i>
+            <span>{{ isUnzipping ? unzipProgressText : pageUploadProgressText }}</span>
+          </div>
+        </div>
+
+        <!-- Thumbnails Grid with Reorder/Delete -->
+        <div class="pages-grid-section">
+          <div class="section-top">
+            <h4>Danh Sách Trang Hiện Tại ({{ chapterPages.length }} trang)</h4>
+            <span class="note-text">Dùng các nút mũi tên để di chuyển thứ tự trang hoặc xóa trang bị lỗi.</span>
+          </div>
+
+          <div class="pages-grid">
+            <div class="page-thumb-card" *ngFor="let page of chapterPages; let idx = index">
+              <div class="page-thumb-img-wrap">
+                <img [src]="page" [alt]="'Trang ' + (idx + 1)" />
+                <span class="thumb-badge">Trang {{ idx + 1 }}</span>
+              </div>
+
+              <div class="thumb-actions">
+                <button class="btn-action-sm" [disabled]="idx === 0" (click)="movePageUp(idx)" title="Di chuyển lên trước">
+                  <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <button class="btn-action-sm btn-delete" (click)="removePage(idx)" title="Xóa trang này">
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+                <button class="btn-action-sm" [disabled]="idx === chapterPages.length - 1" (click)="movePageDown(idx)" title="Di chuyển xuống sau">
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button class="btn btn-secondary" (click)="showPageManagerDrawer = false">Đóng</button>
+        <button class="btn btn-primary btn-save" (click)="saveChapterPages()" [disabled]="isSavingChapter">
+          <i class="fa-solid" [class.fa-floppy-disk]="!isSavingChapter" [class.fa-spinner]="isSavingChapter" [class.fa-spin]="isSavingChapter"></i>
+          <span>{{ isSavingChapter ? 'Đang Lưu...' : 'Lưu Thay Đổi Chapter' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       4. MODAL: UPLOAD COVER IMAGE TO CLOUDFLARE R2
+       ===================================================================== -->
+  <div class="modal-overlay" *ngIf="showCoverModal" (click)="closeCoverModal()">
+    <div class="modal-card bg-glass" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-image text-primary"></i> Upload Ảnh Bìa Truyện Lên Cloudflare R2</h3>
+        <button class="btn-icon" (click)="closeCoverModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <p class="modal-desc">Bộ truyện: <strong>{{ selectedComic?.title }}</strong></p>
+
+        <div class="cover-uploader-layout">
+          <!-- Live Preview -->
+          <div class="cover-preview-col">
+            <div class="cover-preview-frame">
+              <img [src]="coverInputUrl || 'assets/cover-placeholder.svg'" alt="Ảnh bìa xem trước" (error)="$any($event.target).src = 'assets/cover-placeholder.svg'" />
+              <span class="preview-tag">Xem trước</span>
+            </div>
+          </div>
+
+          <!-- Upload Controls -->
+          <div class="cover-controls-col">
+            <div class="file-upload-dropzone">
+              <i class="fa-solid fa-cloud-arrow-up cloud-icon text-primary"></i>
+              <h4>Chọn File Ảnh Bìa Từ Máy Tính</h4>
+              <p>Tải thẳng lên Cloudflare R2 Bucket (thư mục covers)</p>
+
+              <label class="btn btn-cloudflare mt-2">
+                <i class="fa-solid fa-upload"></i> Tải Ảnh Từ Máy Lên Cloudflare R2
+                <input type="file" accept="image/*" (change)="onCoverFileSelected($event)" hidden />
+              </label>
+
+              <div class="upload-progress-alert mt-2" *ngIf="isUploadingCover">
+                <i class="fa-solid fa-spinner fa-spin text-primary"></i>
+                <span>{{ coverUploadProgressText }}</span>
+              </div>
+            </div>
+
+            <div class="or-separator"><span>HOẶC NHẬP URL TRỰC TIẾP</span></div>
+
+            <div class="form-group">
+              <label>Đường dẫn URL ảnh bìa:</label>
+              <input type="text" [(ngModel)]="coverInputUrl" placeholder="https://..." class="form-input" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeCoverModal()">Hủy Bỏ</button>
+        <button class="btn btn-primary" (click)="applyNewCoverImage(coverInputUrl)" [disabled]="!coverInputUrl">
+          <i class="fa-solid fa-check"></i> Cập Nhật Ảnh Bìa
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       5. MODAL: QUICK COMIC SELECTOR
+       ===================================================================== -->
+  <div class="modal-overlay" *ngIf="showComicSelectorModal" (click)="showComicSelectorModal = false">
+    <div class="modal-card selector-modal-card bg-glass" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-book-open text-primary"></i> Chọn Bộ Truyện Tranh</h3>
+        <button class="btn-icon" (click)="showComicSelectorModal = false"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="modal-body">
+        <div class="search-input-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" 
+                 [(ngModel)]="comicSearchQuery" 
+                 (input)="filterComics()" 
+                 placeholder="Tìm theo tên truyện, ID, tác giả..." 
+                 autofocus />
+        </div>
+
+        <div class="comic-results-list">
+          <div class="comic-result-item" 
+               *ngFor="let c of filteredComics" 
+               [class.active]="c.id === selectedComicId"
+               (click)="selectComic(c.id)">
+            <img [src]="c.coverImage || 'assets/cover-placeholder.svg'" [alt]="c.title" (error)="$any($event.target).src = 'assets/cover-placeholder.svg'" class="comic-item-thumb" />
+            <div class="comic-item-info">
+              <h4>{{ c.title }}</h4>
+              <span class="meta-line">
+                <span class="id-tag">#{{ c.id }}</span>
+                <span class="author-tag" *ngIf="c.author"><i class="fa-solid fa-user-pen"></i> {{ c.author }}</span>
+                <span class="visibility-tag" [class.public]="c.isPublic !== false" [class.hidden]="c.isPublic === false">
+                  {{ c.isPublic !== false ? 'Công khai' : 'Ẩn' }}
+                </span>
+              </span>
+            </div>
+            <i class="fa-solid fa-chevron-right arrow-icon"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -179,6 +179,24 @@ export const routes: Routes = [
     canActivate: [adminGuard] 
   },
   { 
+    path: 'admin/reader', 
+    loadComponent: () => import('./components/admin-reader/admin-reader.component').then(m => m.AdminReaderComponent), 
+    title: 'Khu Đọc Truyện Admin - TruyenKomi', 
+    canActivate: [adminGuard] 
+  },
+  { 
+    path: 'admin/reader/:comicId', 
+    loadComponent: () => import('./components/admin-reader/admin-reader.component').then(m => m.AdminReaderComponent), 
+    title: 'Khu Đọc Truyện Admin - TruyenKomi', 
+    canActivate: [adminGuard] 
+  },
+  { 
+    path: 'admin/reader/:comicId/:chapterId', 
+    loadComponent: () => import('./components/admin-reader/admin-reader.component').then(m => m.AdminReaderComponent), 
+    title: 'Khu Đọc Truyện Admin - TruyenKomi', 
+    canActivate: [adminGuard] 
+  },
+  { 
     path: 'admin/genres', 
     loadComponent: () => import('./components/admin-genres/admin-genres.component').then(m => m.AdminGenresComponent), 
     title: 'Quản Lý Thể Loại - TruyenKomi', 

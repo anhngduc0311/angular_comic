@@ -217,14 +217,28 @@
 
         <div class="cover-preview-box">
           <img 
-            [src]="form.coverImage || 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80'" 
+            [src]="form.coverImage || 'assets/cover-placeholder.svg'" 
             alt="Preview Ảnh bìa" 
-            (error)="form.coverImage = 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?auto=format&fit=crop&w=600&q=80'"
+            (error)="$any($event.target).src = 'assets/cover-placeholder.svg'"
           />
         </div>
 
+        <!-- Cloudflare R2 Cover Upload Dropzone -->
+        <div class="form-group r2-upload-box" style="margin: 0.8rem 0; padding: 0.8rem; background: rgba(243, 128, 32, 0.08); border: 1px dashed rgba(243, 128, 32, 0.45); border-radius: 8px; text-align: center;">
+          <label style="display: block; font-weight: 600; color: #fed7aa; margin-bottom: 0.35rem; font-size: 0.82rem;">
+            <i class="fa-solid fa-cloud-arrow-up" style="color: #f38020;"></i> Tải Ảnh Bìa Lên Cloudflare R2
+          </label>
+          <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.85rem; background: linear-gradient(135deg, #f38020, #faad3f); color: #fff; border-radius: 6px; font-size: 0.82rem; font-weight: 600;">
+            <i class="fa-solid fa-upload"></i> Chọn Ảnh Bìa Từ Máy
+            <input type="file" accept="image/*" (change)="onCoverFileSelected($event)" hidden />
+          </label>
+          <div *ngIf="isUploadingCover" style="margin-top: 0.4rem; color: #fed7aa; font-size: 0.8rem;">
+            <i class="fa-solid fa-spinner fa-spin"></i> {{ coverUploadProgress }}
+          </div>
+        </div>
+
         <div class="form-group">
-          <label for="coverImage">URL Ảnh bìa</label>
+          <label for="coverImage">Hoặc Nhập URL Ảnh bìa</label>
           <input 
             type="text" 
             id="coverImage" 
@@ -245,6 +259,15 @@
             [(ngModel)]="form.bannerImage" 
             placeholder="https://..." 
           />
+          <div style="margin-top: 0.4rem; text-align: center;">
+            <label style="cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.35rem 0.8rem; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); color: #e2e8f0; border-radius: 6px; font-size: 0.78rem;">
+              <i class="fa-solid fa-cloud-arrow-up" style="color: #f38020;"></i> Tải Ảnh Banner Lên Cloudflare R2
+              <input type="file" accept="image/*" (change)="onBannerFileSelected($event)" hidden />
+            </label>
+            <div *ngIf="isUploadingBanner" style="margin-top: 0.35rem; color: #fed7aa; font-size: 0.8rem;">
+              <i class="fa-solid fa-spinner fa-spin"></i> {{ bannerUploadProgress }}
+            </div>
+          </div>
         </div>
       </section>
 

@@ -40,6 +40,12 @@ export class AdminStoryFormComponent implements OnInit {
     isPublic: true
   };
 
+  // Upload states (Cloudflare R2)
+  isUploadingCover: boolean = false;
+  coverUploadProgress: string = '';
+  isUploadingBanner: boolean = false;
+  bannerUploadProgress: string = '';
+
   // Preset covers gallery
   showPresetModal: boolean = false;
   presetCovers: string[] = [
@@ -167,6 +173,58 @@ export class AdminStoryFormComponent implements OnInit {
   selectPresetCover(url: string): void {
     this.form.coverImage = url;
     this.showPresetModal = false;
+  }
+
+  onCoverFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    this.isUploadingCover = true;
+    this.coverUploadProgress = `Đang tải ${file.name} lên Cloudflare R2...`;
+
+    this.comicService.uploadImage(file, 'covers').subscribe({
+      next: (res) => {
+        this.isUploadingCover = false;
+        if (res && res.url) {
+          this.form.coverImage = res.url;
+          this.showMessage('Đã tải ảnh bìa lên Cloudflare R2 thành công!');
+        }
+      },
+      error: (err) => {
+        this.isUploadingCover = false;
+        console.error('Lỗi upload cover lên Cloudflare R2:', err);
+        this.showMessage('Tải ảnh bìa lên Cloudflare R2 thất bại.', true);
+      }
+    });
+
+    input.value = '';
+  }
+
+  onBannerFileSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+    this.isUploadingBanner = true;
+    this.bannerUploadProgress = `Đang tải ${file.name} lên Cloudflare R2...`;
+
+    this.comicService.uploadImage(file, 'banners').subscribe({
+      next: (res) => {
+        this.isUploadingBanner = false;
+        if (res && res.url) {
+          this.form.bannerImage = res.url;
+          this.showMessage('Đã tải ảnh banner lên Cloudflare R2 thành công!');
+        }
+      },
+      error: (err) => {
+        this.isUploadingBanner = false;
+        console.error('Lỗi upload banner lên Cloudflare R2:', err);
+        this.showMessage('Tải ảnh banner lên Cloudflare R2 thất bại.', true);
+      }
+    });
+
+    input.value = '';
   }
 
   saveStory(): void {

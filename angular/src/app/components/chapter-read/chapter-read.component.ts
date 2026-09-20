@@ -1289,6 +1289,10 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   getOptimizedPageUrl(rawUrl: string): string {
     if (!rawUrl) return '';
+    if (rawUrl.startsWith('/api/')) {
+      const base = (typeof window !== 'undefined' && window.location.origin.includes('localhost:4200')) ? 'http://localhost:5000' : '';
+      return `${base}${rawUrl}`;
+    }
     if (this.useDataSaver && rawUrl.includes('uploads.mangadex.org/data/') && !rawUrl.includes('/data-saver/')) {
       return rawUrl.replace('/data/', '/data-saver/');
     } else if (!this.useDataSaver && rawUrl.includes('uploads.mangadex.org/data-saver/')) {
