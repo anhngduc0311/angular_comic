@@ -42,35 +42,45 @@ log_header() {
 }
 
 setup_environment() {
-    if ! command -v python3 >/dev/null 2>&1; then
-        log_info "Đang cài đặt Python3..."
+    # Cài đặt python3-pip và python3-venv nếu thiếu
+    if ! command -v pip3 >/dev/null 2>&1 || ! dpkg -s python3-venv >/dev/null 2>&1; then
+        log_info "Đang chuẩn bị gói hệ thống Python (python3-venv, python3-pip)..."
         apt-get update -y >/dev/null 2>&1 && apt-get install -y python3 python3-pip python3-venv >/dev/null 2>&1 || true
     fi
 
+    # Kiểm tra venv hợp lệ (phải có cả python3 và pip)
+    if [ -d "$VENV_DIR" ] && [ ! -f "$VENV_DIR/bin/pip" ]; then
+        log_warning "Phát hiện môi trường ảo cũ bị lỗi, đang dọn dẹp và tạo lại..."
+        rm -rf "$VENV_DIR"
+    fi
+
     if [ ! -d "$VENV_DIR" ]; then
-        log_info "Đang tạo môi trường ảo Python Virtualenv: $VENV_DIR..."
-        if ! python3 -m venv "$VENV_DIR" 2>/dev/null; then
-            log_warning "Chưa có gói python3-venv. Đang tự động cài đặt qua apt..."
-            apt-get update -y >/dev/null 2>&1 && apt-get install -y python3-venv python3-pip >/dev/null 2>&1 || true
-            python3 -m venv "$VENV_DIR" 2>/dev/null || true
-        fi
+        log_info "Đang tạo môi trường ảo: $VENV_DIR..."
+        python3 -m venv "$VENV_DIR" 2>/dev/null || true
     fi
 
     local PY_BIN="$VENV_DIR/bin/python3"
     local PIP_BIN="$VENV_DIR/bin/pip"
 
-    if [ -f "$PY_BIN" ]; then
-        log_info "Kiểm tra và cài đặt thư viện cần thiết qua Virtualenv..."
+    if [ -f "$PIP_BIN" ]; then
+        log_info "Cài đặt thư viện vào Virtualenv..."
         "$PIP_BIN" install --upgrade pip >/dev/null 2>&1 || true
-        "$PIP_BIN" install cloudscraper beautifulsoup4 requests rich >/dev/null 2>&1 || true
+        "$PIP_BIN" install cloudscraper beautifulsoup4 requests rich
     else
-        log_warning "Không thể tạo venv, chuyển sang dùng Python hệ thống..."
-        pip3 install --break-system-packages cloudscraper beautifulsoup4 requests rich >/dev/null 2>&1 || \
-        pip3 install cloudscraper beautifulsoup4 requests rich >/dev/null 2>&1 || true
-        PY_BIN="python3"
+        log_warning "Không thể dùng venv, cài đặt trực tiếp vào hệ thống Python..."
+        pip3 install --break-system-packages cloudscraper beautifulsoup4 requests rich 2>/dev/null || \
+        pip3 install cloudscraper beautifulsoup4 requests rich || true
     fi
 
-    log_success "Môi trường Python sẵn sàng!"
+    # Kiểm tra xác thực các module bắt buộc
+    if [ -f "$PY_BIN" ] && "$PY_BIN" -c "import requests, cloudscraper, bs4, rich" >/dev/null 2>&1; then
+        log_success "Môi trường Virtualenv đã sẵn sàng!"
+    elif python3 -c "import requests, cloudscraper, bs4, rich" >/dev/null 2>&1; then
+        log_success "Môi trường Python hệ thống đã sẵn sàng!"
+    else
+        log_error "Không thể cài đặt thư viện requests/cloudscraper. Vui lòng chạy thủ công: pip3 install --break-system-packages cloudscraper beautifulsoup4 requests rich"
+        exit 1
+    fi
 }
 
 is_running() {
