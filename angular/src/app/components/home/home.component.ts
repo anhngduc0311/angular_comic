@@ -29,11 +29,11 @@ export class HomeComponent implements OnInit {
     { label: 'Tất Cả', key: 'all', icon: 'fa-globe' },
     { label: 'Mới Nhất', key: 'new', icon: 'fa-bolt' },
     { label: 'Hot Tuần', key: 'hot', icon: 'fa-fire' },
-    { label: 'Manhwa', key: 'manhwa', icon: 'fa-flag' },
-    { label: 'Manga', key: 'manga', icon: 'fa-star' },
     { label: 'Chuyển Sinh', key: 'isekai', icon: 'fa-magic' },
     { label: 'Hành Động', key: 'action', icon: 'fa-crosshairs' },
-    { label: 'Ngôn Tình', key: 'romance', icon: 'fa-heart' }
+    { label: 'Ngôn Tình', key: 'romance', icon: 'fa-heart' },
+    { label: 'Hài Hước', key: 'comedy', icon: 'fa-smile-o' },
+    { label: 'Học Đường', key: 'school', icon: 'fa-graduation-cap' }
   ];
 
   isLoading: boolean = true;
@@ -67,12 +67,49 @@ export class HomeComponent implements OnInit {
       return true;
     };
 
-    // Load Hot Comics for Suggested Carousel (15 items)
-    this.comicService.getFeaturedComics('views', 15).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (data) => {
-        this.hotComics = data.filter(isValidHomeComic);
-        this.updateFilteredComics();
-        this.isLoadingHot = false;
+    // Load Hot Manhwa & Manhua Romance Comics for Suggested Carousel
+    const isManhwaOrManhua = (c: Comic): boolean => {
+      const country = (c.country || '').toLowerCase();
+      if (country.includes('hàn') || country.includes('trung') || country.includes('korea') || country.includes('china') || country.includes('manhwa') || country.includes('manhua')) {
+        return true;
+      }
+      return c.categories?.some(cat => {
+        const name = (cat.name || '').toLowerCase();
+        const slug = (cat.slug || '').toLowerCase();
+        return name.includes('manhwa') || name.includes('manhua') || slug.includes('manhwa') || slug.includes('manhua');
+      }) ?? false;
+    };
+
+    const hasRomance = (c: Comic): boolean => {
+      return c.categories?.some(cat => {
+        const name = (cat.name || '').toLowerCase();
+        const slug = (cat.slug || '').toLowerCase();
+        return name.includes('romance') || name.includes('ngôn tình') || slug.includes('romance') || slug.includes('ngon-tinh');
+      }) ?? false;
+    };
+
+    this.comicService.searchComics(undefined, 'romance', undefined, 'views', undefined, 1, 50).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        const filtered = (res.items || []).filter(c => isValidHomeComic(c) && isManhwaOrManhua(c));
+        if (filtered.length > 0) {
+          this.hotComics = filtered.slice(0, 15);
+          this.updateFilteredComics();
+          this.isLoadingHot = false;
+        } else {
+          // Fallback: search by getFeaturedComics and filter for romance manhwa/manhua
+          this.comicService.getFeaturedComics('views', 30).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+            next: (data) => {
+              const fallbackFiltered = data.filter(c => isValidHomeComic(c) && isManhwaOrManhua(c) && hasRomance(c));
+              this.hotComics = fallbackFiltered.length > 0 ? fallbackFiltered.slice(0, 15) : data.filter(c => isValidHomeComic(c) && isManhwaOrManhua(c)).slice(0, 15);
+              this.updateFilteredComics();
+              this.isLoadingHot = false;
+            },
+            error: () => {
+              this.hotError = true;
+              this.isLoadingHot = false;
+            }
+          });
+        }
       },
       error: () => {
         this.hotError = true;
@@ -80,16 +117,53 @@ export class HomeComponent implements OnInit {
       }
     });
 
-    // Load Latest Comics for Grid
-    this.comicService.getLatestComics(24).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (data) => {
-        this.latestComics = data.filter(isValidHomeComic);
-        this.updateFilteredComics();
-        this.isLoading = false;
+    // Load Latest Manga Comics for Grid (strictly excluding Manhwa & Manhua)
+    const isMangaOnly = (c: Comic): boolean => {
+      const country = (c.country || '').toLowerCase();
+      if (country.includes('hàn') || country.includes('trung') || country.includes('korea') || country.includes('china') || country.includes('manhwa') || country.includes('manhua')) {
+        return false;
+      }
+      const hasManhwaOrManhuaCat = c.categories?.some(cat => {
+        const name = (cat.name || '').toLowerCase();
+        const slug = (cat.slug || '').toLowerCase();
+        return name.includes('manhwa') || name.includes('manhua') || slug.includes('manhwa') || slug.includes('manhua') || slug.includes('tu-tien') || slug.includes('dam-my');
+      });
+      return !hasManhwaOrManhuaCat;
+    };
+
+    this.comicService.searchComics(undefined, undefined, undefined, 'latest', 'Nhật Bản', 1, 36).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (res) => {
+        const mangaList = (res.items || []).filter(c => isValidHomeComic(c) && isMangaOnly(c));
+        if (mangaList.length > 0) {
+          this.latestComics = mangaList;
+          this.updateFilteredComics();
+          this.isLoading = false;
+        } else {
+          this.comicService.getLatestComics(36).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+            next: (data) => {
+              this.latestComics = data.filter(c => isValidHomeComic(c) && isMangaOnly(c));
+              this.updateFilteredComics();
+              this.isLoading = false;
+            },
+            error: () => {
+              this.latestError = true;
+              this.isLoading = false;
+            }
+          });
+        }
       },
       error: () => {
-        this.latestError = true;
-        this.isLoading = false;
+        this.comicService.getLatestComics(36).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          next: (data) => {
+            this.latestComics = data.filter(c => isValidHomeComic(c) && isMangaOnly(c));
+            this.updateFilteredComics();
+            this.isLoading = false;
+          },
+          error: () => {
+            this.latestError = true;
+            this.isLoading = false;
+          }
+        });
       }
     });
   }
@@ -109,13 +183,15 @@ export class HomeComponent implements OnInit {
 
   private updateFilteredComics(): void {
     if (this.selectedFilter === 'all') this.filteredComics = this.latestComics;
-    else if (this.selectedFilter === 'hot') this.filteredComics = this.hotComics;
+    else if (this.selectedFilter === 'hot') this.filteredComics = [...this.latestComics].sort((a, b) => (b.views || 0) - (a.views || 0));
     else if (this.selectedFilter === 'new') this.filteredComics = this.latestComics.slice(0, 12);
     else {
       const aliases: Record<string, string[]> = {
         isekai: ['isekai', 'chuyen-sinh', 'chuyển sinh'],
         action: ['action', 'hanh-dong', 'hành động'],
-        romance: ['romance', 'ngon-tinh', 'ngôn tình']
+        romance: ['romance', 'ngon-tinh', 'ngôn tình'],
+        comedy: ['comedy', 'hai-huoc', 'hài hước'],
+        school: ['school', 'school-life', 'hoc-duong', 'học đường']
       };
       const terms = aliases[this.selectedFilter] || [this.selectedFilter];
       this.filteredComics = this.latestComics.filter(comic =>
@@ -165,7 +241,14 @@ export class HomeComponent implements OnInit {
 
   onImgError(event: Event): void {
     const target = event.target as HTMLImageElement;
-    if (target && !target.src.endsWith('/assets/cover-placeholder.svg')) {
+    if (!target) return;
+    const currentSrc = target.src || '';
+    if (!currentSrc.includes('/proxy-image') && (currentSrc.includes('zetimage.com') || currentSrc.includes('viestorage.com') || currentSrc.includes('zettruyen'))) {
+      const base = (typeof window !== 'undefined' && window.location.origin.includes('localhost:4200')) ? 'http://localhost:5000' : '';
+      target.src = `${base}/api/chapters/proxy-image?url=${encodeURIComponent(currentSrc)}`;
+      return;
+    }
+    if (!target.src.endsWith('/assets/cover-placeholder.svg')) {
       target.src = 'assets/cover-placeholder.svg';
     }
   }

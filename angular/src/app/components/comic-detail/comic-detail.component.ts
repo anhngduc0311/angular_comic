@@ -251,7 +251,14 @@ export class ComicDetailComponent implements OnInit {
 
   onImgError(event: Event): void {
     const target = event.target as HTMLImageElement;
-    if (target && target.src !== 'assets/cover-placeholder.svg') {
+    if (!target) return;
+    const currentSrc = target.src || '';
+    if (!currentSrc.includes('/proxy-image') && (currentSrc.includes('zetimage.com') || currentSrc.includes('viestorage.com') || currentSrc.includes('zettruyen'))) {
+      const base = (typeof window !== 'undefined' && window.location.origin.includes('localhost:4200')) ? 'http://localhost:5000' : '';
+      target.src = `${base}/api/chapters/proxy-image?url=${encodeURIComponent(currentSrc)}`;
+      return;
+    }
+    if (!target.src.endsWith('/assets/cover-placeholder.svg')) {
       target.src = 'assets/cover-placeholder.svg';
     }
   }

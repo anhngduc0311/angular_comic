@@ -183,21 +183,40 @@ namespace TruyenKomi.API.Controllers
             try
             {
                 var httpClient = _httpClientFactory.CreateClient();
-                httpClient.DefaultRequestHeaders.Clear();
-                httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
-                httpClient.Timeout = TimeSpan.FromSeconds(30);
+                httpClient.Timeout = TimeSpan.FromSeconds(25);
 
-                var response = await httpClient.GetAsync(uri);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36");
+                request.Headers.TryAddWithoutValidation("Accept", "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8");
+                request.Headers.TryAddWithoutValidation("Accept-Language", "vi-VN,vi;q=0.9,en-US;q=0.8,en;q=0.7");
+                
+                var host = uri.Host.ToLowerInvariant();
+                if (host.Contains("zetimage") || host.Contains("zettruyen"))
+                {
+                    request.Headers.TryAddWithoutValidation("Referer", "https://www.zettruyen1.com/");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Dest", "image");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Mode", "no-cors");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Site", "cross-site");
+                }
+                else if (host.Contains("viestorage") || host.Contains("vieestorage") || host.Contains("nettruyen"))
+                {
+                    request.Headers.TryAddWithoutValidation("Referer", "https://nettruyen.africa/");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Dest", "image");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Mode", "no-cors");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Site", "cross-site");
+                }
+
+                var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
                 {
                     return StatusCode((int)response.StatusCode, new { message = "Không thể tải ảnh từ máy chủ nguồn." });
                 }
 
                 var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
-                var bytes = await response.Content.ReadAsByteArrayAsync();
+                var stream = await response.Content.ReadAsStreamAsync();
 
-                Response.Headers["Cache-Control"] = "public, max-age=86400";
-                return File(bytes, contentType);
+                Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                return File(stream, contentType);
             }
             catch (Exception ex)
             {

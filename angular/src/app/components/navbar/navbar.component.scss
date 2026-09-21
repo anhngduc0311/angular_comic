@@ -110,8 +110,9 @@
         height: 7px;
         border-radius: 50%;
 
-        &.dot-cyan { background: var(--primary-cyan); box-shadow: 0 0 8px var(--primary-cyan); }
         &.dot-orange { background: var(--primary-orange); box-shadow: 0 0 8px var(--primary-orange); }
+        &.dot-cyan { background: var(--primary-cyan); box-shadow: 0 0 8px var(--primary-cyan); }
+        &.dot-emerald { background: #10b981; box-shadow: 0 0 8px #10b981; }
       }
 
       &:hover,

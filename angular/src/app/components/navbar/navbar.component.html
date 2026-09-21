@@ -59,14 +59,19 @@
         </div>
       </div>
 
+      <a [routerLink]="['/comics']" [queryParams]="{ country: 'Nhật Bản' }" routerLinkActive="active" class="nav-tab">
+        <span class="badge-dot dot-orange"></span>
+        <span>Manga</span>
+      </a>
+
       <a [routerLink]="['/comics']" [queryParams]="{ country: 'Hàn Quốc' }" routerLinkActive="active" class="nav-tab">
         <span class="badge-dot dot-cyan"></span>
         <span>Manhwa</span>
       </a>
 
-      <a [routerLink]="['/comics']" [queryParams]="{ country: 'Nhật Bản' }" routerLinkActive="active" class="nav-tab">
-        <span class="badge-dot dot-orange"></span>
-        <span>Manga</span>
+      <a [routerLink]="['/comics']" [queryParams]="{ country: 'Trung Quốc' }" routerLinkActive="active" class="nav-tab">
+        <span class="badge-dot dot-emerald"></span>
+        <span>Manhua</span>
       </a>
     </nav>
 
@@ -260,10 +265,6 @@
       TRANG CHỦ
     </a>
 
-    <a [routerLink]="['/comics']" [queryParams]="{ sort: 'views' }" (click)="closeMobileMenu()" class="mobile-nav-item">
-      HOT
-    </a>
-
     <a [routerLink]="['/comics']" [queryParams]="{ country: 'Nhật Bản' }" (click)="closeMobileMenu()" class="mobile-nav-item">
       MANGA (NHẬT BẢN)
     </a>
@@ -272,12 +273,8 @@
       MANHWA (HÀN QUỐC)
     </a>
 
-    <a routerLink="/history" (click)="closeMobileMenu()" class="mobile-nav-item">
-      LỊCH SỬ
-    </a>
-
-    <a routerLink="/followed" (click)="closeMobileMenu()" class="mobile-nav-item">
-      THEO DÕI
+    <a [routerLink]="['/comics']" [queryParams]="{ country: 'Trung Quốc' }" (click)="closeMobileMenu()" class="mobile-nav-item">
+      MANHUA (TRUNG QUỐC)
     </a>
 
     <!-- Category Accordion Section -->

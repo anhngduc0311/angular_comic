@@ -40,6 +40,8 @@ namespace TruyenKomi.API.Middleware
                 path.StartsWith("/health", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("/metrics", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("/api/upload/file", StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith("/api/chapters/proxy-image", StringComparison.OrdinalIgnoreCase) ||
+                path.Contains("/proxy-image", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("/api/comics/import-scraped", StringComparison.OrdinalIgnoreCase) ||
                 path.StartsWith("/api/comics/fix-dates", StringComparison.OrdinalIgnoreCase) ||
                 path.Contains("/sync-metadata", StringComparison.OrdinalIgnoreCase))

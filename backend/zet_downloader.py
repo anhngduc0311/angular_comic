@@ -922,6 +922,60 @@ class ZetMangaDownloader(BaseMangaDownloader):
         unique_imgs.sort(key=get_page_index)
         return unique_imgs
 
+    @staticmethod
+    def fetch_category_comics(category_url_or_slug: str = "manhwa", page: int = 1) -> dict:
+        """Bóc tách danh sách truyện từ trang thể loại ZetTruyen"""
+        if category_url_or_slug.startswith("http"):
+            clean_url = category_url_or_slug.split("?")[0]
+            cat_url = f"{clean_url}?page={page}"
+        else:
+            cat_url = f"https://www.zettruyen1.com/the-loai/{category_url_or_slug}?page={page}"
+
+        scraper = cloudscraper.create_scraper(browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True})
+        try:
+            res = scraper.get(cat_url, timeout=TIMEOUT)
+            if res.status_code != 200:
+                return {"comics": [], "has_next": False}
+        except Exception:
+            return {"comics": [], "has_next": False}
+
+        soup = BeautifulSoup(res.text, "html.parser")
+        comics = []
+        grid = soup.find('div', class_=lambda c: c and 'grid-cols-3' in c and 'md:grid-cols-5' in c)
+        if grid:
+            for a in grid.find_all('a', href=True):
+                href = a['href']
+                if '/truyen-tranh/' in href and not any(x in href for x in ['/chuong-', '/chapter-', '#']):
+                    clean_url = href if href.startswith("http") else f"https://www.zettruyen1.com{href}"
+                    slug = clean_url.rstrip("/").split("/")[-1].split("?")[0]
+                    title_elem = a.find('span', class_=lambda c: c and 'font-bold' in c and 'line-clamp-2' in c)
+                    title = title_elem.get_text(strip=True) if title_elem else a.get_text(strip=True)
+                    img = a.find('img')
+                    cover = img.get('src') or img.get('data-src') if img else None
+                    if cover and not cover.startswith("http"):
+                        cover = f"https://www.zettruyen1.com{cover}"
+                    chap_elem = a.find('span', class_=lambda c: c and 'text-txt-secondary' in c and 'truncate' in c)
+                    latest_chap = chap_elem.get_text(strip=True) if chap_elem else ''
+
+                    if slug and not any(c['slug'] == slug for c in comics):
+                        comics.append({
+                            "title": title,
+                            "slug": slug,
+                            "url": clean_url,
+                            "cover_url": cover,
+                            "latest_chapter": latest_chap
+                        })
+
+        has_next = False
+        for btn in soup.find_all('a', href=True):
+            if 'Trang sau' in btn.get_text():
+                classes = btn.get('class', [])
+                if 'pointer-events-none' not in classes and 'opacity-60' not in classes and btn.get('href'):
+                    has_next = True
+                break
+
+        return {"comics": comics, "has_next": has_next}
+
 
 class MangaDexDownloader(BaseMangaDownloader):
     """Bộ tải truyện chuyên biệt cho MangaDex (ưu tiên Tiếng Việt)"""
@@ -1482,6 +1536,9 @@ Ví dụ sử dụng:
     parser.add_argument("--pdf", action="store_true", help="Tự động xuất mỗi chương thành file PDF")
     parser.add_argument("--merge", action="store_true", help="Ghép 5 lát cắt ảnh làm 1 (Mặc định tự động ghép nếu chương > 70 ảnh)")
     parser.add_argument("--api", default=DEFAULT_API_BASE_URL, help=f"URL Backend API (Mặc định: {DEFAULT_API_BASE_URL})")
+    parser.add_argument("--direct-sync", "--no-download", action="store_true", help="Đồng bộ trực tiếp link CDN ảnh vào Web API (0MB tải về, siêu nhanh)")
+    parser.add_argument("--all-zet", action="store_true", help="Đồng bộ toàn bộ truyện thể loại Manhwa từ ZetTruyen")
+    parser.add_argument("-p", "--page", "--pages", type=int, default=1, help="Số trang duyệt trên ZetTruyen/MangaDex (Mặc định: 1)")
     
     # MangaDex Specific Arguments
     parser.add_argument("--source", "--src", choices=["auto", "zet", "mangadex"], default="auto", help="Nguồn truyện (Mặc định: auto nhận diện)")
@@ -1491,7 +1548,6 @@ Ví dụ sử dụng:
     parser.add_argument("--start-offset", type=int, default=0, help="Bắt đầu từ truyện thứ mấy (Mặc định: 0)")
     parser.add_argument("--max-manga", type=int, default=None, help="Số lượng truyện tối đa muốn tải (Mặc định: Tất cả)")
     parser.add_argument("-q", "--query", "--search", default=None, help="Từ khóa tìm kiếm truyện trên MangaDex")
-    parser.add_argument("-p", "--page", type=int, default=1, help="Số trang duyệt trên MangaDex (Mặc định: 1)")
     parser.add_argument("--lang", default=DEFAULT_LANG, help=f"Mã ngôn ngữ bản dịch MangaDex (Mặc định: {DEFAULT_LANG} - Tiếng Việt)")
     parser.add_argument("--data-saver", action="store_true", help="Tải ảnh nén tiết kiệm dung lượng từ MangaDex")
     parser.add_argument("--select", default=None, help="Tự động chọn STT truyện khi duyệt danh sách (VD: 1 hoặc 1,2 hoặc all)")
@@ -1499,6 +1555,18 @@ Ví dụ sử dụng:
     args = parser.parse_args()
 
     input_url = args.url or ""
+
+    # -1. Xử lý đồng bộ trực tiếp / thể loại ZetTruyen
+    if args.direct_sync or args.all_zet or ("/the-loai/" in input_url and "zettruyen" in input_url):
+        from sync_manhwa_direct import ZetManhwaDirectSync
+        syncer = ZetManhwaDirectSync(api_base_url=args.api)
+        if "/the-loai/" in input_url or args.all_zet:
+            syncer.sync_category_manhwa(start_page=1, max_pages=args.page if args.page > 1 else None, max_comics=args.max_manga)
+        elif input_url:
+            syncer.sync_comic(input_url)
+        else:
+            syncer.sync_category_manhwa(start_page=1, max_pages=args.page if args.page > 1 else None, max_comics=args.max_manga)
+        return
 
     # 0. Xử lý tải toàn bộ MangaDex (Batch All)
     if args.all_mangadex:

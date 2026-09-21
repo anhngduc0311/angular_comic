@@ -1289,9 +1289,13 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
 
   getOptimizedPageUrl(rawUrl: string): string {
     if (!rawUrl) return '';
+    const base = (typeof window !== 'undefined' && window.location.origin.includes('localhost:4200')) ? 'http://localhost:5000' : '';
     if (rawUrl.startsWith('/api/')) {
-      const base = (typeof window !== 'undefined' && window.location.origin.includes('localhost:4200')) ? 'http://localhost:5000' : '';
       return `${base}${rawUrl}`;
+    }
+    // Protected CDNs that block browser direct hotlinking (zetimage, viestorage, nettruyen)
+    if (rawUrl.includes('zetimage.com') || rawUrl.includes('zettruyen') || rawUrl.includes('viestorage.com') || rawUrl.includes('vieestorage.com') || rawUrl.includes('nettruyen')) {
+      return `${base}/api/chapters/proxy-image?url=${encodeURIComponent(rawUrl)}`;
     }
     if (this.useDataSaver && rawUrl.includes('uploads.mangadex.org/data/') && !rawUrl.includes('/data-saver/')) {
       return rawUrl.replace('/data/', '/data-saver/');
@@ -1346,20 +1350,23 @@ export class ChapterReadComponent implements OnInit, OnDestroy {
     const state = this.pageStates[index];
     if (!state) return;
 
-    // Tự động thử lại tối đa 3 lần với timestamp để vượt cache lỗi của CDN
+    // Tự động thử lại tối đa 3 lần với proxy fallback
     if (state.retryCount < 3) {
       state.retrying = true;
       state.loaded = false;
       state.error = false;
       state.retryCount++;
 
-      const retryDelay = 1200 * state.retryCount;
+      const retryDelay = 800 * state.retryCount;
       setTimeout(() => {
         const pState = this.pageStates[index];
         if (pState && pState.retrying) {
-          const original = this.chapter?.pages[index]?.imageUrl || pState.url;
-          const cleanBase = original.split('?')[0];
-          pState.url = `${cleanBase}?retry=${pState.retryCount}&t=${Date.now()}`;
+          const rawOriginal = this.chapter?.pages[index]?.imageUrl;
+          const base = (typeof window !== 'undefined' && window.location.origin.includes('localhost:4200')) ? 'http://localhost:5000' : '';
+          
+          if (rawOriginal) {
+            pState.url = `${base}/api/chapters/proxy-image?url=${encodeURIComponent(rawOriginal)}&retry=${pState.retryCount}&t=${Date.now()}`;
+          }
           pState.retrying = false;
         }
       }, retryDelay);
