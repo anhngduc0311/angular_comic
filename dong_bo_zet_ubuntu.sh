@@ -188,6 +188,45 @@ sync_now() {
     fi
 }
 
+sync_all_and_run_background() {
+    setup_environment
+    local interval="${1:-15}"
+
+    if is_running; then
+        local pid
+        pid=$(cat "$PID_FILE")
+        log_warning "Tiến trình đồng bộ đang chạy ngầm với PID: $pid"
+        log_info "Tự động chuyển sang theo dõi tiến độ cào realtime bên dưới..."
+        sleep 1
+        view_logs
+        return
+    fi
+
+    log_header "KHỞI CHẠY ĐỒNG BỘ TOÀN BỘ TRUYỆN VÀ CHẠY NGẦM 24/7"
+    log_info "1. Bắt đầu quét & đồng bộ toàn bộ Manhwa và Manhua ngay lập tức..."
+    log_info "2. Sau khi xong sẽ tự động tiếp tục chạy ngầm định kỳ ${BOLD}${interval} phút/lần${NC}"
+    log_info "File log: ${BOLD}${LOG_FILE}${NC}"
+
+    local PY_BIN="$VENV_DIR/bin/python3"
+    if [ ! -f "$PY_BIN" ]; then
+        PY_BIN="python3"
+    fi
+    nohup "$PY_BIN" "$PYTHON_SCRIPT" --category all --continuous --interval "$interval" >> "$LOG_FILE" 2>&1 &
+    local new_pid=$!
+    echo "$new_pid" > "$PID_FILE"
+
+    sleep 2
+    if ps -p "$new_pid" > /dev/null 2>&1; then
+        log_success "Đã khởi chạy tiến trình chạy ngầm thành công! (PID: $new_pid)"
+        echo -e "${YELLOW}👉 Tiến trình đang cào dữ liệu ngầm 24/7.${NC}"
+        echo -e "${YELLOW}👉 Đang mở màn hình xem log tiến độ (Nhấn Ctrl + C để thoát màn hình xem bất cứ lúc nào, tiến trình VẪN TIẾP TỤC CHẠY NGẦM).${NC}\n"
+        sleep 2
+        tail -f "$LOG_FILE"
+    else
+        log_error "Không thể khởi chạy tiến trình. Vui lòng kiểm tra log: cat $LOG_FILE"
+    fi
+}
+
 install_systemd_service() {
     setup_environment
     log_header "CÀI ĐẶT DỊCH VỤ SYSTEMD TỰ ĐỘNG CHẠY KHI VPS KHỞI ĐỘNG"
@@ -259,7 +298,7 @@ case "$ACTION" in
         sync_now "manhwa" "${2:-5}"
         ;;
     all)
-        sync_now "all" "${2:-all}"
+        sync_all_and_run_background "${2:-15}"
         ;;
     service)
         install_systemd_service
@@ -272,7 +311,7 @@ case "$ACTION" in
         echo "4. Xem log realtime (tail -f)"
         echo "5. Đồng bộ nhanh 5 trang MANHUA mới nhất"
         echo "6. Đồng bộ nhanh 5 trang MANHWA mới nhất"
-        echo "7. Đồng bộ TOÀN BỘ cả Manhwa & Manhua"
+        echo "7. Đồng bộ TOÀN BỘ cả Manhwa & Manhua (Vừa cào vừa chạy ngầm 24/7)"
         echo "8. Cài đặt thành Systemd Service (Tự chạy khi khởi động VPS)"
         echo "9. Thoát"
         echo ""
@@ -284,7 +323,7 @@ case "$ACTION" in
             4) view_logs ;;
             5) sync_now "manhua" 5 ;;
             6) sync_now "manhwa" 5 ;;
-            7) sync_now "all" "all" ;;
+            7) sync_all_and_run_background 15 ;;
             8) install_systemd_service ;;
             *) exit 0 ;;
         esac
