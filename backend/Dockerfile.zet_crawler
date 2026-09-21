@@ -1,0 +1,27 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+ENV TZ=Asia/Ho_Chi_Minh
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    tzdata \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir \
+    cloudscraper \
+    beautifulsoup4 \
+    requests \
+    rich \
+    urllib3 \
+    python-dotenv
+
+COPY sync_zet_direct.py ./
+
+ENV API_BASE_URL=http://api:5000/api
+ENV SYNC_CATEGORY=all
+ENV SYNC_INTERVAL=15
+
+CMD ["python", "sync_zet_direct.py", "--category", "all", "--continuous", "--interval", "15", "--api", "http://api:5000/api"]

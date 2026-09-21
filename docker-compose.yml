@@ -116,8 +116,25 @@ services:
     volumes:
       - crawler_data:/app/data
 
+  # 8. ZetTruyen Manhwa & Manhua Direct Syncer Daemon
+  zet-crawler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.zet_crawler
+    container_name: truyenkomi-zet-crawler
+    restart: always
+    environment:
+      - API_BASE_URL=http://api:5000/api
+      - SYNC_CATEGORY=all
+      - SYNC_INTERVAL=15
+    depends_on:
+      - api
+    volumes:
+      - zet_crawler_data:/app/data
+
 volumes:
   postgres_data:
   redis_data:
   meili_data:
   crawler_data:
+  zet_crawler_data:
