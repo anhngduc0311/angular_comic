@@ -43,21 +43,33 @@ log_header() {
 
 setup_environment() {
     if ! command -v python3 >/dev/null 2>&1; then
-        log_error "Chưa cài đặt Python3. Vui lòng cài: sudo apt update && sudo apt install -y python3 python3-pip python3-venv"
-        exit 1
+        log_info "Đang cài đặt Python3..."
+        apt-get update -y >/dev/null 2>&1 && apt-get install -y python3 python3-pip python3-venv >/dev/null 2>&1 || true
     fi
 
     if [ ! -d "$VENV_DIR" ]; then
         log_info "Đang tạo môi trường ảo Python Virtualenv: $VENV_DIR..."
-        python3 -m venv "$VENV_DIR" || python3 -m virtualenv "$VENV_DIR"
+        if ! python3 -m venv "$VENV_DIR" 2>/dev/null; then
+            log_warning "Chưa có gói python3-venv. Đang tự động cài đặt qua apt..."
+            apt-get update -y >/dev/null 2>&1 && apt-get install -y python3-venv python3-pip >/dev/null 2>&1 || true
+            python3 -m venv "$VENV_DIR" 2>/dev/null || true
+        fi
     fi
 
     local PY_BIN="$VENV_DIR/bin/python3"
     local PIP_BIN="$VENV_DIR/bin/pip"
 
-    log_info "Kiểm tra và cài đặt thư viện cần thiết (cloudscraper, beautifulsoup4, requests, rich)..."
-    "$PIP_BIN" install --upgrade pip >/dev/null 2>&1 || true
-    "$PIP_BIN" install cloudscraper beautifulsoup4 requests rich >/dev/null 2>&1 || true
+    if [ -f "$PY_BIN" ]; then
+        log_info "Kiểm tra và cài đặt thư viện cần thiết qua Virtualenv..."
+        "$PIP_BIN" install --upgrade pip >/dev/null 2>&1 || true
+        "$PIP_BIN" install cloudscraper beautifulsoup4 requests rich >/dev/null 2>&1 || true
+    else
+        log_warning "Không thể tạo venv, chuyển sang dùng Python hệ thống..."
+        pip3 install --break-system-packages cloudscraper beautifulsoup4 requests rich >/dev/null 2>&1 || \
+        pip3 install cloudscraper beautifulsoup4 requests rich >/dev/null 2>&1 || true
+        PY_BIN="python3"
+    fi
+
     log_success "Môi trường Python sẵn sàng!"
 }
 
@@ -89,6 +101,9 @@ start_daemon() {
     log_info "File log: ${BOLD}${LOG_FILE}${NC}"
 
     local PY_BIN="$VENV_DIR/bin/python3"
+    if [ ! -f "$PY_BIN" ]; then
+        PY_BIN="python3"
+    fi
     nohup "$PY_BIN" "$PYTHON_SCRIPT" --category all --continuous --interval "$interval" >> "$LOG_FILE" 2>&1 &
     local new_pid=$!
     echo "$new_pid" > "$PID_FILE"
@@ -151,6 +166,9 @@ sync_now() {
     local cat="${1:-all}"
     local pages="${2:-5}"
     local PY_BIN="$VENV_DIR/bin/python3"
+    if [ ! -f "$PY_BIN" ]; then
+        PY_BIN="python3"
+    fi
 
     log_header "ĐỒNG BỘ NHANH: $cat ($pages trang)"
     if [ "$pages" = "all" ]; then
@@ -168,6 +186,9 @@ install_systemd_service() {
     local CURRENT_USER
     CURRENT_USER="$(whoami)"
     local PY_BIN="$SCRIPT_DIR/$VENV_DIR/bin/python3"
+    if [ ! -f "$PY_BIN" ]; then
+        PY_BIN="$(which python3)"
+    fi
     local TARGET_PY="$SCRIPT_DIR/$PYTHON_SCRIPT"
 
     if [ "$(id -u)" -ne 0 ]; then
