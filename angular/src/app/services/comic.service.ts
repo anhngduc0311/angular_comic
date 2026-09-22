@@ -7,6 +7,12 @@ import { Comic, ComicDetail, Category, ChapterDetail, Comment, DashboardStats, S
   providedIn: 'root'
 })
 export class ComicService {
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 mins cache
+  private featuredCache = new Map<string, { data: Comic[]; timestamp: number }>();
+  private latestCache = new Map<string, { data: Comic[]; timestamp: number }>();
+  private searchCache = new Map<string, { data: PagedResult<Comic>; timestamp: number }>();
+  private categoriesCache = new Map<string, { data: Category[]; timestamp: number }>();
+
   constructor(private api: ApiService) {}
 
   getFeaturedComics(criteria?: string, count: number = 10): Observable<Comic[]> {
@@ -14,11 +20,33 @@ export class ComicService {
     if (criteria) params.push(`criteria=${encodeURIComponent(criteria)}`);
     if (count) params.push(`count=${count}`);
     const query = params.length ? `?${params.join('&')}` : '';
-    return this.api.get<Comic[]>(`comics/featured${query}`);
+    const cacheKey = `featured_${criteria || 'default'}_${count}`;
+    const cached = this.featuredCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < this.CACHE_TTL)) {
+      return of(cached.data);
+    }
+    return this.api.get<Comic[]>(`comics/featured${query}`).pipe(
+      tap(data => {
+        if (data) {
+          this.featuredCache.set(cacheKey, { data, timestamp: Date.now() });
+        }
+      })
+    );
   }
 
   getLatestComics(count = 12): Observable<Comic[]> {
-    return this.api.get<Comic[]>(`comics/latest?count=${count}`);
+    const cacheKey = `latest_${count}`;
+    const cached = this.latestCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < this.CACHE_TTL)) {
+      return of(cached.data);
+    }
+    return this.api.get<Comic[]>(`comics/latest?count=${count}`).pipe(
+      tap(data => {
+        if (data) {
+          this.latestCache.set(cacheKey, { data, timestamp: Date.now() });
+        }
+      })
+    );
   }
 
   autocomplete(query: string, limit = 6): Observable<SearchAutocompleteItem[]> {
@@ -40,7 +68,19 @@ export class ComicService {
     if (pageSize) params.push(`pageSize=${pageSize}`);
     
     const queryString = params.length ? `?${params.join('&')}` : '';
-    return this.api.get<PagedResult<Comic>>(`comics/search${queryString}`);
+    const cacheKey = `search_${queryString}`;
+    const cached = this.searchCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < this.CACHE_TTL)) {
+      return of(cached.data);
+    }
+
+    return this.api.get<PagedResult<Comic>>(`comics/search${queryString}`).pipe(
+      tap(res => {
+        if (res && res.items) {
+          this.searchCache.set(cacheKey, { data: res, timestamp: Date.now() });
+        }
+      })
+    );
   }
 
   advancedSearch(filter: SearchFilter): Observable<PagedResult<Comic>> {
@@ -153,8 +193,19 @@ export class ComicService {
   }
 
   getCategories(onlyWithComics = false): Observable<Category[]> {
+    const cacheKey = `categories_${onlyWithComics}`;
+    const cached = this.categoriesCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp < this.CACHE_TTL * 2)) {
+      return of(cached.data);
+    }
     const query = onlyWithComics ? '?onlyWithComics=true' : '';
-    return this.api.get<Category[]>(`categories${query}`);
+    return this.api.get<Category[]>(`categories${query}`).pipe(
+      tap(cats => {
+        if (cats) {
+          this.categoriesCache.set(cacheKey, { data: cats, timestamp: Date.now() });
+        }
+      })
+    );
   }
 
   getComicComments(comicId: number, page = 1, pageSize = 20): Observable<PagedResult<Comment>> {

@@ -25,7 +25,7 @@ namespace TruyenKomi.Tests
             Assert.Equal("nosniff", context.Response.Headers["X-Content-Type-Options"]);
             Assert.Equal("SAMEORIGIN", context.Response.Headers["X-Frame-Options"]);
             Assert.Equal("1; mode=block", context.Response.Headers["X-XSS-Protection"]);
-            Assert.Equal("strict-origin-when-cross-origin", context.Response.Headers["Referrer-Policy"]);
+            Assert.Equal("no-referrer", context.Response.Headers["Referrer-Policy"]);
         }
 
         [Theory]

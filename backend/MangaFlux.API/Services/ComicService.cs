@@ -255,102 +255,108 @@ namespace TruyenKomi.API.Services
 
         public async Task<PagedSearchResultDto<ComicDto>> SearchComicsAsync(string? query, string? categorySlug, string? status, string? sortBy, string? country = null, int? year = null, int page = 1, int pageSize = 24)
         {
-            var comicsQuery = _context.Comics
-                .AsNoTracking()
-                .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
-                .AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(query))
+            string cacheKey = $"comics_search_{query?.Trim().ToLowerInvariant()}_{categorySlug?.Trim().ToLowerInvariant()}_{status?.Trim().ToLowerInvariant()}_{sortBy?.Trim().ToLowerInvariant()}_{country?.Trim().ToLowerInvariant()}_{year}_{page}_{pageSize}";
+            var cached = await _cache.GetOrSetAsync(cacheKey, async () =>
             {
-                comicsQuery = comicsQuery.Where(c => c.Title.Contains(query) || (c.Author != null && c.Author.Contains(query)));
-            }
+                var comicsQuery = _context.Comics
+                    .AsNoTracking()
+                    .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
+                    .AsQueryable();
 
-            if (!string.IsNullOrWhiteSpace(categorySlug))
-            {
-                comicsQuery = comicsQuery.Where(c => c.ComicCategories.Any(cc => cc.Category.Slug == categorySlug));
-            }
-
-            if (!string.IsNullOrWhiteSpace(status) && status != "All")
-            {
-                comicsQuery = comicsQuery.Where(c => c.Status == status);
-            }
-
-            if (!string.IsNullOrWhiteSpace(country) && country != "All")
-            {
-                string normCountry = country.Trim().ToLower();
-                if (normCountry == "japan" || normCountry == "nhật bản" || normCountry == "manga" || normCountry == "nhat ban")
+                if (!string.IsNullOrWhiteSpace(query))
                 {
-                    // Any comic without Manhwa or Manhua tag and not Korea/China is considered Japanese (Manga)
-                    comicsQuery = comicsQuery.Where(c => 
-                        c.Country == "Nhật Bản" || 
-                        c.Country == "Japan" || 
-                        c.Country == "Manga" ||
-                        (!c.ComicCategories.Any(cc => cc.Category.Slug == "manhwa" || cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhwa") || cc.Category.Name.ToLower().Contains("manhua"))
-                         && c.Country != "Hàn Quốc" && c.Country != "Korea" && c.Country != "Trung Quốc" && c.Country != "China" && c.Country != "Manhwa" && c.Country != "Manhua")
-                    );
+                    comicsQuery = comicsQuery.Where(c => c.Title.Contains(query) || (c.Author != null && c.Author.Contains(query)));
                 }
-                else if (normCountry == "korea" || normCountry == "hàn quốc" || normCountry == "manhwa" || normCountry == "han quoc")
+
+                if (!string.IsNullOrWhiteSpace(categorySlug))
                 {
-                    comicsQuery = comicsQuery.Where(c => 
-                        c.Country == "Hàn Quốc" || 
-                        c.Country == "Korea" || 
-                        c.Country == "Manhwa" ||
-                        c.ComicCategories.Any(cc => cc.Category.Slug == "manhwa" || cc.Category.Name.ToLower().Contains("manhwa"))
-                    );
+                    comicsQuery = comicsQuery.Where(c => c.ComicCategories.Any(cc => cc.Category.Slug == categorySlug));
                 }
-                else if (normCountry == "china" || normCountry == "trung quốc" || normCountry == "manhua" || normCountry == "trung quoc")
+
+                if (!string.IsNullOrWhiteSpace(status) && status != "All")
                 {
-                    comicsQuery = comicsQuery.Where(c => 
-                        c.Country == "Trung Quốc" || 
-                        c.Country == "China" || 
-                        c.Country == "Manhua" ||
-                        c.ComicCategories.Any(cc => cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhua"))
-                    );
+                    comicsQuery = comicsQuery.Where(c => c.Status == status);
                 }
-                else if (normCountry == "western" || normCountry == "mỹ" || normCountry == "my" || normCountry == "comic" || normCountry == "us")
+
+                if (!string.IsNullOrWhiteSpace(country) && country != "All")
                 {
-                    comicsQuery = comicsQuery.Where(c => c.Country == "Mỹ" || c.Country == "Western" || c.Country == "Comic" || c.Country == "US");
+                    string normCountry = country.Trim().ToLower();
+                    if (normCountry == "japan" || normCountry == "nhật bản" || normCountry == "manga" || normCountry == "nhat ban")
+                    {
+                        // Any comic without Manhwa or Manhua tag and not Korea/China is considered Japanese (Manga)
+                        comicsQuery = comicsQuery.Where(c => 
+                            c.Country == "Nhật Bản" || 
+                            c.Country == "Japan" || 
+                            c.Country == "Manga" ||
+                            (!c.ComicCategories.Any(cc => cc.Category.Slug == "manhwa" || cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhwa") || cc.Category.Name.ToLower().Contains("manhua"))
+                             && c.Country != "Hàn Quốc" && c.Country != "Korea" && c.Country != "Trung Quốc" && c.Country != "China" && c.Country != "Manhwa" && c.Country != "Manhua")
+                        );
+                    }
+                    else if (normCountry == "korea" || normCountry == "hàn quốc" || normCountry == "manhwa" || normCountry == "han quoc")
+                    {
+                        comicsQuery = comicsQuery.Where(c => 
+                            c.Country == "Hàn Quốc" || 
+                            c.Country == "Korea" || 
+                            c.Country == "Manhwa" ||
+                            c.ComicCategories.Any(cc => cc.Category.Slug == "manhwa" || cc.Category.Name.ToLower().Contains("manhwa"))
+                        );
+                    }
+                    else if (normCountry == "china" || normCountry == "trung quốc" || normCountry == "manhua" || normCountry == "trung quoc")
+                    {
+                        comicsQuery = comicsQuery.Where(c => 
+                            c.Country == "Trung Quốc" || 
+                            c.Country == "China" || 
+                            c.Country == "Manhua" ||
+                            c.ComicCategories.Any(cc => cc.Category.Slug == "manhua" || cc.Category.Name.ToLower().Contains("manhua"))
+                        );
+                    }
+                    else if (normCountry == "western" || normCountry == "mỹ" || normCountry == "my" || normCountry == "comic" || normCountry == "us")
+                    {
+                        comicsQuery = comicsQuery.Where(c => c.Country == "Mỹ" || c.Country == "Western" || c.Country == "Comic" || c.Country == "US");
+                    }
+                    else
+                    {
+                        comicsQuery = comicsQuery.Where(c => c.Country != null && c.Country.ToLower() == normCountry);
+                    }
                 }
-                else
+
+                if (year.HasValue && year.Value > 0)
                 {
-                    comicsQuery = comicsQuery.Where(c => c.Country != null && c.Country.ToLower() == normCountry);
+                    int y = year.Value;
+                    comicsQuery = comicsQuery.Where(c => (c.ReleaseYear == y) || (c.ReleaseYear == null && c.CreatedAt.Year == y));
                 }
-            }
 
-            if (year.HasValue && year.Value > 0)
-            {
-                int y = year.Value;
-                comicsQuery = comicsQuery.Where(c => (c.ReleaseYear == y) || (c.ReleaseYear == null && c.CreatedAt.Year == y));
-            }
+                int totalCount = await comicsQuery.CountAsync();
 
-            int totalCount = await comicsQuery.CountAsync();
+                comicsQuery = (sortBy?.ToLowerInvariant()) switch
+                {
+                    "views" => comicsQuery.OrderByDescending(c => c.Views).ThenByDescending(c => c.Id),
+                    "rating" => comicsQuery.OrderByDescending(c => c.Rating).ThenByDescending(c => c.Id),
+                    "title" or "az" => comicsQuery.OrderBy(c => c.Title).ThenBy(c => c.Id),
+                    "chapters" => comicsQuery.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.Id),
+                    _ => comicsQuery.OrderByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id)
+                };
 
-            comicsQuery = (sortBy?.ToLowerInvariant()) switch
-            {
-                "views" => comicsQuery.OrderByDescending(c => c.Views).ThenByDescending(c => c.Id),
-                "rating" => comicsQuery.OrderByDescending(c => c.Rating).ThenByDescending(c => c.Id),
-                "title" or "az" => comicsQuery.OrderBy(c => c.Title).ThenBy(c => c.Id),
-                "chapters" => comicsQuery.OrderByDescending(c => c.Chapters.Count).ThenByDescending(c => c.Id),
-                _ => comicsQuery.OrderByDescending(c => c.UpdatedAt).ThenByDescending(c => c.Id)
-            };
+                page = page < 1 ? 1 : page;
+                pageSize = pageSize < 1 ? 24 : (pageSize > 100 ? 100 : pageSize);
 
-            page = page < 1 ? 1 : page;
-            pageSize = pageSize < 1 ? 24 : (pageSize > 100 ? 100 : pageSize);
+                var comics = await comicsQuery
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                    .Include(c => c.Chapters)
+                    .ToListAsync();
 
-            var comics = await comicsQuery
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
-                .Include(c => c.Chapters)
-                .ToListAsync();
+                return new PagedSearchResultDto<ComicDto>
+                {
+                    Items = comics.Select(c => MapToComicDto(c)).ToList(),
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize
+                };
+            }, TimeSpan.FromMinutes(10));
 
-            return new PagedSearchResultDto<ComicDto>
-            {
-                Items = comics.Select(c => MapToComicDto(c)).ToList(),
-                TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize
-            };
+            return cached ?? new PagedSearchResultDto<ComicDto> { Items = new List<ComicDto>(), TotalCount = 0, Page = page, PageSize = pageSize };
         }
 
         public async Task<ComicDetailDto?> GetComicBySlugAsync(string slug)
@@ -802,6 +808,7 @@ namespace TruyenKomi.API.Services
             await _cache.RemoveAsync("all_categories_active_cache");
             await _cache.RemoveByPatternAsync("*latest_comics_cache*");
             await _cache.RemoveByPatternAsync("*featured_comics*");
+            await _cache.RemoveByPatternAsync("*comics_search_*");
             await _cache.RemoveByPatternAsync("*comic_all_chapters_*");
             await _cache.RemoveByPatternAsync("*chapter_detail_id_*");
 

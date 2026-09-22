@@ -88,7 +88,7 @@ export class HomeComponent implements OnInit {
       }) ?? false;
     };
 
-    this.comicService.searchComics(undefined, 'romance', undefined, 'views', undefined, 1, 50).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.comicService.searchComics(undefined, 'romance', undefined, 'views', undefined, 1, 24).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (res) => {
         const filtered = (res.items || []).filter(c => isValidHomeComic(c) && isManhwaOrManhua(c));
         if (filtered.length > 0) {
@@ -97,7 +97,7 @@ export class HomeComponent implements OnInit {
           this.isLoadingHot = false;
         } else {
           // Fallback: search by getFeaturedComics and filter for romance manhwa/manhua
-          this.comicService.getFeaturedComics('views', 30).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+          this.comicService.getFeaturedComics('views', 20).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
             next: (data) => {
               const fallbackFiltered = data.filter(c => isValidHomeComic(c) && isManhwaOrManhua(c) && hasRomance(c));
               this.hotComics = fallbackFiltered.length > 0 ? fallbackFiltered.slice(0, 15) : data.filter(c => isValidHomeComic(c) && isManhwaOrManhua(c)).slice(0, 15);

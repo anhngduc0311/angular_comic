@@ -66,6 +66,8 @@ namespace TruyenKomi.Tests
 
             var mockNotificationService = new Mock<INotificationService>();
             var mockCache = new Mock<ICacheService>();
+            mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<PagedSearchResultDto<ComicDto>>>>(), It.IsAny<TimeSpan?>()))
+                .Returns<string, Func<Task<PagedSearchResultDto<ComicDto>>>, TimeSpan?>((key, cb, ttl) => cb());
             var mockGamification = new Mock<IGamificationService>();
             var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object, mockGamification.Object);
 
@@ -96,6 +98,8 @@ namespace TruyenKomi.Tests
 
             var mockNotificationService = new Mock<INotificationService>();
             var mockCache = new Mock<ICacheService>();
+            mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<PagedSearchResultDto<ComicDto>>>>(), It.IsAny<TimeSpan?>()))
+                .Returns<string, Func<Task<PagedSearchResultDto<ComicDto>>>, TimeSpan?>((key, cb, ttl) => cb());
             var mockGamification = new Mock<IGamificationService>();
             var comicService = new ComicService(db, mockNotificationService.Object, mockCache.Object, mockGamification.Object);
 

@@ -64,3 +64,27 @@ docker-compose up -d postgres redis meilisearch
 # xoa docker (chi dung khi muon reset trang web tu dau):
 # docker compose down -v
 
+
+
+
+
+Bước 1: Tạm dừng API và làm sạch Database cũ
+# 1. Tạm dừng API để giải phóng kết nối database
+docker compose stop api
+
+# 2. Ngắt các kết nối đang mở đến database
+docker exec -i truyenkomi-postgres psql -U postgres -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = 'TruyenKomiDb' AND pid <> pg_backend_pid();"
+
+# 3. Xóa database cũ bị xung đột
+docker exec -i truyenkomi-postgres psql -U postgres -c 'DROP DATABASE IF EXISTS "TruyenKomiDb";'
+
+# 4. Tạo lại database trắng sạch sẽ
+docker exec -i truyenkomi-postgres psql -U postgres -c 'CREATE DATABASE "TruyenKomiDb";'
+
+Bước 2: Nạp bản backup 125MB vào Database
+gunzip -c ~/db_backups/TruyenKomiDb_20260921_145811.sql.gz | docker exec -i truyenkomi-postgres psql -U postgres -d TruyenKomiDb
+
+
+Bước 3: Khởi động lại API
+
+docker compose start api

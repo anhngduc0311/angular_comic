@@ -86,11 +86,17 @@ namespace TruyenKomi.Tests
             db.ComicCategories.Add(new ComicCategory { ComicId = 2, CategoryId = 1 });
             db.ComicCategories.Add(new ComicCategory { ComicId = 3, CategoryId = 2 });
 
+            db.Chapters.Add(new Chapter { Id = 101, ComicId = 1, ChapterNumber = 1, Title = "Ch 1" });
+            db.Chapters.Add(new Chapter { Id = 102, ComicId = 2, ChapterNumber = 1, Title = "Ch 1" });
+            db.Chapters.Add(new Chapter { Id = 103, ComicId = 3, ChapterNumber = 1, Title = "Ch 1" });
+
             await db.SaveChangesAsync();
 
             var mockCache = new Mock<ICacheService>();
             mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<List<SearchAutocompleteDto>>>>(), It.IsAny<TimeSpan?>()))
                 .Returns<string, Func<Task<List<SearchAutocompleteDto>>>, TimeSpan?>((key, cb, ttl) => cb());
+            mockCache.Setup(c => c.GetOrSetAsync(It.IsAny<string>(), It.IsAny<Func<Task<PagedSearchResultDto<ComicDto>>>>(), It.IsAny<TimeSpan?>()))
+                .Returns<string, Func<Task<PagedSearchResultDto<ComicDto>>>, TimeSpan?>((key, cb, ttl) => cb());
 
             var searchService = new SearchEngineService(db, mockCache.Object);
 
