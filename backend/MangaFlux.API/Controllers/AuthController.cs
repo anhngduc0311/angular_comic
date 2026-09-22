@@ -13,10 +13,26 @@ namespace TruyenKomi.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly IConfiguration _config;
 
-        public AuthController(IAuthService authService)
+        public AuthController(IAuthService authService, IConfiguration config)
         {
             _authService = authService;
+            _config = config;
+        }
+
+        private int GetExpiryInDays()
+        {
+            var envExpiry = Environment.GetEnvironmentVariable("JWT_EXPIRY_DAYS");
+            if (!string.IsNullOrEmpty(envExpiry) && int.TryParse(envExpiry, out int envDays) && envDays > 0)
+            {
+                return envDays;
+            }
+            if (int.TryParse(_config["JwtSettings:ExpiryInDays"], out int days) && days > 0)
+            {
+                return days;
+            }
+            return 30;
         }
 
         [HttpPost("register")]
@@ -100,10 +116,12 @@ namespace TruyenKomi.API.Controllers
 
         private void SetRefreshTokenCookie(string refreshToken)
         {
+            int days = GetExpiryInDays();
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddDays(days),
+                MaxAge = TimeSpan.FromDays(days),
                 SameSite = SameSiteMode.Lax,
                 Secure = Request.IsHttps,
                 Path = "/api/auth"

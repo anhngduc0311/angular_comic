@@ -40,6 +40,20 @@ namespace TruyenKomi.API.Services
             _config = config;
         }
 
+        private int GetExpiryInDays()
+        {
+            var envExpiry = Environment.GetEnvironmentVariable("JWT_EXPIRY_DAYS");
+            if (!string.IsNullOrEmpty(envExpiry) && int.TryParse(envExpiry, out int envDays) && envDays > 0)
+            {
+                return envDays;
+            }
+            if (int.TryParse(_config["JwtSettings:ExpiryInDays"], out int days) && days > 0)
+            {
+                return days;
+            }
+            return 30;
+        }
+
         public async Task<AuthResult?> RegisterAsync(RegisterDto dto)
         {
             if (await _context.Users.AnyAsync(u => u.Username == dto.Username || u.Email == dto.Email))
@@ -47,6 +61,7 @@ namespace TruyenKomi.API.Services
                 return null; // Username or Email already exists
             }
 
+            int expiryDays = GetExpiryInDays();
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             var refreshToken = GenerateRefreshToken();
             var user = new User
@@ -58,7 +73,7 @@ namespace TruyenKomi.API.Services
                 Role = "User",
                 CreatedAt = DateTime.UtcNow,
                 RefreshToken = refreshToken,
-                RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7)
+                RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(expiryDays)
             };
 
             _context.Users.Add(user);
@@ -113,7 +128,7 @@ namespace TruyenKomi.API.Services
 
             var newRefreshToken = GenerateRefreshToken();
             user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(GetExpiryInDays());
             await _context.SaveChangesAsync();
 
             var token = GenerateJwtToken(user);
@@ -253,7 +268,7 @@ namespace TruyenKomi.API.Services
 
             var newRefreshToken = GenerateRefreshToken();
             user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(GetExpiryInDays());
             await _context.SaveChangesAsync();
 
             var token = GenerateJwtToken(user);
@@ -286,7 +301,7 @@ namespace TruyenKomi.API.Services
             // Refresh Token Rotation: issue a new refresh token and extend expiration
             var newRefreshToken = GenerateRefreshToken();
             user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(GetExpiryInDays());
             await _context.SaveChangesAsync();
 
             var newJwtToken = GenerateJwtToken(user);
@@ -335,10 +350,11 @@ namespace TruyenKomi.API.Services
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
+            int expiryDays = GetExpiryInDays();
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(claims),
-                Expires = DateTime.UtcNow.AddMinutes(30),
+                Expires = DateTime.UtcNow.AddDays(expiryDays),
                 Issuer = jwtSettings["Issuer"] ?? "TruyenKomiAPI",
                 Audience = jwtSettings["Audience"] ?? "TruyenKomiClient",
                 SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature)
