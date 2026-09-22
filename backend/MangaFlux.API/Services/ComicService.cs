@@ -586,12 +586,22 @@ namespace TruyenKomi.API.Services
 
         public async Task<ChapterDetailDto?> GetChapterBySlugAndNumberAsync(string comicSlug, double chapterNumber)
         {
+            string cacheKey = $"chapter_slug_num_{comicSlug}_{chapterNumber}";
+            var cachedId = await _cache.GetAsync<int?>(cacheKey);
+            if (cachedId.HasValue && cachedId.Value > 0)
+            {
+                return await GetChapterByIdAsync(cachedId.Value);
+            }
+
             var chapter = await _context.Chapters
                 .AsNoTracking()
-                .Include(ch => ch.Comic)
-                .FirstOrDefaultAsync(ch => ch.Comic.Slug == comicSlug && Math.Abs(ch.ChapterNumber - chapterNumber) < 0.001);
+                .Where(ch => ch.Comic.Slug == comicSlug && (ch.ChapterNumber == chapterNumber || Math.Abs(ch.ChapterNumber - chapterNumber) < 0.001))
+                .Select(ch => new { ch.Id })
+                .FirstOrDefaultAsync();
 
             if (chapter == null) return null;
+
+            await _cache.SetAsync(cacheKey, chapter.Id, TimeSpan.FromHours(24));
             return await GetChapterByIdAsync(chapter.Id);
         }
 

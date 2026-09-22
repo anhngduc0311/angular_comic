@@ -123,8 +123,19 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IStorageService, MinioStorageService>();
-builder.Services.AddScoped<ISearchEngineService, SearchEngineService>();
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("ImageProxyClient", client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(25);
+})
+.ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+{
+    PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+    PooledConnectionIdleTimeout = TimeSpan.FromMinutes(2),
+    MaxConnectionsPerServer = 200,
+    EnableMultipleHttp2Connections = true,
+    AutomaticDecompression = System.Net.DecompressionMethods.All
+});
 
 // 2b. Register FluentValidation
 builder.Services.AddFluentValidationAutoValidation();

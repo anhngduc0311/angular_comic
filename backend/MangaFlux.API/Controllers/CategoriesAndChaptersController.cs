@@ -182,8 +182,7 @@ namespace TruyenKomi.API.Controllers
 
             try
             {
-                var httpClient = _httpClientFactory.CreateClient();
-                httpClient.Timeout = TimeSpan.FromSeconds(25);
+                var httpClient = _httpClientFactory.CreateClient("ImageProxyClient");
 
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.TryAddWithoutValidation("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36");
@@ -205,6 +204,14 @@ namespace TruyenKomi.API.Controllers
                     request.Headers.TryAddWithoutValidation("Sec-Fetch-Mode", "no-cors");
                     request.Headers.TryAddWithoutValidation("Sec-Fetch-Site", "cross-site");
                 }
+                else
+                {
+                    // Fallback to origin referer to bypass most anti-hotlink checks
+                    request.Headers.TryAddWithoutValidation("Referer", $"{uri.Scheme}://{uri.Host}/");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Dest", "image");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Mode", "no-cors");
+                    request.Headers.TryAddWithoutValidation("Sec-Fetch-Site", "cross-site");
+                }
 
                 var response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
                 if (!response.IsSuccessStatusCode)
@@ -215,7 +222,8 @@ namespace TruyenKomi.API.Controllers
                 var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
                 var stream = await response.Content.ReadAsStreamAsync();
 
-                Response.Headers["Cache-Control"] = "public, max-age=31536000, immutable";
+                Response.Headers["Cache-Control"] = "public, max-age=31536000, s-maxage=31536000, immutable";
+                Response.Headers["X-Content-Type-Options"] = "nosniff";
                 return File(stream, contentType);
             }
             catch (Exception ex)
