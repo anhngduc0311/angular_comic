@@ -25,9 +25,6 @@ export class AppComponent implements OnInit {
     ).subscribe((event: NavigationEnd) => {
       const url = event.urlAfterRedirects || event.url || '';
       this.checkReaderRoute(url);
-      if (!this.isReaderRoute) {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      }
     });
   }
 
