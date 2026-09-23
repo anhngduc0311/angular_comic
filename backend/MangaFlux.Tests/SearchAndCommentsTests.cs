@@ -124,5 +124,16 @@ namespace TruyenKomi.Tests
             Assert.Equal(1, resultSolo.TotalCount);
             Assert.Equal("Solo Leveling", resultSolo.Items[0].Title);
         }
+
+        [Fact]
+        public void ComicsController_CanBeInstantiatedWithDependencies()
+        {
+            var mockComicService = new Mock<IComicService>();
+            var mockSearchService = new Mock<ISearchEngineService>();
+
+            var controller = new TruyenKomi.API.Controllers.ComicsController(mockComicService.Object, mockSearchService.Object);
+
+            Assert.NotNull(controller);
+        }
     }
 }

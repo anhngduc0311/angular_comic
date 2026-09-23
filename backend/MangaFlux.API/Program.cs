@@ -123,6 +123,7 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IStorageService, MinioStorageService>();
+builder.Services.AddScoped<ISearchEngineService, SearchEngineService>();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("ImageProxyClient", client =>
 {
