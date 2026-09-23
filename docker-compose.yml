@@ -95,6 +95,7 @@ services:
     restart: always
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_img_cache:/tmp/nginx_img_cache
     depends_on:
       - api
       - frontend
@@ -133,6 +134,7 @@ services:
       - zet_crawler_data:/app/data
 
 volumes:
+  nginx_img_cache:
   postgres_data:
   redis_data:
   meili_data:

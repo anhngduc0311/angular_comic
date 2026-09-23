@@ -105,28 +105,21 @@ namespace TruyenKomi.API.Services
                               .ThenByDescending(c => c.Id)
                 };
 
-                var result = await query
-                    .Take(count)
-                    .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
-                    .Include(c => c.Chapters)
-                    .ToListAsync();
+                var result = await LoadComicCardsAsync(query.Take(count));
 
                 if (result.Count == 0)
                 {
-                    result = await _context.Comics
+                    result = await LoadComicCardsAsync(_context.Comics
                         .AsNoTracking()
                         .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                         .OrderByDescending(c => c.IsFeatured)
                         .ThenByDescending(c => c.Views)
                         .ThenByDescending(c => c.UpdatedAt)
                         .ThenByDescending(c => c.Id)
-                        .Take(count)
-                        .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
-                        .Include(c => c.Chapters)
-                        .ToListAsync();
+                        .Take(count));
                 }
 
-                return result.Select(c => MapToComicDto(c)).ToList();
+                return result;
             }, TimeSpan.FromMinutes(10))) ?? new List<ComicDto>();
         }
 
@@ -135,30 +128,24 @@ namespace TruyenKomi.API.Services
             string cacheKey = $"latest_comics_cache_{count}";
             return (await _cache.GetOrSetAsync(cacheKey, async () =>
             {
-                var comics = await _context.Comics
+                var comics = await LoadComicCardsAsync(_context.Comics
                     .AsNoTracking()
                     .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                     .OrderByDescending(c => c.UpdatedAt)
                     .ThenByDescending(c => c.Id)
-                    .Take(count)
-                    .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
-                    .Include(c => c.Chapters)
-                    .ToListAsync();
+                    .Take(count));
 
                 if (comics.Count == 0)
                 {
-                    comics = await _context.Comics
+                    comics = await LoadComicCardsAsync(_context.Comics
                         .AsNoTracking()
                         .Where(c => c.IsPublic && c.Chapters.Any(ch => (ch.ChapterNumber >= 0.8 && ch.ChapterNumber < 2.0) || (ch.ChapterNumber >= 0 && ch.ChapterNumber <= 1.5)))
                         .OrderByDescending(c => c.UpdatedAt)
                         .ThenByDescending(c => c.Id)
-                        .Take(count)
-                        .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
-                        .Include(c => c.Chapters)
-                        .ToListAsync();
+                        .Take(count));
                 }
 
-                return comics.Select(c => MapToComicDto(c)).ToList();
+                return comics;
             }, TimeSpan.FromMinutes(15))) ?? new List<ComicDto>();
         }
 
@@ -340,16 +327,13 @@ namespace TruyenKomi.API.Services
                 page = page < 1 ? 1 : page;
                 pageSize = pageSize < 1 ? 24 : (pageSize > 100 ? 100 : pageSize);
 
-                var comics = await comicsQuery
+                var comics = await LoadComicCardsAsync(comicsQuery
                     .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
-                    .Include(c => c.Chapters)
-                    .ToListAsync();
+                    .Take(pageSize));
 
                 return new PagedSearchResultDto<ComicDto>
                 {
-                    Items = comics.Select(c => MapToComicDto(c)).ToList(),
+                    Items = comics,
                     TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize
@@ -1731,6 +1715,35 @@ namespace TruyenKomi.API.Services
             }
 
             return updatedCount;
+        }
+
+        private static async Task<List<ComicDto>> LoadComicCardsAsync(IQueryable<Comic> query)
+        {
+            // Home/search only display three chapters per card. Aggregate the full
+            // collection in SQL, and avoid loading every chapter or multiplying
+            // chapter rows by category rows in a single joined result.
+            var rows = await query
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Include(c => c.ComicCategories).ThenInclude(cc => cc.Category)
+                .Include(c => c.Chapters.OrderByDescending(ch => ch.ChapterNumber).ThenByDescending(ch => ch.Id).Take(3))
+                .Select(c => new
+                {
+                    Comic = c,
+                    TotalChapters = c.Chapters.Count,
+                    HasChapterOne = c.Chapters.Any(ch => ch.ChapterNumber >= 0 && ch.ChapterNumber < 2),
+                    FirstChapterNumber = c.Chapters.Select(ch => (double?)ch.ChapterNumber).Min()
+                })
+                .ToListAsync();
+
+            return rows.Select(row =>
+            {
+                var dto = MapToComicDto(row.Comic);
+                dto.TotalChapters = row.TotalChapters;
+                dto.HasChapterOne = row.HasChapterOne;
+                dto.FirstChapterNumber = (decimal?)row.FirstChapterNumber;
+                return dto;
+            }).ToList();
         }
 
         private static ComicDto MapToComicDto(Comic c)
